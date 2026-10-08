@@ -9,6 +9,7 @@ No installs needed. It only uses Python's standard library.
 
 import json
 import os
+import ssl
 import urllib.error
 import urllib.request
 import webbrowser
@@ -81,6 +82,28 @@ def key_status():
 # 3. Talking to DeepSeek
 # ---------------------------------------------------------------------------
 
+def make_ssl_context():
+    """How Python checks that it's really talking to DeepSeek (HTTPS certificates).
+
+    Some Python installs (python.org on Mac is the usual one) ship without a
+    certificate list, so every HTTPS request fails. If `truststore` is installed
+    we use your computer's own certificate store, which always works; otherwise
+    `certifi`'s list if that's around; otherwise Python's default.
+    """
+    try:
+        import truststore
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT), "your computer's certificate store"
+    except ImportError:
+        pass
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where()), "certifi"
+    except ImportError:
+        return ssl.create_default_context(), "Python's default"
+
+
+SSL_CONTEXT, SSL_SOURCE = make_ssl_context()
+
 class FriendlyError(Exception):
     """An error with a message that's safe and useful to show on the page."""
     def __init__(self, status, message):
@@ -109,7 +132,7 @@ def ask_deepseek(messages):
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
     try:
-        return urllib.request.urlopen(request, timeout=60)
+        return urllib.request.urlopen(request, timeout=60, context=SSL_CONTEXT)
     except urllib.error.HTTPError as e:
         if e.code == 401:
             raise FriendlyError(401, "DeepSeek rejected the key. Paste a fresh one in Keys.")
@@ -118,6 +141,9 @@ def ask_deepseek(messages):
         detail = e.read().decode(errors="replace")[:300]
         raise FriendlyError(e.code, f"DeepSeek returned an error ({e.code}): {detail}")
     except urllib.error.URLError as e:
+        if isinstance(e.reason, ssl.SSLCertVerificationError):
+            raise FriendlyError(502, "Python can't check DeepSeek's security certificate on this computer. "
+                                     "Run  python3 -m pip install truststore  once, then restart app.py.")
         raise FriendlyError(502, f"Can't reach DeepSeek ({e.reason}). Check your internet connection, then send again.")
 
 
@@ -227,6 +253,7 @@ if __name__ == "__main__":
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
     url = f"http://localhost:{PORT}"
     print(f"Avy is up at {url}  (Ctrl+C to stop)")
+    print(f"Checking HTTPS certificates with {SSL_SOURCE}.")
     if not os.environ.get("AVY_NO_BROWSER"):
         webbrowser.open(url)
     try:

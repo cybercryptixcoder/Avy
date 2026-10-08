@@ -6,7 +6,7 @@
 <title>Avy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
 /* ===================================================================
@@ -149,46 +149,58 @@ button { cursor: pointer; background: none; border: 0; }
 .toggle i.on { background: var(--green); color: var(--ink); }
 
 /* ===================================================================
-   4. The conversation
+   4. The conversation: quiet on purpose.
+      No color, monospace text, a block cursor like a terminal.
    =================================================================== */
 .chat {
-  background: var(--pink); border: var(--thick); border-radius: 26px;
-  display: grid; grid-template-rows: 1fr auto; min-height: 0; overflow: hidden;
+  min-height: 0; display: grid; grid-template-rows: auto 1fr auto auto;
+  font-family: "Space Mono", ui-monospace, monospace; font-size: 15px; line-height: 1.6;
+  padding-top: 2px;
 }
-.log { overflow-y: auto; padding: 28px 28px 14px; display: flex; flex-direction: column; gap: 14px; }
+.chat :focus-visible { outline-color: var(--ink); }
 
-.msg {
-  max-width: min(640px, 86%); padding: 13px 18px 14px;
-  border: var(--thin); border-radius: 20px;
-  font-size: 16.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
-}
-.msg.you { align-self: flex-end; background: var(--yellow); border-bottom-right-radius: 6px; }
-.msg.avy { align-self: flex-start; background: var(--card); border-bottom-left-radius: 6px; }
-.msg.avy:empty::before { content: "Writing…"; opacity: .55; }
-.msg.error { align-self: center; max-width: 90%; background: var(--orange); font-weight: 600; text-align: center; border-radius: 16px; }
+/* the bracket lines from the reference: a rule with short ticks at each end */
+.rule { height: 11px; border: 1.5px solid var(--ink); }
+.rule.top    { border-bottom: 0; }
+.rule.bottom { border-top: 0; }
 
-.empty { margin: auto; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 24px 0; }
-.burst { width: 190px; height: auto; transform: rotate(-10deg); }
-.empty h2 { font-weight: 850; font-stretch: 120%; font-size: 30px; line-height: 1.05; letter-spacing: -.01em; }
-.empty p { max-width: 300px; font-size: 10.5px; line-height: 1.4; font-weight: 500; text-transform: uppercase; letter-spacing: .02em; }
+.log { overflow-y: auto; padding: 22px 26px 30px; cursor: text; }
+.log > * { max-width: 74ch; }
+.meta { font-size: 13px; opacity: .55; margin-bottom: 4px; }
 
-.composer {
-  margin: 0 16px 16px; display: flex; align-items: flex-end; gap: 10px;
-  background: var(--card); border: var(--thick); border-radius: 30px; padding: 7px 7px 7px 24px;
+.line { white-space: pre-wrap; overflow-wrap: anywhere; }
+.line.you, .prompt { margin-top: 26px; display: grid; grid-template-columns: 2ch 1fr; font-weight: 700; }
+.line.avy, .line.error { margin-top: 8px; }
+.line.error::before { content: "error: "; font-weight: 700; }
+.chat.busy .prompt { display: none; }   /* like a terminal: no prompt while it's running */
+
+/* The input: the real textarea is see-through; the "mirror" behind it draws
+   the same text plus the block cursor. Same font, same wrapping, so they line up. */
+.typed { position: relative; }
+.typed textarea, .mirror {
+  display: block; width: 100%; margin: 0; padding: 0; border: 0;
+  font: inherit; line-height: inherit; letter-spacing: inherit;
+  white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.composer:focus-within { outline: 3px solid var(--blue); outline-offset: 3px; }
-.composer textarea {
-  flex: 1; border: 0; background: none; resize: none; outline: none;
-  font-size: 17px; line-height: 1.45; padding: 11px 0; max-height: 180px;
+.typed textarea {
+  position: relative; resize: none; outline: none; background: none;
+  color: transparent; caret-color: transparent;
+  max-height: 192px; overflow-y: auto; scrollbar-width: none;
 }
-.composer textarea::placeholder { color: var(--ink); opacity: .45; }
-.send {
-  height: 50px; padding: 0 24px 0 20px; flex: none;
-  display: inline-flex; align-items: center; gap: 10px;
-  background: var(--ink); color: var(--yellow); border-radius: 999px;
-  font-size: 16px; font-weight: 500;
+.typed textarea::selection { background: rgb(28 26 23 / .18); }
+.mirror { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.hint { font-weight: 400; opacity: .45; }
+
+.cursor { background: var(--ink); color: var(--card); animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { background: transparent; color: inherit; } }
+.typed:not(:focus-within) .cursor {        /* hollow block when you've clicked away */
+  background: transparent; color: inherit; box-shadow: inset 0 0 0 1.5px var(--ink); animation: none;
 }
-.send:hover { color: var(--card); }
+
+.status { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 9px 2px 0; font-size: 13px; }
+.status .how { opacity: .55; }
+.status button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 2px 0; margin-left: auto; }
+.status button:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ===================================================================
    5. The keys panel
@@ -211,6 +223,11 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
 .field small { font-size: 13px; opacity: .75; }
 .actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 18px; }
 .actions .pill-btn { height: 50px; padding: 0 22px; font-size: 16px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.primary {
+  height: 50px; padding: 0 24px; border-radius: 999px;
+  background: var(--ink); color: var(--yellow); font-size: 16px; font-weight: 500;
+}
+.primary:hover { color: var(--card); }
 .saved { margin-right: auto; font-weight: 600; font-size: 14px; }
 
 /* ===================================================================
@@ -230,11 +247,9 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   .tiles { order: 3; }
   .info  { order: 4; }
   .sticker { width: 33cqi; bottom: -30px; }
-  .log { padding: 18px 14px 10px; }
-  .msg { max-width: 92%; }
-  .composer { margin: 0 10px 10px; padding-left: 18px; }
-  .send { padding: 0 16px; }
-  .send .label { display: none; }
+  .chat  { margin-top: 30px; font-size: 14px; }
+  .log { padding: 16px 10px 24px; }
+  .status .how { display: none; }
   .tile b { font-size: 44px; }
 }
 
@@ -244,7 +259,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sticker, .sticker.spinning .ring { animation: none; }
+  .sticker, .sticker.spinning .ring, .cursor { animation: none; }
 }
 </style>
 </head>
@@ -263,10 +278,6 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 17 17 7M8.5 7H17v8.5"/>
   </symbol>
-  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/>
-  </symbol>
-  <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></symbol>
 </svg>
 
 <div class="frame">
@@ -343,24 +354,24 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
     </aside>
 
     <!-- ---------- right: the conversation ---------- -->
-    <section class="chat" aria-label="Conversation">
+    <section class="chat" id="chat" aria-label="Conversation">
+      <div class="rule top"></div>
       <div class="log" id="log">
-        <div class="empty" id="empty">
-          <svg class="burst" viewBox="0 0 200 200" aria-hidden="true">
-            <polygon fill="#7F9CE2" stroke="#1C1A17" stroke-width="4" stroke-linejoin="round"
-              points="100.0,6.0 116.0,29.8 140.8,15.3 144.9,43.7 173.5,41.4 164.9,68.8 191.6,79.1 172.0,100.0 191.6,120.9 164.9,131.2 173.5,158.6 144.9,156.3 140.8,184.7 116.0,170.2 100.0,194.0 84.0,170.2 59.2,184.7 55.1,156.3 26.5,158.6 35.1,131.2 8.4,120.9 28.0,100.0 8.4,79.1 35.1,68.8 26.5,41.4 55.1,43.7 59.2,15.3 84.0,29.8"/>
-            <text x="100" y="94" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="34" fill="#1C1A17" style="font-stretch:125%">SAY</text>
-            <text x="100" y="128" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="34" fill="#1C1A17" style="font-stretch:125%">HI!</text>
-          </svg>
-          <h2>Ask Avy anything.</h2>
-          <p>This chat lives in this tab. Refresh and it's gone, until Avy gets a memory.</p>
+        <p class="meta">avy 0.1, talking through deepseek-flash with thinking off.<br>this conversation lives in this tab. refresh and it's gone.</p>
+        <!-- your messages and Avy's replies get added here, above the prompt -->
+        <div class="prompt" id="prompt">
+          <span aria-hidden="true">›</span>
+          <div class="typed">
+            <div class="mirror" id="mirror" aria-hidden="true"></div>
+            <textarea id="input" rows="1" aria-label="Message Avy" spellcheck="false"></textarea>
+          </div>
         </div>
       </div>
-
-      <form class="composer" id="composer">
-        <textarea id="input" rows="1" placeholder="Message Avy" aria-label="Message Avy"></textarea>
-        <button class="send" id="send" type="submit"></button>
-      </form>
+      <div class="rule bottom"></div>
+      <div class="status">
+        <span class="how">enter to send, shift+enter for a new line</span>
+        <button id="send" type="button">[ send ]</button>
+      </div>
     </section>
 
   </div>
@@ -376,7 +387,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
     <div class="actions">
       <span class="saved" id="keysMsg" role="status"></span>
       <button class="pill-btn" type="button" id="closeKeys">Close</button>
-      <button class="send" type="submit">Save keys</button>
+      <button class="primary" type="submit">Save keys</button>
     </div>
   </form>
 </dialog>
@@ -385,13 +396,13 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
 <script>
 const $ = (id) => document.getElementById(id);
 const log = $("log"), input = $("input"), sendBtn = $("send");
-const emptyState = $("empty");
+const prompt = $("prompt"), mirror = $("mirror");
 
 /* ===================================================================
    1. What this tab remembers (gone on refresh, on purpose for now)
    =================================================================== */
 let history = [];        // the whole conversation; sent to DeepSeek every turn
-let controller = null;   // exists while Avy is replying; the Stop button uses it
+let controller = null;   // exists while Avy is replying; Stop uses it
 const session = { tokens: 0, dollars: 0 };
 
 
@@ -422,7 +433,10 @@ function costOf(usage) {
 async function loadStatus() {
   const status = await (await fetch("/api/status")).json();
   showStatus(status);
+  // Open Keys if there's no DeepSeek key yet. Only focus the prompt otherwise:
+  // focusing it first makes Chrome drop your typing after the panel closes.
   if (!status.keys.find(k => k.name === "DEEPSEEK_API_KEY").hint) openKeys();
+  else input.focus();
 }
 
 function showStatus(status) {
@@ -467,14 +481,18 @@ $("keysForm").onsubmit = async (e) => {
    =================================================================== */
 async function send() {
   const text = input.value.trim();
-  if (!text) return;
-  input.value = ""; grow();
-  emptyState.remove();
+  if (!text || controller) return;
+  input.value = ""; grow(); drawCursor();
 
   const chat = history;   // if you press New chat mid-reply, this reply is dropped
-  const yourBubble = addBubble("you", text);
+  const yourLine = addLine("you", text);
   chat.push({ role: "user", content: text });
-  const avyBubble = addBubble("avy", "");
+
+  // Avy's line starts as just a blinking block; words appear in front of it
+  const avyLine = addLine("avy", "");
+  const words = document.createTextNode("");
+  const block = makeCursor();
+  avyLine.append(words, block);
   setBusy(true);
 
   let reply = "", usage = null, failed = null;
@@ -490,8 +508,8 @@ async function send() {
       throw new Error(err.error || `Avy's server answered ${res.status}.`);
     }
     await readStream(res, (chunk) => {
-      const words = chunk.choices?.[0]?.delta?.content;
-      if (words) { reply += words; avyBubble.textContent = reply; scrollDown(); }
+      const piece = chunk.choices?.[0]?.delta?.content;
+      if (piece) { reply += piece; words.data = reply; scrollDown(); }
       if (chunk.usage) usage = chunk.usage;
     });
   } catch (err) {
@@ -502,19 +520,21 @@ async function send() {
     }
   }
 
+  block.remove();
   setBusy(false);
   if (usage) { session.tokens += usage.total_tokens || 0; session.dollars += costOf(usage); }
-  if (chat !== history) return updateTiles();
+  if (chat !== history) { updateTiles(); input.focus(); return; }
 
   if (reply) {
     chat.push({ role: "assistant", content: reply });
   } else {
-    // nothing came back: undo this turn and put your message back in the box
-    avyBubble.remove(); yourBubble.remove(); chat.pop();
-    input.value = text; grow();
+    // nothing came back: undo this turn and put your message back at the prompt
+    avyLine.remove(); yourLine.remove(); chat.pop();
+    input.value = text; grow(); drawCursor();
   }
-  if (failed) addBubble("error", failed);
+  if (failed) addLine("error", failed);
   updateTiles();
+  scrollDown();
   input.focus();
 }
 
@@ -540,25 +560,72 @@ async function readStream(res, onChunk) {
 
 
 /* ===================================================================
-   5. Small page helpers
+   5. The block cursor
+      The textarea you type in is invisible. The mirror behind it shows
+      the same text, with the character under the cursor drawn as a block.
    =================================================================== */
-function addBubble(kind, text) {
-  const bubble = document.createElement("div");
-  bubble.className = "msg " + kind;
-  bubble.textContent = text;
-  log.append(bubble);
+function makeCursor(char = " ") {
+  const block = document.createElement("span");
+  block.className = "cursor";
+  block.textContent = char;
+  return block;
+}
+
+function drawCursor() {
+  const text = input.value;
+  const at = input.selectionStart;
+  if (at !== input.selectionEnd) return mirror.replaceChildren(text);   // selecting: no block
+
+  const under = text[at];
+  const onChar = under !== undefined && under !== "\n";
+  mirror.replaceChildren(
+    text.slice(0, at),
+    makeCursor(onChar ? under : " "),
+    text.slice(onChar ? at + 1 : at),
+  );
+  if (!text) {
+    const hint = document.createElement("span");
+    hint.className = "hint";
+    hint.textContent = " type a message";
+    mirror.append(hint);
+  }
+  mirror.scrollTop = input.scrollTop;
+}
+
+input.addEventListener("input", () => { grow(); drawCursor(); });
+input.addEventListener("focus", drawCursor);
+input.addEventListener("scroll", () => { mirror.scrollTop = input.scrollTop; });
+document.addEventListener("selectionchange", () => {
+  if (document.activeElement === input) drawCursor();   // arrow keys, clicks
+});
+
+
+/* ===================================================================
+   6. Small page helpers
+   =================================================================== */
+function addLine(kind, text) {
+  const line = document.createElement("div");
+  line.className = "line " + kind;
+  if (kind === "you") {
+    const mark = document.createElement("span");
+    mark.textContent = "›";
+    const said = document.createElement("span");
+    said.textContent = text;
+    line.append(mark, said);
+  } else {
+    line.textContent = text;
+  }
+  log.insertBefore(line, prompt);
   scrollDown();
-  return bubble;
+  return line;
 }
 
 function scrollDown() { log.scrollTop = log.scrollHeight; }
 
 function setBusy(busy) {
   controller = busy ? new AbortController() : null;
-  sendBtn.innerHTML = busy
-    ? `<svg class="icon"><use href="#i-stop"/></svg><span class="label">Stop</span>`
-    : `<svg class="icon"><use href="#i-send"/></svg><span class="label">Send</span>`;
-  sendBtn.setAttribute("aria-label", busy ? "Stop" : "Send");
+  $("chat").classList.toggle("busy", busy);
+  sendBtn.textContent = busy ? "[ stop ]" : "[ send ]";
   $("sticker").classList.toggle("spinning", busy);
 }
 
@@ -578,41 +645,40 @@ function updateRate() {
 
 function grow() {
   input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 180) + "px";
+  input.style.height = Math.min(input.scrollHeight, 192) + "px";
 }
 
-// Send button doubles as Stop while Avy is replying
-$("composer").onsubmit = (e) => {
-  e.preventDefault();
-  if (controller) controller.abort(); else send();
-};
-
-// Enter sends, Shift+Enter makes a new line
+// Enter sends, Shift+Enter makes a new line, Esc stops Avy mid-reply
 input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
-    e.preventDefault();
-    $("composer").requestSubmit();
-  }
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
 });
-input.addEventListener("input", grow);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && controller) controller.abort();
+});
+sendBtn.onclick = () => (controller ? controller.abort() : send());
+
+// Clicking anywhere in the conversation puts you back at the prompt
+log.addEventListener("click", () => {
+  if (!controller && getSelection().isCollapsed) input.focus();
+});
 
 $("newChat").onclick = () => {
   if (controller) controller.abort();
   history = [];
-  log.replaceChildren(emptyState);
+  log.querySelectorAll(".line").forEach((line) => line.remove());
   updateTiles();
   input.focus();
 };
 
 
 /* ===================================================================
-   6. Start
+   7. Start
    =================================================================== */
 setBusy(false);
 updateRate();
 setInterval(updateRate, 60_000);
 loadStatus();
-input.focus();
+drawCursor();
 </script>
 </body>
 </html>

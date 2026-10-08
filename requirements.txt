@@ -1,0 +1,3 @@
+# Optional, but install it once: lets Python use your computer's own HTTPS
+# certificates, which fixes "CERTIFICATE_VERIFY_FAILED" errors.
+truststore
