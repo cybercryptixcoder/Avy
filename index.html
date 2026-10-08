@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+
+<style>
+/* ===================================================================
+   1. Colors and lines (the whole palette lives here)
+   =================================================================== */
+:root {
+  --paper:  #EEDCC2;  /* behind the frame */
+  --card:   #F7ECDC;  /* the frame and light cards */
+  --ink:    #1C1A17;
+  --pink:   #F27CB4;  /* the conversation */
+  --yellow: #F6C744;  /* you */
+  --teal:   #4FA596;  /* Avy */
+  --orange: #F0692A;  /* keys + errors */
+  --blue:   #7F9CE2;  /* focus + "say hi" */
+  --green:  #62BE76;  /* money */
+  --grey:   #AEB4B5;
+  --thick: 3px solid var(--ink);
+  --thin:  2px solid var(--ink);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+/* printed-paper grain over everything */
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  opacity: .16; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+button, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.icon { width: 20px; height: 20px; flex: none; }
+
+/* ===================================================================
+   2. The frame: one big outlined card holding everything
+   =================================================================== */
+.frame { height: 100%; padding: 18px; }
+.shell {
+  height: 100%;
+  display: grid; grid-template-rows: auto 1fr; gap: 18px;
+  background: var(--card); border: var(--thick); border-radius: 30px;
+  padding: 18px;
+}
+
+/* --- top bar --- */
+.nav { display: flex; align-items: center; gap: 14px; }
+.nav-pill {
+  flex: 1; min-width: 0; height: 60px;
+  display: flex; align-items: center; gap: 12px;
+  border: var(--thin); border-radius: 999px; padding-right: 9px;
+}
+.nav-globe { width: 66px; height: 100%; display: grid; place-items: center; border-right: var(--thin); flex: none; }
+.nav-globe .icon { width: 28px; height: 28px; }
+.nav-items {
+  flex: 1; min-width: 0; list-style: none;
+  display: flex; justify-content: space-around; gap: 18px;
+  font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .02em;
+  white-space: nowrap; overflow: hidden;
+}
+.nav-items .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--ink); margin-right: 8px; vertical-align: 1px; background: var(--grey); }
+.nav-items .dot.ok { background: var(--teal); }
+.nav-items .dot.warn { background: var(--orange); }
+
+.pill-btn {
+  height: 42px; padding: 0 18px; flex: none;
+  display: inline-flex; align-items: center; gap: 10px;
+  border: var(--thin); border-radius: 999px;
+  font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em;
+}
+.pill-btn:hover { background: var(--ink); color: var(--card); }
+.round-btn {
+  width: 62px; height: 62px; flex: none; border-radius: 50%;
+  border: var(--thick); background: var(--orange);
+  display: grid; place-items: center;
+}
+.round-btn .icon { width: 26px; height: 26px; }
+.round-btn:hover { background: var(--yellow); }
+
+/* --- two columns: the poster on the left, the conversation on the right --- */
+.main { display: grid; grid-template-columns: minmax(320px, .9fr) minmax(0, 1.6fr); gap: 18px; min-height: 0; }
+.side { display: flex; flex-direction: column; gap: 18px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+
+/* ===================================================================
+   3. The poster side: wordmark, sticker, motto, counters
+   =================================================================== */
+.hero { position: relative; container-type: inline-size; padding-top: 6px; }
+.wordmark {
+  font-weight: 900; font-stretch: 125%;
+  font-size: 37.5cqi; line-height: .86; letter-spacing: -.045em;
+  margin-left: -.03em;
+}
+.micro {
+  margin-top: 16px; max-width: 54%;
+  font-size: 10.5px; line-height: 1.4; font-weight: 500; text-transform: uppercase; letter-spacing: .02em;
+}
+.sticker {
+  position: absolute; right: 1%; bottom: -88px; z-index: 2;
+  width: 33cqi; height: auto;
+  transform: rotate(-9deg);
+  animation: slap .55s cubic-bezier(.2, 1.6, .4, 1) .25s both;
+}
+.sticker .ring { transform-box: fill-box; transform-origin: center; }
+.sticker.spinning .ring { animation: spin 5s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slap { from { opacity: 0; transform: scale(1.6) rotate(12deg); } to { opacity: 1; transform: scale(1) rotate(-9deg); } }
+
+.info {
+  border: var(--thin); border-radius: 22px; padding: 22px 24px 24px;
+}
+.motto {
+  font-weight: 850; font-stretch: 115%; font-size: 25px; line-height: 1.08;
+  text-transform: uppercase; letter-spacing: -.01em;
+}
+.info hr { border: 0; border-top: var(--thin); margin: 16px 0 14px; width: 92%; }
+.info p.body { font-size: 15px; line-height: 1.45; max-width: 34ch; }
+
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: auto; }
+.tile {
+  border: var(--thin); border-radius: 20px; padding: 15px 18px 12px;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 8px; min-height: 108px;
+}
+.tile-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; }
+.tile b {
+  font-weight: 400; font-size: 54px; line-height: 1; letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+.tile.dark  { background: var(--ink); color: var(--card); }
+.tile.grey  { background: var(--grey); }
+.tile.green { background: var(--green); grid-column: span 2; }
+.toggle { display: inline-flex; background: var(--ink); border: var(--thin); border-radius: 999px; padding: 2px; }
+.toggle i { font-style: normal; font-size: 12px; font-weight: 500; padding: 3px 11px; border-radius: 999px; color: var(--green); }
+.toggle i.on { background: var(--green); color: var(--ink); }
+
+/* ===================================================================
+   4. The conversation
+   =================================================================== */
+.chat {
+  background: var(--pink); border: var(--thick); border-radius: 26px;
+  display: grid; grid-template-rows: 1fr auto; min-height: 0; overflow: hidden;
+}
+.log { overflow-y: auto; padding: 28px 28px 14px; display: flex; flex-direction: column; gap: 14px; }
+
+.msg {
+  max-width: min(640px, 86%); padding: 13px 18px 14px;
+  border: var(--thin); border-radius: 20px;
+  font-size: 16.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.msg.you { align-self: flex-end; background: var(--yellow); border-bottom-right-radius: 6px; }
+.msg.avy { align-self: flex-start; background: var(--card); border-bottom-left-radius: 6px; }
+.msg.avy:empty::before { content: "Writing…"; opacity: .55; }
+.msg.error { align-self: center; max-width: 90%; background: var(--orange); font-weight: 600; text-align: center; border-radius: 16px; }
+
+.empty { margin: auto; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 24px 0; }
+.burst { width: 190px; height: auto; transform: rotate(-10deg); }
+.empty h2 { font-weight: 850; font-stretch: 120%; font-size: 30px; line-height: 1.05; letter-spacing: -.01em; }
+.empty p { max-width: 300px; font-size: 10.5px; line-height: 1.4; font-weight: 500; text-transform: uppercase; letter-spacing: .02em; }
+
+.composer {
+  margin: 0 16px 16px; display: flex; align-items: flex-end; gap: 10px;
+  background: var(--card); border: var(--thick); border-radius: 30px; padding: 7px 7px 7px 24px;
+}
+.composer:focus-within { outline: 3px solid var(--blue); outline-offset: 3px; }
+.composer textarea {
+  flex: 1; border: 0; background: none; resize: none; outline: none;
+  font-size: 17px; line-height: 1.45; padding: 11px 0; max-height: 180px;
+}
+.composer textarea::placeholder { color: var(--ink); opacity: .45; }
+.send {
+  height: 50px; padding: 0 24px 0 20px; flex: none;
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--ink); color: var(--yellow); border-radius: 999px;
+  font-size: 16px; font-weight: 500;
+}
+.send:hover { color: var(--card); }
+
+/* ===================================================================
+   5. The keys panel
+   =================================================================== */
+dialog {
+  margin: auto; width: min(480px, calc(100vw - 32px));
+  background: var(--card); color: var(--ink);
+  border: var(--thick); border-radius: 26px; padding: 26px 26px 22px;
+}
+dialog::backdrop { background: rgb(28 26 23 / .5); }
+dialog h2 { font-weight: 900; font-stretch: 125%; font-size: 46px; line-height: .9; letter-spacing: -.03em; }
+dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
+.field { display: grid; gap: 7px; margin-bottom: 14px; }
+.field span { font-weight: 600; }
+.field input {
+  height: 50px; padding: 0 18px; border: var(--thin); border-radius: 999px; background: #fff8ef;
+  font-size: 15px; letter-spacing: .04em;
+}
+.field input:focus-visible { outline-offset: 2px; }
+.field small { font-size: 13px; opacity: .75; }
+.actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 18px; }
+.actions .pill-btn { height: 50px; padding: 0 22px; font-size: 16px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.saved { margin-right: auto; font-weight: 600; font-size: 14px; }
+
+/* ===================================================================
+   6. Phones: one column, the page scrolls
+   =================================================================== */
+@media (max-width: 900px) {
+  html, body, .frame, .shell { height: auto; }
+  .frame { padding: 10px; }
+  .shell { padding: 12px; gap: 12px; border-radius: 24px; }
+  .nav-items { display: none; }
+  .nav-pill { justify-content: space-between; height: 54px; }
+  .round-btn { width: 54px; height: 54px; }
+  .main { grid-template-columns: 1fr; gap: 12px; }
+  .side { display: contents; }
+  .hero  { order: 1; margin-bottom: 8px; }
+  .chat  { order: 2; height: 74svh; }
+  .tiles { order: 3; }
+  .info  { order: 4; }
+  .sticker { width: 33cqi; bottom: -30px; }
+  .log { padding: 18px 14px 10px; }
+  .msg { max-width: 92%; }
+  .composer { margin: 0 10px 10px; padding-left: 18px; }
+  .send { padding: 0 16px; }
+  .send .label { display: none; }
+  .tile b { font-size: 44px; }
+}
+
+/* Short laptop screens: drop the motto card so the counters stay visible */
+@media (min-width: 901px) and (max-height: 820px) {
+  .info { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker, .sticker.spinning .ring { animation: none; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- Icons, drawn once and reused with <use href="#..."> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+    <circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="4.6" ry="10"/>
+    <path d="M2 12h20M4 6.5h16M4 17.5h16M12 2v20"/>
+  </symbol>
+  <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+    <circle cx="8" cy="15.5" r="4.5"/><path d="M11.3 12.2 20 3.5M16.6 6.9l2.4 2.4M14.2 9.3l2 2"/>
+  </symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 17 17 7M8.5 7H17v8.5"/>
+  </symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/>
+  </symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></symbol>
+</svg>
+
+<div class="frame">
+<div class="shell">
+
+  <!-- ---------- top bar ---------- -->
+  <header class="nav">
+    <div class="nav-pill">
+      <span class="nav-globe"><svg class="icon"><use href="#i-globe"/></svg></span>
+      <ul class="nav-items">
+        <li><span class="dot ok"></span>Brain: DeepSeek V4.1 Flash</li>
+        <li><span class="dot" id="keyDot"></span><span id="keyText">Checking key</span></li>
+        <li><span class="dot"></span>Memory: this tab only</li>
+        <li><span class="dot ok" id="rateDot"></span><span id="rateText">Off-peak rate</span></li>
+      </ul>
+      <button class="pill-btn" id="newChat" type="button">New chat <svg class="icon"><use href="#i-arrow"/></svg></button>
+    </div>
+    <button class="round-btn" id="openKeys" type="button" aria-label="Keys" title="Keys"><svg class="icon"><use href="#i-key"/></svg></button>
+  </header>
+
+  <div class="main">
+
+    <!-- ---------- left: the poster ---------- -->
+    <aside class="side">
+      <div class="hero">
+        <h1 class="wordmark">AVY</h1>
+
+        <!-- sticker: spins while Avy is replying -->
+        <svg class="sticker" id="sticker" viewBox="0 0 200 200" role="img" aria-label="Ava's baby">
+          <circle cx="100" cy="100" r="95" fill="#4FA596" stroke="#1C1A17" stroke-width="5"/>
+          <g class="ring">
+            <path id="ringPath" d="M100,100 m-77,0 a77,77 0 1,1 154,0 a77,77 0 1,1 -154,0" fill="none"/>
+            <text font-family="Archivo" font-weight="900" font-size="23" fill="#1C1A17" style="font-stretch:125%">
+              <textPath href="#ringPath" textLength="476" lengthAdjust="spacing">AVA'S BABY ★ AVA'S BABY ★</textPath>
+            </text>
+          </g>
+          <circle cx="100" cy="100" r="58" fill="#F7ECDC" stroke="#1C1A17" stroke-width="3.5"/>
+          <g fill="#F27CB4" stroke="#1C1A17" stroke-width="3">
+            <ellipse cx="100" cy="68" rx="13" ry="21"/>
+            <ellipse cx="100" cy="68" rx="13" ry="21" transform="rotate(45 100 100)"/>
+            <ellipse cx="100" cy="68" rx="13" ry="21" transform="rotate(90 100 100)"/>
+            <ellipse cx="100" cy="68" rx="13" ry="21" transform="rotate(135 100 100)"/>
+            <ellipse cx="100" cy="68" rx="13" ry="21" transform="rotate(180 100 100)"/>
+            <ellipse cx="100" cy="68" rx="13" ry="21" transform="rotate(225 100 100)"/>
+            <ellipse cx="100" cy="68" rx="13" ry="21" transform="rotate(270 100 100)"/>
+            <ellipse cx="100" cy="68" rx="13" ry="21" transform="rotate(315 100 100)"/>
+          </g>
+          <circle cx="100" cy="100" r="22" fill="#F6C744" stroke="#1C1A17" stroke-width="3"/>
+          <ellipse cx="93" cy="96" rx="2.6" ry="4" fill="#1C1A17"/>
+          <ellipse cx="107" cy="96" rx="2.6" ry="4" fill="#1C1A17"/>
+          <path d="M91 105 Q100 114 109 105" fill="none" stroke="#1C1A17" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+
+        <p class="micro">Ava's baby. Built from scratch, one small file at a time. Text first, voice next.</p>
+      </div>
+
+      <div class="info">
+        <p class="motto">Small.<br>Local.<br>One brain.</p>
+        <hr>
+        <p class="body">Avy thinks with DeepSeek and nothing else. Keys you paste in stay in a .env file on this computer.</p>
+      </div>
+
+      <div class="tiles">
+        <div class="tile dark"><div class="tile-head">Messages</div><b id="tMessages">0</b></div>
+        <div class="tile grey"><div class="tile-head">Tokens</div><b id="tTokens">0</b></div>
+        <div class="tile green">
+          <div class="tile-head">
+            Spent this session
+            <span class="toggle" title="DeepSeek charges double at peak hours"><i id="offTag" class="on">Off-peak</i><i id="peakTag">Peak</i></span>
+          </div>
+          <b id="tSpent">$0.0000</b>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ---------- right: the conversation ---------- -->
+    <section class="chat" aria-label="Conversation">
+      <div class="log" id="log">
+        <div class="empty" id="empty">
+          <svg class="burst" viewBox="0 0 200 200" aria-hidden="true">
+            <polygon fill="#7F9CE2" stroke="#1C1A17" stroke-width="4" stroke-linejoin="round"
+              points="100.0,6.0 116.0,29.8 140.8,15.3 144.9,43.7 173.5,41.4 164.9,68.8 191.6,79.1 172.0,100.0 191.6,120.9 164.9,131.2 173.5,158.6 144.9,156.3 140.8,184.7 116.0,170.2 100.0,194.0 84.0,170.2 59.2,184.7 55.1,156.3 26.5,158.6 35.1,131.2 8.4,120.9 28.0,100.0 8.4,79.1 35.1,68.8 26.5,41.4 55.1,43.7 59.2,15.3 84.0,29.8"/>
+            <text x="100" y="94" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="34" fill="#1C1A17" style="font-stretch:125%">SAY</text>
+            <text x="100" y="128" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="34" fill="#1C1A17" style="font-stretch:125%">HI!</text>
+          </svg>
+          <h2>Ask Avy anything.</h2>
+          <p>This chat lives in this tab. Refresh and it's gone, until Avy gets a memory.</p>
+        </div>
+      </div>
+
+      <form class="composer" id="composer">
+        <textarea id="input" rows="1" placeholder="Message Avy" aria-label="Message Avy"></textarea>
+        <button class="send" id="send" type="submit"></button>
+      </form>
+    </section>
+
+  </div>
+</div>
+</div>
+
+<!-- ---------- keys panel ---------- -->
+<dialog id="keys">
+  <form id="keysForm">
+    <h2>Keys</h2>
+    <p class="lede">Paste a key once. Avy saves it to .env next to app.py, on this computer only. It never goes to GitHub.</p>
+    <div id="keyFields"></div>
+    <div class="actions">
+      <span class="saved" id="keysMsg" role="status"></span>
+      <button class="pill-btn" type="button" id="closeKeys">Close</button>
+      <button class="send" type="submit">Save keys</button>
+    </div>
+  </form>
+</dialog>
+
+
+<script>
+const $ = (id) => document.getElementById(id);
+const log = $("log"), input = $("input"), sendBtn = $("send");
+const emptyState = $("empty");
+
+/* ===================================================================
+   1. What this tab remembers (gone on refresh, on purpose for now)
+   =================================================================== */
+let history = [];        // the whole conversation; sent to DeepSeek every turn
+let controller = null;   // exists while Avy is replying; the Stop button uses it
+const session = { tokens: 0, dollars: 0 };
+
+
+/* ===================================================================
+   2. Prices: DeepSeek V4.1 Flash, dollars per million tokens (off-peak)
+      Peak is 01:00-04:00 and 06:00-10:00 UTC, Monday to Friday, and costs 2x.
+   =================================================================== */
+const PRICE = { cacheHit: 0.003, cacheMiss: 0.15, output: 0.60 };
+
+function isPeak(now = new Date()) {
+  const day = now.getUTCDay(), hour = now.getUTCHours();
+  const weekday = day >= 1 && day <= 5;
+  return weekday && ((hour >= 1 && hour < 4) || (hour >= 6 && hour < 10));
+}
+
+function costOf(usage) {
+  const perMillion =
+    (usage.prompt_cache_hit_tokens  || 0) * PRICE.cacheHit +
+    (usage.prompt_cache_miss_tokens || 0) * PRICE.cacheMiss +
+    (usage.completion_tokens        || 0) * PRICE.output;
+  return (perMillion / 1e6) * (isPeak() ? 2 : 1);
+}
+
+
+/* ===================================================================
+   3. Keys: ask the server which keys are saved, save new ones
+   =================================================================== */
+async function loadStatus() {
+  const status = await (await fetch("/api/status")).json();
+  showStatus(status);
+  if (!status.keys.find(k => k.name === "DEEPSEEK_API_KEY").hint) openKeys();
+}
+
+function showStatus(status) {
+  const deepseek = status.keys.find(k => k.name === "DEEPSEEK_API_KEY");
+  $("keyText").textContent = deepseek.hint ? "Key saved" : "No key yet";
+  $("keyDot").className = "dot " + (deepseek.hint ? "ok" : "warn");
+  $("keyFields").replaceChildren(...status.keys.map(keyField));
+}
+
+function keyField(key) {
+  const field = document.createElement("label");
+  field.className = "field";
+  field.innerHTML = `<span></span><input type="password" autocomplete="off" spellcheck="false" placeholder="Paste key"><small></small>`;
+  field.querySelector("span").textContent = key.label;
+  field.querySelector("input").name = key.name;
+  field.querySelector("small").textContent = key.hint
+    ? `Saved. Ends in ${key.hint}. Paste a new one to replace it.`
+    : "Not saved yet.";
+  return field;
+}
+
+function openKeys() { $("keysMsg").textContent = ""; $("keys").showModal(); }
+
+$("openKeys").onclick = openKeys;
+$("closeKeys").onclick = () => $("keys").close();
+
+$("keysForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const keys = Object.fromEntries(new FormData(e.target));
+  const res = await fetch("/api/keys", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(keys),
+  });
+  if (!res.ok) { $("keysMsg").textContent = "Couldn't save. Is app.py running?"; return; }
+  showStatus(await res.json());
+  $("keysMsg").textContent = "Saved to .env";
+  setTimeout(() => { $("keys").close(); input.focus(); }, 700);
+};
+
+
+/* ===================================================================
+   4. Talking: send the conversation, show the reply as it streams in
+   =================================================================== */
+async function send() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ""; grow();
+  emptyState.remove();
+
+  const chat = history;   // if you press New chat mid-reply, this reply is dropped
+  const yourBubble = addBubble("you", text);
+  chat.push({ role: "user", content: text });
+  const avyBubble = addBubble("avy", "");
+  setBusy(true);
+
+  let reply = "", usage = null, failed = null;
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: chat }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Avy's server answered ${res.status}.`);
+    }
+    await readStream(res, (chunk) => {
+      const words = chunk.choices?.[0]?.delta?.content;
+      if (words) { reply += words; avyBubble.textContent = reply; scrollDown(); }
+      if (chunk.usage) usage = chunk.usage;
+    });
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      failed = err instanceof TypeError
+        ? "Can't reach Avy's server. Is python app.py still running?"
+        : err.message;
+    }
+  }
+
+  setBusy(false);
+  if (usage) { session.tokens += usage.total_tokens || 0; session.dollars += costOf(usage); }
+  if (chat !== history) return updateTiles();
+
+  if (reply) {
+    chat.push({ role: "assistant", content: reply });
+  } else {
+    // nothing came back: undo this turn and put your message back in the box
+    avyBubble.remove(); yourBubble.remove(); chat.pop();
+    input.value = text; grow();
+  }
+  if (failed) addBubble("error", failed);
+  updateTiles();
+  input.focus();
+}
+
+// DeepSeek streams lines like:  data: {"choices":[{"delta":{"content":"Hi"}}]}
+async function readStream(res, onChunk) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop();                      // keep any half-finished line for next time
+    for (const line of lines) {
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") return;
+      onChunk(JSON.parse(data));
+    }
+  }
+}
+
+
+/* ===================================================================
+   5. Small page helpers
+   =================================================================== */
+function addBubble(kind, text) {
+  const bubble = document.createElement("div");
+  bubble.className = "msg " + kind;
+  bubble.textContent = text;
+  log.append(bubble);
+  scrollDown();
+  return bubble;
+}
+
+function scrollDown() { log.scrollTop = log.scrollHeight; }
+
+function setBusy(busy) {
+  controller = busy ? new AbortController() : null;
+  sendBtn.innerHTML = busy
+    ? `<svg class="icon"><use href="#i-stop"/></svg><span class="label">Stop</span>`
+    : `<svg class="icon"><use href="#i-send"/></svg><span class="label">Send</span>`;
+  sendBtn.setAttribute("aria-label", busy ? "Stop" : "Send");
+  $("sticker").classList.toggle("spinning", busy);
+}
+
+function updateTiles() {
+  $("tMessages").textContent = history.length;
+  $("tTokens").textContent = session.tokens.toLocaleString();
+  $("tSpent").textContent = "$" + session.dollars.toFixed(4);
+}
+
+function updateRate() {
+  const peak = isPeak();
+  $("rateText").textContent = peak ? "Peak rate (2×)" : "Off-peak rate";
+  $("rateDot").className = "dot " + (peak ? "warn" : "ok");
+  $("offTag").classList.toggle("on", !peak);
+  $("peakTag").classList.toggle("on", peak);
+}
+
+function grow() {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 180) + "px";
+}
+
+// Send button doubles as Stop while Avy is replying
+$("composer").onsubmit = (e) => {
+  e.preventDefault();
+  if (controller) controller.abort(); else send();
+};
+
+// Enter sends, Shift+Enter makes a new line
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    $("composer").requestSubmit();
+  }
+});
+input.addEventListener("input", grow);
+
+$("newChat").onclick = () => {
+  if (controller) controller.abort();
+  history = [];
+  log.replaceChildren(emptyState);
+  updateTiles();
+  input.focus();
+};
+
+
+/* ===================================================================
+   6. Start
+   =================================================================== */
+setBusy(false);
+updateRate();
+setInterval(updateRate, 60_000);
+loadStatus();
+input.focus();
+</script>
+</body>
+</html>
