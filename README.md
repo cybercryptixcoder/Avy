@@ -84,3 +84,4 @@ Everything stays in this folder:
 - `tests/live_memory.py`: a week of conversation replayed against the real DeepSeek, then questions
   about it (`python3 tests/live_memory.py`; a few cents; uses a throwaway memory, never yours).
 - `requirements.txt` / `requirements-voice.txt`: packages. Add new ones here and the run command installs them.
+- `MEMORY.md`: how memory works. `LATER.md`: ideas we've decided to build, but not yet.
