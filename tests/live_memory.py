@@ -1,8 +1,8 @@
 """
 Live test of Avy's memory against the real DeepSeek. It costs a few cents.
 
-    python3 tests/live_memory.py                 uses the key in .env
-    python3 tests/live_memory.py path/to/.env    uses another key file
+    python3 tests/live_mem.py                 uses the key in .env
+    python3 tests/live_mem.py path/to/.env    uses another key file
 
 It replays a week of conversation into a fresh, throwaway memory (your real one is never
 touched): facts planted on day 1, a correction on day 3, details that are only reachable by
@@ -33,12 +33,14 @@ clock = {"t": datetime(2026, 10, 1, 19, 0).astimezone()}
 memory.now = lambda: clock["t"]
 folder = Path(tempfile.mkdtemp(prefix="avy-live-"))
 models = Path(os.environ.get("AVY_MODELS", HERE / "data" / "models")) / "meaning"
-memory.open_memory(folder / "memory.db", models=models)
+memory.embedder.start(models)
+mem = app.MEMORIES["main"] = memory.Memory(folder / "mem.db")
 indexer.app.update(ask=app.ask_json, prices=app.PRICES)
-while memory.meaning.status not in ("on",) and not memory.meaning.status.startswith("off"):
+app.current_settings = lambda: {name: spec["default"] for name, spec in app.SETTINGS.items()}   # your own choices don't change the test
+while memory.embedder.status != "on" and not memory.embedder.status.startswith("off"):
     import time
     time.sleep(0.5)
-print(f"throwaway memory in {folder}; meaning search {memory.meaning.status}\n")
+print(f"throwaway memory in {folder}; meaning search {memory.embedder.status}\n")
 
 
 def turn(text, minutes=2):
@@ -53,7 +55,7 @@ def turn(text, minutes=2):
             usage = counts or usage
     clock["t"] += timedelta(seconds=20)
     t.finish(reply, usage)
-    for r in indexer.index_now():      # what the background indexer would do after this reply
+    for r in indexer.index_now(mem):      # what the background indexer would do after this reply
         print(f"   [indexed #{r['first']}-#{r['last']}: {r['status']}, {r['entries']} entries, {r['attempts']} tries]")
     return reply, t.recall
 
@@ -61,10 +63,10 @@ def turn(text, minutes=2):
 def canned(user, avy, minutes=3):
     """Filler: saved straight to the log (no reply call), but indexed by the real indexer."""
     clock["t"] += timedelta(minutes=minutes)
-    memory.add("user", user)
+    mem.add("user", user)
     clock["t"] += timedelta(seconds=30)
-    memory.add("assistant", avy)
-    for r in indexer.index_now():
+    mem.add("assistant", avy)
+    for r in indexer.index_now(mem):
         print(f"   [indexed #{r['first']}-#{r['last']}: {r['status']}, {r['entries']} entries, {r['attempts']} tries]")
 
 
@@ -167,15 +169,15 @@ def tamper(payload):
 
 
 indexer.app["ask"] = tamper
-before = memory.value("SELECT MAX(id) FROM runs")
+before = mem.value("SELECT MAX(id) FROM runs")
 turn("my dentist appointment got moved to October 22nd, 3pm")
 turn("also I finished the STAT 318 homework that was due Friday")
 for u, a in FILLER[12:]:
     canned(u, a)
 if not broken["done"]:
-    indexer.index_now(force=True)
+    indexer.index_now(mem, force=True)
 indexer.app["ask"] = original
-run = memory.row("SELECT * FROM runs WHERE id > ? ORDER BY id LIMIT 1", before)
+run = mem.row("SELECT * FROM runs WHERE id > ? ORDER BY id LIMIT 1", before)
 repaired = bool(run) and run["status"] == "repaired" and run["attempts"] >= 2
 print(f"{'PASS' if repaired else 'FAIL'}  broken answer repaired by the real model: "
       + (f"{run['status']} after {run['attempts']} tries" if run else "no run"))
@@ -190,24 +192,24 @@ print(f"{'PASS' if '22' in reply else 'FAIL'}  when's my dentist appointment aga
 # ---- The index DeepSeek wrote ----
 print("=" * 70)
 print("the index")
-for p in memory.rows("SELECT * FROM pages ORDER BY id"):
-    run = memory.row("SELECT * FROM runs WHERE id = ?", p["run"])
+for p in mem.rows("SELECT * FROM pages ORDER BY id"):
+    run = mem.row("SELECT * FROM runs WHERE id = ?", p["run"])
     print(f"\np{p['id']}  #{p['first']}-#{p['last']}  {p['headline']}   [{run['status']}, {run['attempts']} tries, ${run['cost']:.4f}]")
-    for e in memory.rows("SELECT * FROM entries WHERE page = ? ORDER BY id", p["id"]):
-        out, _ = memory.links_of(e["id"])
-        ev = ", ".join(f"#{v['message']}{'' if v['exact'] else '(whole)'}" for v in memory.evidence_of(e["id"]))
+    for e in mem.rows("SELECT * FROM entries WHERE page = ? ORDER BY id", p["id"]):
+        out, _ = mem.links_of(e["id"])
+        ev = ", ".join(f"#{v['message']}{'' if v['exact'] else '(whole)'}" for v in mem.evidence_of(e["id"]))
         links = ", ".join(f"{l['kind']}->e{l['linked']}{'*' if l['by'] == 'system' else ''}" for l in out)
         tag = f" v{e['version']} replaces e{e['replaces']}" if e["replaces"] else ""
-        print(f"  e{e['id']:<3} {e['kind']:<10} {e['title']}{tag}: {memory.readable(e['text'])}  [{ev}] {links}")
+        print(f"  e{e['id']:<3} {e['kind']:<10} {e['title']}{tag}: {mem.readable(e['text'])}  [{ev}] {links}")
 print("\nwhat the checks found, run by run:")
-for r in memory.rows("SELECT id, first, last, status, attempts, problems FROM runs ORDER BY id"):
+for r in mem.rows("SELECT id, first, last, status, attempts, problems FROM runs ORDER BY id"):
     found = [p for attempt in json.loads(r["problems"] or "[]") for p in attempt]
     print(f"  run {r['id']} #{r['first']}-#{r['last']}: {r['status']}, {r['attempts']} tries" + ("" if found else ", nothing to fix"))
     for p in found:
         print(f"      {p[:300]}")
-rohan = memory.row("SELECT * FROM current WHERE kind = 'person' AND title LIKE 'Rohan%'")
+rohan = mem.row("SELECT * FROM current WHERE kind = 'person' AND title LIKE 'Rohan%'")
 if rohan:
-    print(f"\nthe Rohan hub now says: {memory.readable(rohan['text'])}")
-total = memory.value("SELECT SUM(cost) FROM runs") or 0
-print(f"\n{sum(results)}/{len(results)} checks passed · {memory.stats()['entries']} entries · "
-      f"{memory.stats()['links']} links · indexing cost ${total:.4f} (off-peak prices; peak hours are 2x)")
+    print(f"\nthe Rohan hub now says: {mem.readable(rohan['text'])}")
+total = mem.value("SELECT SUM(cost) FROM runs") or 0
+print(f"\n{sum(results)}/{len(results)} checks passed · {mem.stats()['entries']} entries · "
+      f"{mem.stats()['links']} links · indexing cost ${total:.4f} (off-peak prices; peak hours are 2x)")
