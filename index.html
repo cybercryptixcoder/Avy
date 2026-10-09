@@ -153,10 +153,19 @@ button { cursor: pointer; background: none; border: 0; }
       No color, monospace text, a block cursor like a terminal.
    =================================================================== */
 .chat {
+  position: relative;
   min-height: 0; display: grid; grid-template-rows: auto 1fr auto auto;
   font-family: "Space Mono", ui-monospace, monospace; font-size: 15px; line-height: 1.6;
   padding-top: 2px;
 }
+
+/* The little ASCII field in the corner: drifts while idle, churns while Avy works */
+.scope {
+  position: absolute; top: 24px; right: 16px; margin: 0;
+  font: 700 12px/1.1 "Space Mono", monospace; white-space: pre;
+  opacity: .62; pointer-events: none; user-select: none;
+}
+@media (max-width: 1279px) { .scope { display: none; } }
 .chat :focus-visible { outline-color: var(--ink); }
 
 /* the bracket lines from the reference: a rule with short ticks at each end */
@@ -369,6 +378,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
     <!-- ---------- right: the conversation ---------- -->
     <section class="chat" id="chat" aria-label="Conversation">
       <div class="rule top"></div>
+      <pre class="scope" id="scope" aria-hidden="true"></pre>
       <div class="log" id="log">
         <p class="meta">avy 0.1, talking through deepseek-flash with thinking off.<br>this conversation lives in this tab. refresh and it's gone.</p>
         <!-- your messages and Avy's replies get added here, above the prompt -->
@@ -916,7 +926,46 @@ $("talk").onclick = () => {
 
 
 /* ===================================================================
-   8. Start
+   8. The corner scope
+      Four overlapping sine waves, drawn as characters from light to dense.
+      Calm while idle; faster and darker while Avy is thinking or talking.
+   =================================================================== */
+const SCOPE_CHARS = " .·:-=+*#%";
+const SCOPE_W = 18, SCOPE_H = 7;
+let scopeTime = 0, scopeEnergy = 0.4, scopeLast = 0;
+
+function scopeTick(now) {
+  requestAnimationFrame(scopeTick);
+  if (now - scopeLast < 80) return;                 // ~12 frames a second: a terminal, not a game
+  const busy = $("sticker").classList.contains("spinning");
+  scopeEnergy += ((busy ? 1 : 0.4) - scopeEnergy) * 0.08;   // ease between calm and busy
+  scopeTime += ((now - scopeLast) / 1000) * (0.4 + scopeEnergy * 2.2);
+  scopeLast = now;
+  drawScope();
+}
+
+function drawScope() {
+  let frame = "";
+  for (let y = 0; y < SCOPE_H; y++) {
+    for (let x = 0; x < SCOPE_W; x++) {
+      const t = scopeTime, cx = x - SCOPE_W / 2, cy = (y - SCOPE_H / 2) * 2;
+      const v = Math.sin(x * 0.42 + t) + Math.sin(y * 0.9 - t * 0.8)
+              + Math.sin((x + y) * 0.3 + t * 0.6) + Math.sin(Math.hypot(cx, cy) * 0.45 - t * 1.3);
+      const level = ((v + 4) / 8) * scopeEnergy;      // 0..1, scaled down when calm
+      frame += SCOPE_CHARS[Math.min(SCOPE_CHARS.length - 1, Math.floor(level * SCOPE_CHARS.length))];
+    }
+    frame += "\n";
+  }
+  $("scope").textContent = frame;
+}
+
+// Reduced motion: one still frame instead of the animation.
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) drawScope();
+else requestAnimationFrame(scopeTick);
+
+
+/* ===================================================================
+   9. Start
    =================================================================== */
 setBusy(false);
 updateRate();
