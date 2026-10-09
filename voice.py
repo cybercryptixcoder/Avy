@@ -1,13 +1,16 @@
 """
-Avy's voice: push-to-talk. app.py starts this when the voice packages are installed.
+Avy's voice. app.py starts this when the voice packages are installed.
 
-You hold Space (or double-tap it to lock) while you talk. When you let go:
-    ears   faster-whisper writes down the whole recording in one go
-    brain  DeepSeek answers, with memory, exactly like a typed message (a Turn from app.py)
-    mouth  Kokoro 82M speaks the answer, a sentence at a time, while the rest is still coming
-Pressing Space again while Avy talks cuts her off. Only the part you heard is saved to the log.
+You hold Space (or double-tap it to lock) while you talk. When you let go,
+faster-whisper writes down the whole recording in one go. Then, depending on /live:
+    off (dictation)  the words go into your text box, to edit and send yourself
+    on (live)        DeepSeek answers with memory, exactly like a typed message (a Turn from
+                     app.py), and Kokoro 82M speaks it a sentence at a time while the rest is
+                     still coming. Pressing Space while Avy talks cuts her off; only the part
+                     you heard is saved to the log.
 
-Every recording is written to data/recordings as it comes in, so a crash or a failed
+Every recording is written to data/recordings as it comes in (an incognito conversation keeps its
+own, deleted with it), so a crash or a failed
 transcription never loses what you said. The newest ones are kept; old ones are deleted.
 The models are downloaded once into data/models.
 """
@@ -109,7 +112,7 @@ def preload_whisper(name):
 
 class Recording:
     def __init__(self):
-        folder = app["data"] / "recordings"
+        folder = app["recordings"]()     # data/recordings, or the incognito conversation's own
         folder.mkdir(parents=True, exist_ok=True)
         stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.path, n = folder / f"{stamp}.wav", 2
@@ -135,11 +138,10 @@ class Recording:
     def close(self):
         self.wav.close()
         self.file.close()
-        prune_recordings()
+        prune_recordings(self.path.parent)
 
 
-def prune_recordings():
-    folder = app["data"] / "recordings"
+def prune_recordings(folder):
     wavs = sorted(folder.glob("*.wav"), key=lambda p: p.stat().st_mtime, reverse=True)
     kept_bytes = 0
     for i, wav_file in enumerate(wavs):
@@ -241,7 +243,7 @@ class Spoken:
         return self.turn.finish(text, self.usage, cut)
 
 
-async def reply(ws, text, speak, state):
+async def reply(ws, text, state):
     loop = asyncio.get_running_loop()
     pieces, sentences = asyncio.Queue(), asyncio.Queue()
     cancel = threading.Event()
@@ -252,7 +254,7 @@ async def reply(ws, text, speak, state):
         return await ws.send(json.dumps({"type": "error", "text": f"Memory couldn't be read ({e})."}))
     spoken = state["spoken"] = Spoken(turn)
     threading.Thread(target=stream_deepseek, args=(turn, put, cancel), daemon=True).start()
-    mouth = asyncio.create_task(speak_sentences(ws, sentences)) if speak else None
+    mouth = asyncio.create_task(speak_sentences(ws, sentences))
 
     pending, told_thinking = "", False
     try:
@@ -266,13 +268,10 @@ async def reply(ws, text, speak, state):
             elif kind == "text":
                 start = len(spoken.text) - len(pending)        # where the unsplit tail begins
                 spoken.text += value
-                if speak:
-                    done, pending = take_sentences(pending + value, first=not spoken.ends)
-                    for sentence, end in done:
-                        spoken.ends.append(start + end)
-                        sentences.put_nowait(sentence)
-                else:
-                    await ws.send(json.dumps({"type": "delta", "text": value}))
+                done, pending = take_sentences(pending + value, first=not spoken.ends)
+                for sentence, end in done:
+                    spoken.ends.append(start + end)
+                    sentences.put_nowait(sentence)
             elif kind == "usage":
                 spoken.usage = value
             elif kind == "error":
@@ -281,22 +280,19 @@ async def reply(ws, text, speak, state):
             elif kind == "end":
                 spoken.done = True
                 break
-        if mouth:
-            if pending.strip():
-                spoken.ends.append(len(spoken.text))
-                sentences.put_nowait(pending.strip())
-            sentences.put_nowait(None)
-            await mouth
-        saved = None
-        if not speak or not spoken.ends:
-            saved = spoken.settle()            # nothing to listen to: what was sent is what was said
+        if pending.strip():
+            spoken.ends.append(len(spoken.text))
+            sentences.put_nowait(pending.strip())
+        sentences.put_nowait(None)
+        await mouth
+        if not spoken.ends:                    # nothing to listen to: settle it now
+            spoken.settle()
             state["spoken"] = None
-        # spoken replies are saved when the page says how much you heard ("heard")
-        await ws.send(json.dumps({"type": "done", "text": spoken.text, "usage": spoken.usage, "saved": saved}))
+        # otherwise it's saved when the page says how much you heard ("heard")
+        await ws.send(json.dumps({"type": "done", "text": spoken.text, "usage": spoken.usage}))
     finally:
         cancel.set()          # stop reading DeepSeek if we were cut off
-        if mouth:
-            mouth.cancel()
+        mouth.cancel()
 
 
 async def speak_sentences(ws, sentences):
@@ -319,7 +315,7 @@ async def speak_sentences(ws, sentences):
 #      <binary>                microphone audio while you hold Space
 #      {"type": "stop"}        you let go: transcribe it
 #      {"type": "cancel"}      just a tap: don't transcribe (still kept on disk if over 1 second)
-#      {"type": "reply", "text": "...", "speak": true}   answer this (memory does the rest)
+#      {"type": "reply", "text": "..."}   live mode: answer this out loud (memory does the rest)
 #      {"type": "heard", "sentences": 3, "cut": true}   Avy stopped talking: after 3 sentences,
 #                              because you cut in (or "cut": false: she finished). Saves her reply.
 #      {"type": "retry"}       transcribe the newest recording again
@@ -374,11 +370,11 @@ async def session(ws):
                 asyncio.create_task(send_transcript(done.path, done.pcm))
             elif kind == "reply" and str(m.get("text") or "").strip():
                 stop_reply()
-                job = asyncio.create_task(reply(ws, m["text"].strip(), m.get("speak", True), state))
+                job = asyncio.create_task(reply(ws, m["text"].strip(), state))
             elif kind == "heard":
                 stop_reply(heard=m.get("sentences"), cut=bool(m.get("cut")))
             elif kind == "retry":
-                folder = app["data"] / "recordings"
+                folder = app["recordings"]()
                 wavs = sorted(folder.glob("*.wav"), key=lambda p: p.stat().st_mtime) if folder.exists() else []
                 if wavs:
                     asyncio.create_task(send_transcript(wavs[-1]))
@@ -401,8 +397,8 @@ async def serve_forever(origins):
         await asyncio.Future()
 
 
-def start(turn, settings, data, page_port, ssl_context):
-    app.update(turn=turn, settings=settings, data=Path(data), ssl_context=ssl_context)
+def start(turn, settings, data, recordings, page_port, ssl_context):
+    app.update(turn=turn, settings=settings, data=Path(data), recordings=recordings, ssl_context=ssl_context)
     origins = [f"http://localhost:{page_port}", f"http://127.0.0.1:{page_port}"]   # only Avy's own page
     threading.Thread(target=warm_up, daemon=True).start()
     threading.Thread(target=lambda: asyncio.run(serve_forever(origins)), daemon=True).start()

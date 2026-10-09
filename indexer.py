@@ -11,6 +11,9 @@ This file does everything that has to be right every time:
   4. sends the problems back to be fixed (up to twice), then keeps whatever passed
   5. saves it all at once, with a record of the whole exchange (a "run") you can inspect
 If DeepSeek can't be reached, nothing is lost: the log is already saved, and it tries again later.
+
+Every function here works on one memory (a memory.Memory): the main one, or an incognito
+conversation's own.
 """
 
 import difflib
@@ -39,7 +42,9 @@ RETRY_MINUTES = 10     # after a failed run, wait this long before trying the sa
 GIVE_UP_AFTER = 3      # after this many unusable answers, save a bare page and move on
 MODEL = "deepseek-flash"
 
-app = {"ask": None, "prices": {}}      # filled in by start(): how to call DeepSeek, and its prices
+app = {"ask": None, "prices": {},     # filled in by start(): how to call DeepSeek, its prices,
+       "memories": lambda: [],         # the memories to keep indexed,
+       "page": lambda: PAGE}           # and the page size right now (smaller when the /window: is small)
 RUN_LOCK = threading.Lock()            # one run at a time
 WAKE = threading.Event()
 
@@ -48,34 +53,34 @@ WAKE = threading.Event()
 # 2. When to index
 # ---------------------------------------------------------------------------
 
-def due(force=False):
+def due(mem, force=False):
     """The next stretch to index as (first, last), or None if it's not time yet."""
-    start, last = memory.indexed_up_to() + 1, memory.last_id()
+    start, last, page = mem.indexed_up_to() + 1, mem.last_id(), app["page"]()
     if last < start:
         return None
-    if not force and backing_off(start):
+    if not force and backing_off(mem, start):
         return None
-    if last - start + 1 >= PAGE:
-        return start, page_end(start)
+    if last - start + 1 >= page:
+        return start, page_end(mem, start, page)
     if force:
         return start, last
-    idle = (memory.now() - datetime.fromisoformat(memory.message(last)["at"])).total_seconds() / 60
+    idle = (memory.now() - datetime.fromisoformat(mem.message(last)["at"])).total_seconds() / 60
     if last - start + 1 >= MIN_STRETCH and idle >= IDLE_MINUTES:
         return start, last
     return None
 
 
-def page_end(start):
+def page_end(mem, start, page):
     """End a full page on one of Avy's replies, so an exchange isn't split across two pages."""
-    end = start + PAGE - 1
-    for m in reversed(memory.messages_between(end - 2, end + 1)):
+    end = start + page - 1
+    for m in reversed(mem.messages_between(end - 2, end + 1)):
         if m["role"] == "assistant":
             return m["id"]
     return end
 
 
-def backing_off(start):
-    last_run = memory.row("SELECT * FROM runs WHERE first = ? ORDER BY id DESC LIMIT 1", start)
+def backing_off(mem, start):
+    last_run = mem.row("SELECT * FROM runs WHERE first = ? ORDER BY id DESC LIMIT 1", start)
     if not last_run or last_run["status"] not in ("failed", "error"):
         return False
     minutes = (memory.now() - datetime.fromisoformat(last_run["at"])).total_seconds() / 60
@@ -178,18 +183,18 @@ TOOL = {"type": "function", "function": {
 }}
 
 
-def entries_to_show(stretch):
+def entries_to_show(mem, stretch):
     """The existing entries DeepSeek may link to or update: the biggest hubs, the newest entries,
     and whatever each message in the stretch brings up in search. Current versions only."""
-    counts = memory.backlink_counts()
-    current = {e["id"]: e for e in memory.rows("SELECT * FROM current")}
+    counts = mem.backlink_counts()
+    current = {e["id"]: e for e in mem.rows("SELECT * FROM current")}
     picks = sorted((e for e in current.values() if e["kind"] in HUBS), key=lambda e: -counts.get(e["first"], 0))[:15]
     picks += sorted(current.values(), key=lambda e: -e["id"])[:10]
     for m in stretch:
         text = m["text"][:1500]
-        hits = memory.relevance([(text, 1.0, memory.meaning.query(text))], "e", 12)
+        hits = mem.relevance([(text, 1.0, memory.embedder.query(text))], "e", 12)
         for item in sorted(hits, key=lambda i: -hits[i]["score"])[:6]:
-            h = memory.head(int(item[1:]))
+            h = mem.head(int(item[1:]))
             if h in current:
                 picks.append(current[h])
     shown, seen = [], set()
@@ -200,8 +205,8 @@ def entries_to_show(stretch):
     return {e["id"]: e for e in shown[:SHOW_ENTRIES]}
 
 
-def describe(e, counts):
-    out, _ = memory.links_of(e["id"])
+def describe(mem, e, counts):
+    out, _ = mem.links_of(e["id"])
     links = " ".join(f"{l['kind']} e{l['to']}" for l in out[:4])
     line = f"e{e['id']} {e['kind']} \"{e['title']}\": {e['text']}"
     if e["version"] > 1:
@@ -218,15 +223,15 @@ def as_line(m, limit):
     return f"#{m['id']} {memory.when(m['at'])}  {memory.who(m['role'])}: {text}"
 
 
-def prompt(first, last, stretch, shown):
-    counts = memory.backlink_counts()
+def prompt(mem, first, last, stretch, shown):
+    counts = mem.backlink_counts()
     parts = []
     if shown:
         parts.append("Existing entries you can link to, mention, or update (current versions):\n"
-                     + "\n".join(describe(e, counts) for e in shown.values()))
+                     + "\n".join(describe(mem, e, counts) for e in shown.values()))
     else:
         parts.append("There are no entries yet: this is the start of the memory.")
-    before = memory.messages_between(max(1, first - CONTEXT_BEFORE), first - 1)
+    before = mem.messages_between(max(1, first - CONTEXT_BEFORE), first - 1)
     if before:
         parts.append("Just before, for context only (already indexed; don't cite these):\n"
                      + "\n".join(as_line(m, 600) for m in before))
@@ -302,9 +307,9 @@ def entry_ref(value):
     return int(m.group(1)) if m else None
 
 
-def check(answer, stretch, shown):
-    """answer: what DeepSeek sent. stretch: {message id: message}. shown: {entry id: entry}.
-    Returns (headline, entries ready for memory.save_page, problems, notes, asks):
+def check(mem, answer, stretch, shown):
+    """mem: the memory being indexed. answer: what DeepSeek sent. stretch: {message id: message}. shown: {entry id: entry}.
+    Returns (headline, entries ready for mem.save_page, problems, notes, asks):
       problems  what's wrong, in plain words, for DeepSeek to fix
       notes     what code fixed by itself (kept in the run's record)
       asks      questions worth asking once: entries that may have gone stale because of an update"""
@@ -325,7 +330,7 @@ def check(answer, stretch, shown):
     if not isinstance(raw, list):
         problems.append("entries must be a list (it can be empty).")
         raw = []
-    current = {e["id"]: e for e in memory.rows("SELECT * FROM current")}
+    current = {e["id"]: e for e in mem.rows("SELECT * FROM current")}
 
     # --- A. each entry on its own: handle, kind, title, text, evidence ---
     kept, taken = [], set()
@@ -392,14 +397,14 @@ def check(answer, stretch, shown):
         target = None
         if e["raw_replaces"] not in (None, "", "null"):
             ref = entry_ref(e["raw_replaces"])
-            if ref is None or not memory.entry(ref):
+            if ref is None or not mem.entry(ref):
                 problems.append(f"{e['name']}: replaces {e['raw_replaces']}, which doesn't exist. Use an existing entry's handle, or null.")
             else:
-                h = memory.head(ref)
+                h = mem.head(ref)
                 if h != ref:
                     notes.append(f"{e['name']}: replaces e{ref}, an older version; pointed it at the current one, e{h}.")
-                if (memory.entry(h)["kind"] in HUBS) != hub:
-                    problems.append(f"{e['name']}: is a {e['kind']} but replaces e{h}, a {memory.entry(h)['kind']}. "
+                if (mem.entry(h)["kind"] in HUBS) != hub:
+                    problems.append(f"{e['name']}: is a {e['kind']} but replaces e{h}, a {mem.entry(h)['kind']}. "
                                     "An update keeps the same sort of thing; otherwise link to it instead.")
                 elif h in replaced:
                     problems.append(f"{e['name']}: e{h} is already being replaced by {replaced[h]}. Only one new version per entry.")
@@ -442,7 +447,7 @@ def check(answer, stretch, shown):
         if ref in handles:
             return ref
         n = entry_ref(ref)
-        return memory.head(n) if n and memory.entry(n) else None
+        return mem.head(n) if n and mem.entry(n) else None
 
     def label(target):
         return target if isinstance(target, str) else f"e{target}"
@@ -450,7 +455,7 @@ def check(answer, stretch, shown):
     def is_hub(target):
         if isinstance(target, str):
             return next(x for x in final if x["handle"] == target)["kind"] in HUBS
-        return memory.entry(target)["kind"] in HUBS
+        return mem.entry(target)["kind"] in HUBS
 
     # hubs an entry can belong to just by naming them: existing ones (unless being replaced) and new ones
     hubs = [(x["id"], x["title"]) for x in current.values() if x["kind"] in HUBS and x["id"] not in replaced]
@@ -516,19 +521,19 @@ def check(answer, stretch, shown):
     #     (entries written from the same messages as the old version, or built on it)
     updating = {e["replaces"]: e for e in final if e["replaces"]}
     for target, e in updating.items():
-        old = [v["id"] for v in memory.chain(target)]
+        old = [v["id"] for v in mem.chain(target)]
         marks = ",".join("?" * len(old))
-        said = memory.rows(f"SELECT DISTINCT entry FROM evidence WHERE message IN "
+        said = mem.rows(f"SELECT DISTINCT entry FROM evidence WHERE message IN "
                            f"(SELECT message FROM evidence WHERE entry IN ({marks}))", *old)
-        built = memory.rows(f"SELECT DISTINCT src AS entry FROM links WHERE dst IN ({marks}) AND kind != 'about'", *old)
+        built = mem.rows(f"SELECT DISTINCT src AS entry FROM links WHERE dst IN ({marks}) AND kind != 'about'", *old)
         for r in said + built:
             other = r["entry"]
-            if other in old or other in updating or not memory.is_current(other):
+            if other in old or other in updating or not mem.is_current(other):
                 continue
-            o = memory.entry(other)
+            o = mem.entry(other)
             reason = "builds on it" if r in built else "was written from the same message"
             asks[other] = (f"{e['name']} updates e{target}. e{other} \"{o['title']}\" {reason} and says: "
-                           f"\"{memory.readable(o['text'])}\" If that repeats what changed, also write a new version of e{other} "
+                           f"\"{mem.readable(o['text'])}\" If that repeats what changed, also write a new version of e{other} "
                            f"(replaces: e{other}); if not, leave it out of your answer.")
 
     clean = [{k: e[k] for k in ("handle", "kind", "title", "text", "evidence", "replaces", "links")} for e in final]
@@ -569,12 +574,12 @@ def cost(usage):
             + usage.get("completion_tokens", 0) * price.get("output", 0)) / 1e6
 
 
-def run(first, last):
+def run(mem, first, last):
     """Index messages #first to #last. Returns the run's record (status, page, problems...)."""
     started = time.time()
-    stretch = {m["id"]: m for m in memory.messages_between(first, last)}
-    shown = entries_to_show(stretch.values())
-    convo = prompt(first, last, stretch.values(), shown)
+    stretch = {m["id"]: m for m in mem.messages_between(first, last)}
+    shown = entries_to_show(mem, stretch.values())
+    convo = prompt(mem, first, last, stretch.values(), shown)
     asked = list(convo)
     replies, problem_log, best, asked_about = [], [], None, set()
     used = {"prompt_tokens": 0, "completion_tokens": 0}
@@ -583,7 +588,7 @@ def run(first, last):
         try:
             reply = ask(convo)
         except Exception as e:
-            return record(first, last, "error", attempt, started, asked, replies,
+            return record(mem, first, last, "error", attempt, started, asked, replies,
                           problem_log + [[f"couldn't reach DeepSeek: {getattr(e, 'message', e)}"]], used)
         replies.append(reply)
         for k in used:
@@ -592,7 +597,7 @@ def run(first, last):
         if problem:
             problems, notes, asks, result = [problem], [], {}, None
         else:
-            headline, clean, problems, notes, asks = check(answer, stretch, shown)
+            headline, clean, problems, notes, asks = check(mem, answer, stretch, shown)
             result = (headline, clean) if headline is not None else None
         new_asks = [q for other, q in asks.items() if other not in asked_about]
         asked_about |= set(asks)
@@ -619,9 +624,9 @@ def run(first, last):
 
     if best is None:
         status = "failed"
-        failures = memory.value("SELECT COUNT(*) FROM runs WHERE first = ? AND status = 'failed'", first) + 1
+        failures = mem.value("SELECT COUNT(*) FROM runs WHERE first = ? AND status = 'failed'", first) + 1
         if failures < GIVE_UP_AFTER:
-            return record(first, last, status, attempt, started, asked, replies, problem_log, used)
+            return record(mem, first, last, status, attempt, started, asked, replies, problem_log, used)
         # It keeps failing on this stretch: save a page with no entries so indexing moves on.
         # The messages are still in the log, and recall still searches them directly.
         best = (next((m["text"][:80] for m in stretch.values() if m["role"] == "user"), "(no headline)"), [], 0)
@@ -629,19 +634,19 @@ def run(first, last):
     else:
         fixed = any(p for p in problem_log[:-1] if any(not x.startswith("(") for x in p))
         status = "partial" if best[2] else "repaired" if fixed else "ok"
-    result = record(first, last, status, attempt, started, asked, replies, problem_log, used)
-    page_id, made = memory.save_page(first, last, best[0], best[1], result["id"])
-    memory.set_run_page(result["id"], page_id)
+    result = record(mem, first, last, status, attempt, started, asked, replies, problem_log, used)
+    page_id, made = mem.save_page(first, last, best[0], best[1], result["id"])
+    mem.set_run_page(result["id"], page_id)
     return {**result, "page": page_id, "entries": len(made)}
 
 
-def record(first, last, status, attempts, started, asked, replies, problems, used):
-    run_id = memory.save_run(first=first, last=last, status=status, attempts=attempts, model=MODEL,
+def record(mem, first, last, status, attempts, started, asked, replies, problems, used):
+    run_id = mem.save_run(first=first, last=last, status=status, attempts=attempts, model=MODEL,
                              seconds=round(time.time() - started, 1), tokens_in=used["prompt_tokens"],
                              tokens_out=used["completion_tokens"], cost=round(cost(used), 6),
                              prompt=asked, replies=replies, problems=problems)
     if status in ("failed", "error"):
-        print(f"Memory: indexing #{first}-#{last} {status}: {problems[-1][:1] if problems else ''}")
+        print(f"Memory ({mem.name}): indexing #{first}-#{last} {status}: {problems[-1][:1] if problems else ''}")
     return {"id": run_id, "status": status, "attempts": attempts, "first": first, "last": last,
             "problems": problems, "page": None, "entries": 0}
 
@@ -650,13 +655,13 @@ def record(first, last, status, attempts, started, asked, replies, problems, use
 # 6. In the background: wake up after each reply (and once a minute), index what's due
 # ---------------------------------------------------------------------------
 
-def index_now(force=False):
-    """Index everything that's due. force=True also indexes a short stretch right away.
-    Returns the runs that happened."""
+def index_now(mem, force=False):
+    """Index everything that's due in this memory. force=True also indexes a short stretch
+    right away. Returns the runs that happened."""
     results = []
     with RUN_LOCK:
-        while (stretch := due(force)) and len(results) < 50:
-            result = run(*stretch)
+        while not mem.closed and (stretch := due(mem, force)) and len(results) < 50:
+            result = run(mem, *stretch)
             results.append(result)
             if result["status"] in ("failed", "error"):
                 break
@@ -671,13 +676,16 @@ def worker():
     while True:
         WAKE.wait(timeout=60)
         WAKE.clear()
-        try:
-            index_now()
-        except Exception as e:      # never let a bug here take the memory down with it
-            print(f"Memory: the indexer hit a problem ({e}); it will try again.")
+        for mem in app["memories"]():
+            try:
+                index_now(mem)
+            except Exception as e:      # never let a bug here take the memory down with it
+                print(f"Memory ({mem.name}): the indexer hit a problem ({e}); it will try again.")
 
 
-def start(ask, prices):
-    app.update(ask=ask, prices=prices)
+def start(ask, prices, memories, page):
+    """ask: sends one request to DeepSeek. memories: returns the memories to keep indexed.
+    page: returns how many messages make a page right now."""
+    app.update(ask=ask, prices=prices, memories=memories, page=page)
     threading.Thread(target=worker, daemon=True).start()
     nudge()

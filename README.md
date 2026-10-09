@@ -22,18 +22,28 @@ Needs Python 3.10–3.13 (Kokoro doesn't support 3.14 yet).
 ## Using it
 
 - **Type** at the prompt, Enter to send.
-- **Talk:** hold Space (with the prompt empty) and let go to send. Tap Space twice to lock it on for long
-  stretches; press Space again to send, or Esc to throw it away. Tap Space while Avy talks to cut her off.
+- **Dictate:** hold Space and talk; let go and your words appear in the text box, to edit and send yourself.
+  Tap Space twice (on an empty box) to lock it on for long stretches; press Space again to finish, or Esc to
+  throw it away. With text already in the box, a tap still types a space and a hold dictates more.
+- **Live conversation:** `/live: on`. Then Space talks to Avy and she answers out loud; tap Space while she
+  talks to cut her off. Only what you heard is saved.
 - **One endless conversation.** There's no new chat: every message gets its own memory, fetched fresh.
   Reloading brings the conversation back; `[ load earlier ]` goes further back.
+- **How much context Avy gets**, two dials:
+  - `/window:` how many recent messages she reads word for word: 0, 5, 10, 20 (default), 40, 80, or all.
+    At 0 everything comes from memory; at all it's an ordinary chat.
+  - `/recall:` how far memory search reaches: off, light, normal (default), deep, max.
+- **Incognito:** `/incognito` starts a separate conversation. Avy can still use her memory, but nothing
+  said there is kept: it has its own temporary memory, deleted when you end it (`/incognito` again, or
+  `[ end incognito ]`), or when app.py stops.
 - **Under the hood:** a dim `↳ recalled 3 entries` under a reply shows what memory brought for it. Click it to
   see each entry, how it was reached, and the exact note DeepSeek got. Click any entry to read it like a wiki
   page (where it was said, its links, what links to it, earlier versions); click any `#41` to see that exact
   spot in the log with the words highlighted. `[ back ]` retraces your steps.
 - **Commands:** type `/` and a panel opens on the right. Keep typing to narrow it, Tab to complete, ↑↓ to pick,
-  Enter to run. `/memory` (or `/memory: words` to search it), `/index`, `/model:`, `/thinking:`, `/voice:`,
-  `/speed:`, `/whisper:`, `/speak:`, `/clear` (the screen only; memory keeps everything), `/keys`, `/where`,
-  `/retry`, `/help`.
+  Enter to run. `/memory` (or `/memory: words` to search it), `/index`, `/incognito`, `/window:`, `/recall:`,
+  `/live:`, `/model:`, `/thinking:`, `/voice:`, `/speed:`, `/whisper:`, `/clear` (the screen only; memory keeps
+  everything), `/keys`, `/where`, `/retry`, `/help`.
 - **System card** (left): the same settings, as dropdowns, plus memory numbers.
 
 ## How memory works
@@ -58,6 +68,7 @@ Everything stays in this folder:
 - `data/models/`: the speech models (about 0.7 GB) and the meaning-search model (about 65 MB), downloaded on the first run.
 - `data/recordings/`: a backup of everything you say, written as you talk, with its transcript next to it.
   The newest 50 (up to 300 MB) are kept; older ones are deleted. `/retry` re-transcribes the newest one.
+- `data/incognito/`: an incognito conversation's memory and recordings, only while it's going.
 
 `data/` and `.env` are never committed.
 
@@ -66,8 +77,8 @@ Everything stays in this folder:
 - `app.py`: the server. The page, keys, settings, and every exchange with DeepSeek (typed or spoken).
 - `memory.py`: the log, the index, search, and what each message brings back.
 - `indexer.py`: writes the index with DeepSeek, and checks everything it writes.
-- `voice.py`: push-to-talk. faster-whisper writes down what you said, Kokoro speaks the answer
-  sentence by sentence. Started by app.py when the voice packages are installed.
+- `voice.py`: push-to-talk. faster-whisper writes down what you said; in live mode Kokoro speaks the
+  answer sentence by sentence. Started by app.py when the voice packages are installed.
 - `index.html`: the page.
 - `tests/test_memory.py`: memory checks that run offline (`python3 tests/test_memory.py`).
 - `tests/live_memory.py`: a week of conversation replayed against the real DeepSeek, then questions

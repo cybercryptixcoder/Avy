@@ -177,6 +177,14 @@ button { cursor: pointer; background: none; border: 0; }
 }
 .chat :focus-visible { outline-color: var(--ink); }
 
+/* Incognito: the conversation turns dark, so you always know nothing here is kept */
+.chat.incognito {
+  --ink: #F7ECDC; --card: #1C1A17;
+  background: var(--card); color: var(--ink); border-radius: 18px; padding: 0 16px 10px;
+}
+.chat.incognito .line code { box-shadow: inset 0 0 0 1px rgb(247 236 220 / .35); }
+.chat.incognito .insp .msg + .msg { border-top-color: rgb(247 236 220 / .25); }
+
 /* the bracket lines from the reference: a rule with short ticks at each end */
 .rule { height: 11px; border: 1.5px solid var(--ink); }
 .rule.top    { border-bottom: 0; }
@@ -494,6 +502,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
       <div class="rule bottom"></div>
       <div class="status">
         <span class="how" id="how"></span>
+        <button id="endIncognito" type="button" hidden>[ end incognito ]</button>
         <button id="micOff" type="button" hidden>[ mic off ]</button>
         <button id="talk" type="button">[ talk ]</button>
         <button id="send" type="button">[ send ]</button>
@@ -535,6 +544,9 @@ const session = { tokens: 0, dollars: 0 };
 let settings = { values: {}, schema: {}, prices: {}, files: {}, memory: {} };   // from app.py: /api/settings
 let voiceInfo = { available: false, problem: "Checking voice..." };
 let oldestShown = null;  // the earliest message number on screen (older ones: [ load earlier ])
+let incognito = false;   // in an incognito conversation: nothing said is kept once it ends
+let historyShown = false; // the conversation is loaded once the page knows which one it's in
+const liveMode = () => settings.values.live === "on";   // live: Space talks to Avy; otherwise Space dictates
 
 async function getJSON(url, options) {
   const res = await fetch(url, options);
@@ -587,6 +599,7 @@ function showStatus(status) {
   $("keyText").textContent = deepseek.hint ? "Key saved" : "No key yet";
   $("keyDot").className = "dot " + (deepseek.hint ? "ok" : "warn");
   $("keyFields").replaceChildren(...status.keys.map(keyField));
+  if (status.incognito !== incognito || !historyShown) showIncognito(status.incognito);
   showVoice(status.voice);
 }
 
@@ -595,7 +608,7 @@ let voicePoll = null;
 function showVoice(voice) {
   voiceInfo = voice;
   $("talk").classList.toggle("off", !voice.available);
-  $("talk").title = voice.problem || "Hold Space to talk, or click to start and click again to send";
+  $("talk").title = voice.problem || "Hold Space (or click here) to speak; with /live: off your words go into the box";
   if (!voice.available && /loading|starting|downloading/.test(voice.problem || "") && !voicePoll) {
     voicePoll = setTimeout(async () => {
       voicePoll = null;
@@ -653,6 +666,8 @@ async function changeSetting(name, value) {
   if (!res.ok) return body.error;
   settings = body;
   renderSystem();
+  setState(voiceState);      // the talk button and hints depend on /live:
+  drawCursor();
   return null;
 }
 
@@ -677,7 +692,7 @@ function renderSystem() {
   const price = settings.prices[v.model] || {};
   const f = settings.files, m = settings.memory || {};
   const info = [
-    ["mic", voiceInfo.available ? "hold space, tap twice to lock" : (voiceInfo.problem || "voice off")],
+    ["mic", voiceInfo.available ? (liveMode() ? "live: space talks to avy" : "space dictates into the box") : (voiceInfo.problem || "voice off")],
     ["price", `$${price.cache_miss} in, $${price.output} out /1M${isPeak() ? " ×2 now" : ""}`],
     ["memory", `${m.messages ?? 0} msgs · ${m.pages ?? 0} pages · ${m.entries ?? 0} entries`],
     ["index", `up to #${m.indexed_to ?? 0}${m.waiting ? `, ${m.waiting} waiting` : ""}${m.failed_runs ? `, ${m.failed_runs} failed` : ""}`],
@@ -700,7 +715,8 @@ function renderSystem() {
   $("meta").append(
     `avy 0.2: ${v.model}, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
     document.createElement("br"),
-    "one endless conversation: avy remembers it all. hold space to talk, / for commands.",
+    incognito ? "incognito: a separate conversation. avy can use her memory, but nothing said here is kept. /incognito ends it."
+              : `one endless conversation: avy remembers it all. hold space to ${liveMode() ? "talk" : "dictate"}, / for commands.`,
   );
 }
 
@@ -942,7 +958,7 @@ function addTrace(after, recalled) {
   line.className = "line trace";
   line.tabIndex = 0;
   line.textContent = "↳ recalled " + [n && `${n} entr${n === 1 ? "y" : "ies"}`, m && `${m} log line${m === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
-  const open = (e) => { e.stopPropagation(); inspect("recall", recalled.recall ?? recalled.id); };
+  const open = (e) => { e.stopPropagation(); inspect("recall", recalled.recall ?? recalled.id, null, recalled.memory); };
   line.onclick = open;
   line.onkeydown = (e) => { if (e.key === "Enter") open(e); };
   after.after(line);
@@ -967,7 +983,7 @@ function clearedAt() {
 async function loadHistory() {
   try {
     const { messages, last } = await getJSON("/api/log?limit=40");
-    const shown = messages.filter((m) => m.id > clearedAt());
+    const shown = messages.filter((m) => incognito || m.id > clearedAt());
     shown.forEach((m) => showMessage(m, prompt));
     oldestShown = shown.length ? shown[0].id : last + 1;
     drawEarlier();
@@ -1036,7 +1052,7 @@ function drawCursor() {
   if (!text) {
     const hint = document.createElement("span");
     hint.className = "hint";
-    hint.textContent = voiceInfo.available ? " type, or hold space to talk" : " type a message";
+    hint.textContent = !voiceInfo.available ? " type a message" : liveMode() ? " type, or hold space to talk" : " type, or hold space to dictate";
     mirror.append(hint);
   }
   mirror.scrollTop = input.scrollTop;
@@ -1083,18 +1099,49 @@ async function clearScreen() {
   log.querySelectorAll(".line").forEach((line) => line.remove());
   const stats = await refreshMemory();
   oldestShown = (stats?.messages || 0) + 1;
-  try { localStorage.setItem("avy.clearedAt", String(oldestShown - 1)); } catch {}
+  if (!incognito) try { localStorage.setItem("avy.clearedAt", String(oldestShown - 1)); } catch {}
   drawEarlier();
   input.focus();
 }
+
+// Incognito: a separate conversation with its own temporary memory. Avy can read her main
+// memory from it, but nothing said in it is kept; ending it deletes it.
+async function toggleIncognito() {
+  try {
+    const { incognito: on } = await getJSON("/api/incognito", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on: !incognito }),
+    });
+    await showIncognito(on);
+    addLine("note", on
+      ? "incognito: a separate conversation. avy can still use her memory, but nothing said here is kept.\n/incognito or [ end incognito ] ends it and deletes it."
+      : "incognito conversation ended and deleted. back to the main conversation.");
+  } catch (e) {
+    addLine("error", `Couldn't switch incognito (${e.message}).`);
+  }
+}
+
+async function showIncognito(on) {
+  if (controller) controller.abort();
+  interruptAvy();
+  closeInspector();
+  incognito = on;
+  historyShown = true;
+  $("chat").classList.toggle("incognito", on);
+  $("endIncognito").hidden = !on;
+  log.querySelectorAll(".line, .earlier").forEach((line) => line.remove());
+  renderSystem();
+  await loadHistory();
+  refreshMemory();
+}
+$("endIncognito").onclick = () => incognito && toggleIncognito();
 
 // Memory numbers for the tiles, the top bar and the system card.
 async function refreshMemory() {
   try {
     const { stats } = await getJSON("/api/memory?pages=0");
     settings.memory = stats;
-    $("memText").textContent = `Memory: ${stats.messages.toLocaleString()} messages`;
-    $("memDot").className = "dot " + (stats.failed_runs ? "warn" : "ok");
+    $("memText").textContent = `${incognito ? "Incognito" : "Memory"}: ${stats.messages.toLocaleString()} messages`;
+    $("memDot").className = "dot " + (incognito || stats.failed_runs ? "warn" : "ok");
     renderSystem();
     updateTiles();
     return stats;
@@ -1110,6 +1157,7 @@ $("openMemory").onclick = () => (insp.stack.length ? closeInspector() : inspect(
 const ACTIONS = {
   memory: { about: "look inside memory (/memory: words searches it)", run: (words) => words ? inspect("search", words) : inspect("memory") },
   index: { about: "index what's waiting now, not after ~20 messages", run: indexNow },
+  incognito: { about: "a separate conversation nothing is kept from (again to end it)", run: toggleIncognito },
   clear: { about: "clear the screen (memory keeps everything)", run: clearScreen },
   keys:  { about: "open the keys panel", run: openKeys },
   where: { about: "where Avy keeps its files", run: showWhere },
@@ -1256,6 +1304,7 @@ async function showWhere() {
     `  settings.json   your choices (system card and / commands)`,
     `  models/         speech and meaning-search models, ${f.models_mb} MB`,
     `  recordings/     your last ${f.recordings} recordings with their transcripts, ${f.recordings_mb} MB`,
+    `  incognito/      an incognito conversation, only while it's going`,
     `keys are in .env next to app.py.`,
   ].join("\n"));
 }
@@ -1484,8 +1533,29 @@ function retryRecording() {
 function spaceTalks() {
   if (!voiceInfo.available || document.querySelector("dialog[open]")) return false;
   const el = document.activeElement;
-  if (el === input) return input.value === "";
+  if (el === input) return input.value === "" || (!liveMode() && !input.value.startsWith("/"));
   return !(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable));
+}
+
+// With text already in the box (dictation mode), Space can't tell a space from a recording
+// until you've held it a moment: a tap types a space, a hold of a quarter second dictates.
+let heldSpace = null;
+function holdToDictate(e) {
+  if (e.type === "keydown") {
+    if (e.repeat || heldSpace) return;
+    heldSpace = { timer: setTimeout(() => { heldSpace.timer = null; ptt.pressedAt = performance.now() - 300; startRecording(false); }, 250) };
+    return;
+  }
+  if (!heldSpace) return;
+  if (heldSpace.timer) {                              // just a tap: type the space after all
+    clearTimeout(heldSpace.timer);
+    const at = input.selectionStart;
+    input.setRangeText(" ", at, input.selectionEnd, "end");
+    grow(); drawCursor(); showHow();
+  } else {
+    finishRecording();
+  }
+  heldSpace = null;
 }
 
 document.addEventListener("keydown", (e) => {
@@ -1497,6 +1567,7 @@ document.addEventListener("keydown", (e) => {
   if (e.code !== "Space" || e.ctrlKey || e.metaKey || e.altKey || !spaceTalks()) return;
   e.preventDefault();
   e.stopPropagation();
+  if (document.activeElement === input && input.value && ptt.state === "idle") return holdToDictate(e);
   if (e.repeat) return;
   if (ptt.locked && ptt.state === "recording") return finishRecording();   // locked: this press sends
   const doubleTap = performance.now() - ptt.lastTapAt < 400;
@@ -1505,6 +1576,7 @@ document.addEventListener("keydown", (e) => {
 }, true);
 
 document.addEventListener("keyup", (e) => {
+  if (e.code === "Space" && heldSpace) { e.preventDefault(); return holdToDictate(e); }
   if (e.code !== "Space" || ptt.locked || !["recording", "arming"].includes(ptt.state)) return;
   e.preventDefault();
   if (performance.now() - ptt.pressedAt < 250) {      // a tap: stops Avy, records nothing
@@ -1534,6 +1606,10 @@ function onVoiceMessage(m) {
       ptt.chunks = [];
       loadSettings();          // refresh the recordings count on the system card
       if (!m.text) { addLine("note", "(didn't catch anything)"); return setState("idle"); }
+      if (!liveMode()) {          // dictation: your words go into the box, to edit and send yourself
+        insertDictation(m.text);
+        return setState("idle");
+      }
       addLine("you", m.text);
       return askAloud(m.text);
     case "recall":           // what memory brought for this reply
@@ -1543,12 +1619,6 @@ function onVoiceMessage(m) {
       return;
     case "thinking":
       if (reply && !reply.thought) reply.thought = thinkingLine(prompt);
-      return;
-    case "delta":            // speak is off: the reply streams in as text
-      if (!reply) return;
-      reply.thought?.finish();
-      reply.text += m.text;
-      showReply(reply.text);
       return;
     case "say":              // a caption for the audio that comes next
       if (!reply) return;
@@ -1561,8 +1631,7 @@ function onVoiceMessage(m) {
       countUsage(m.usage, reply.model);
       reply.done = true;
       reply.fullText = m.text;
-      if (!reply.speak) finishReply(m.text);
-      else if (!voice.playing.length) finishReply(m.text);
+      if (!voice.playing.length) finishReply(m.text);
       return;
     case "error":
       reply?.thought?.finish();
@@ -1573,11 +1642,23 @@ function onVoiceMessage(m) {
 }
 
 function askAloud(text) {
-  const speak = settings.values.speak === "on";
   if (voice.ws?.readyState !== WebSocket.OPEN) { addLine("error", "The voice connection dropped. Type your message instead."); return setState("idle"); }
-  reply = { speak, model: settings.values.model, text: "", heard: [], captions: [], line: null, done: false, recalled: null, trace: null };
-  voice.ws.send(JSON.stringify({ type: "reply", text, speak }));
+  reply = { model: settings.values.model, heard: [], captions: [], line: null, done: false, recalled: null, trace: null };
+  voice.ws.send(JSON.stringify({ type: "reply", text }));
   setState("thinking");
+}
+
+// Dictation: put what you said into the box at the cursor, with spaces around it as needed.
+function insertDictation(text) {
+  const start = input.selectionStart ?? input.value.length, end = input.selectionEnd ?? start;
+  const before = input.value.slice(0, start), after = input.value.slice(end);
+  const lead = before && !/\s$/.test(before) ? " " : "";
+  const tail = after && !/^\s/.test(after) ? " " : "";
+  input.value = before + lead + text + tail + after;
+  const at = (before + lead + text).length;
+  input.focus();
+  input.setSelectionRange(at, at);
+  grow(); drawCursor(); updateCommands(); showHow();
 }
 
 function showReply(text) {
@@ -1626,10 +1707,8 @@ function queueCaption(text, at) {
 
 function finishReply(text) {
   if (!reply) return;
-  if (reply.speak) {
-    showReply(text);   // make sure the whole reply is on screen
-    voice.ws?.send(JSON.stringify({ type: "heard", sentences: null, cut: false }));   // she finished: save it all
-  }
+  showReply(text);   // make sure the whole reply is on screen
+  voice.ws?.send(JSON.stringify({ type: "heard", sentences: null, cut: false }));   // she finished: save it all
   reply = null;
   refreshMemory();
   if (ptt.state !== "recording") setState("idle");
@@ -1644,7 +1723,7 @@ function interruptAvy() {
   voice.playAt = 0;
   if (!reply) return;
   reply.thought?.finish();
-  const heard = reply.speak ? reply.heard.join(" ") : reply.text;
+  const heard = reply.heard.join(" ");
   if (heard) {
     showReply(heard);
     reply.line.classList.add("cut");
@@ -1653,7 +1732,7 @@ function interruptAvy() {
     reply.trace?.remove();
   }
   if (voice.ws?.readyState === WebSocket.OPEN) {     // stop generating, and save what you heard
-    voice.ws.send(JSON.stringify({ type: "heard", sentences: reply.speak ? reply.heard.length : null, cut: true }));
+    voice.ws.send(JSON.stringify({ type: "heard", sentences: reply.heard.length, cut: true }));
   }
   reply = null;
   refreshMemory();
@@ -1672,7 +1751,7 @@ function setState(state) {
   while (ring.length < 24) ring += `${word} ✦ `;
   $("ringText").textContent = ring;
   $("badge").classList.toggle("busy", state !== "idle");
-  $("talk").textContent = ptt.state === "recording" || ptt.state === "arming" ? "[ done ]" : "[ talk ]";
+  $("talk").textContent = ptt.state === "recording" || ptt.state === "arming" ? "[ done ]" : liveMode() ? "[ talk ]" : "[ dictate ]";
   clearInterval(recTimer);
   if (state === "recording") recTimer = setInterval(showHow, 250);
   showHow();
@@ -1686,7 +1765,8 @@ function showHow() {
     const s = Math.floor((performance.now() - (ptt.startedAt || performance.now())) / 1000);
     const clock = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
     how.innerHTML = `<span class="rec">● rec ${clock}</span> `;
-    how.append(ptt.locked ? "locked: space to send, esc to throw away" : "let go of space to send");
+    const finish = liveMode() ? "send" : "write it down";
+    how.append(ptt.locked ? `locked: space to ${finish}, esc to throw away` : `let go of space to ${finish}`);
     how.classList.add("live");
     return;
   }
@@ -1695,8 +1775,10 @@ function showHow() {
   else if (voiceState === "speaking") { text = "avy is talking: tap space to cut in"; live = true; }
   else if (controller) text = "esc or [ stop ] to stop";
   else if (input.value.startsWith("/")) text = "tab completes, ↑↓ picks, enter runs, esc closes";
-  else if (input.value) text = "enter to send, shift+enter for a new line";
-  else text = voiceInfo.available ? "hold space to talk, tap twice to lock, / for commands" : "type a message, / for commands";
+  else if (input.value) text = "enter to send, shift+enter for a new line" + (voiceInfo.available && !liveMode() ? ", hold space to dictate more" : "");
+  else if (!voiceInfo.available) text = "type a message, / for commands";
+  else text = liveMode() ? "live: hold space to talk to avy, tap twice to lock, / for commands"
+                         : "hold space to dictate, tap twice to lock, / for commands";
   how.textContent = text;
   how.classList.toggle("live", live);
 }
@@ -1821,13 +1903,18 @@ function drawBars(now) {
    =================================================================== */
 const insp = { stack: [] };
 
-function inspect(view, arg, extra) {
-  insp.stack.push({ view, arg, extra });
+// mem: which memory a view reads ("main" or "incognito"). Left out, it's the one you were
+// already looking at, or else the conversation you're in now.
+function inspect(view, arg, extra, mem = insp.stack.at(-1)?.mem) {
+  insp.stack.push({ view, arg, extra, mem });
   drawInspector();
 }
 function inspectInstead(view, arg, extra) {     // same place in the path, different view (paging, a new search)
-  insp.stack[insp.stack.length - 1] = { view, arg, extra };
+  insp.stack[insp.stack.length - 1] = { view, arg, extra, mem: insp.stack.at(-1).mem };
   drawInspector();
+}
+function api(path, mem) {                       // add ?memory= when a view reads a particular memory
+  return mem ? path + (path.includes("?") ? "&" : "?") + `memory=${mem}` : path;
 }
 function closeInspector() {
   insp.stack = [];
@@ -1844,7 +1931,7 @@ async function drawInspector() {
   $("inspBack").hidden = insp.stack.length < 2;
   const body = $("inspBody");
   try {
-    const [title, nodes] = await VIEWS[here.view](here.arg, here.extra);
+    const [title, nodes] = await VIEWS[here.view](here.arg, here.extra, here.mem);
     if (insp.stack[insp.stack.length - 1] !== here) return;      // you moved on while it loaded
     $("inspTitle").textContent = "── " + title;
     body.replaceChildren(...nodes.flat(Infinity).filter((n) => n != null && n !== false));
@@ -1862,10 +1949,10 @@ function el(tag, cls, ...kids) {
   kids.flat(Infinity).forEach((k) => k != null && k !== false && node.append(k));
   return node;
 }
-function go(label, view, arg, extra) {          // an inline link to another view
+function go(label, view, arg, extra, mem) {     // an inline link to another view
   const b = el("button", "ref", label);
   b.type = "button";
-  b.onclick = (e) => { e.stopPropagation(); inspect(view, arg, extra); };
+  b.onclick = (e) => { e.stopPropagation(); mem ? inspect(view, arg, extra, mem) : inspect(view, arg, extra); };
   return b;
 }
 function row(cells, onclick, cls = "") {         // a clickable line: [dim key] [main text] [dim number]
@@ -1918,18 +2005,21 @@ function searchBox(words) {
 
 const VIEWS = {
   // Everything at a glance: the numbers, and every page newest first.
-  async memory() {
-    const { stats: s, pages } = await getJSON("/api/memory");
-    settings.memory = s;
+  async memory(arg, extra, mem) {
+    const { stats: s, pages } = await getJSON(api("/api/memory", mem));
+    const current = (incognito ? "incognito" : "main") === s.memory;
+    if (current) settings.memory = s;
     const index = el("button", "more", s.waiting ? `[ index the ${s.waiting} waiting now ]` : "[ index now ]");
     index.type = "button";
     index.onclick = async () => { index.textContent = "indexing…"; await getJSON("/api/index", { method: "POST" }).catch(() => {}); inspectInstead("memory"); refreshMemory(); };
-    return ["memory", [
+    return [s.memory === "incognito" ? "incognito memory" : "memory", [
+      incognito && current ? el("div", "dim", "this incognito conversation's own memory (deleted when it ends) · ",
+                                go("the main memory", "memory", null, null, "main")) : null,
       el("div", "", `${s.messages} messages · ${plural(s.pages, "page")} · ${plural(s.entries, "entry").replace("entrys", "entries")} · ${plural(s.links, "link")}`),
       el("div", "dim", `indexed up to #${s.indexed_to}${s.waiting ? ` · ${s.waiting} waiting (a page is written every ~20)` : ""}` +
                        `${s.failed_runs ? ` · ${s.failed_runs} failed runs` : ""}`),
       el("div", "dim", `search by meaning: ${s.meaning} · ${s.mb} MB in memory.db`),
-      s.waiting ? index : null,
+      s.waiting && current ? index : null,
       searchBox(""),
       sec("pages, newest first"),
       pages.length ? pages.map((p) => row([["n", `p${p.id}`.padEnd(5)], ["k", `#${p.first}-${p.last}`.padEnd(10)], ["g", p.headline],
@@ -1939,8 +2029,8 @@ const VIEWS = {
   },
 
   // One page: its headline, its entries, and how it was written (the run).
-  async page(id) {
-    const { page: p, entries, run } = await getJSON(`/api/page?id=${id}`);
+  async page(id, extra, mem) {
+    const { page: p, entries, run } = await getJSON(api(`/api/page?id=${id}`, mem));
     const nodes = [
       el("div", "big", p.headline),
       el("div", "dim", `p${p.id} · written ${day(p.at)} · from messages `, go(`#${p.first}-#${p.last}`, "log", p.first)),
@@ -1964,8 +2054,8 @@ const VIEWS = {
   },
 
   // One entry, like a wiki article: text, evidence, links both ways, every version.
-  async entry(id) {
-    const a = await getJSON(`/api/entry?id=${id}`);
+  async entry(id, extra, mem) {
+    const a = await getJSON(api(`/api/entry?id=${id}`, mem));
     const e = a.entry;
     const nodes = [];
     if (a.current !== e.id) nodes.push(el("div", "banner", "an older version. what's true now: ", go(`e${a.current}`, "entry", a.current)));
@@ -1989,8 +2079,8 @@ const VIEWS = {
   },
 
   // The log itself, around one message, with the quoted words highlighted.
-  async log(id, quote) {
-    const { messages, last } = await getJSON(`/api/log?after=${Math.max(0, id - 7)}&limit=13`);
+  async log(id, quote, mem) {
+    const { messages, last } = await getJSON(api(`/api/log?after=${Math.max(0, id - 7)}&limit=13`, mem));
     const nodes = [];
     if (messages.length && messages[0].id > 1) {
       const up = el("button", "more", "[ earlier ]");
@@ -2016,8 +2106,8 @@ const VIEWS = {
   },
 
   // What memory brought for one reply, and how each thing was reached.
-  async recall(id) {
-    const r = await getJSON(`/api/recall?id=${id}`);
+  async recall(id, extra, mem) {
+    const r = await getJSON(api(`/api/recall?id=${id}`, mem));
     const t = r.trace;
     const titles = Object.fromEntries(t.entries.map((x) => [x.entry, x.title]));
     const how = (x) => x.how === "link"
@@ -2029,11 +2119,13 @@ const VIEWS = {
                        `~${t.tokens} tokens · ${t.seconds}s · meaning search ${t.meaning === "on" ? "on" : "off"}`),
       sec(`entries it brought (${t.entries.length})`),
       t.entries.length ? t.entries.map((x) => el("div", "",
-        row([["n", x.score.toFixed(2)], ["k", x.kind.padEnd(10)], ["g", x.title + (x.version > 1 ? `  v${x.version}` : "")], ["n", `e${x.entry}`]], () => inspect("entry", x.entry)),
+        row([["n", x.score.toFixed(2)], ["k", x.kind.padEnd(10)], ["g", x.title + (x.version > 1 ? `  v${x.version}` : "")],
+             ["n", `${x.memory === "main" && incognito ? "main " : ""}e${x.entry}`]], () => inspect("entry", x.entry, null, x.memory || mem)),
         el("div", "dim", "      ", how(x), x.matched ? ` · matched older version e${x.matched}` : "", " · ",
-           x.messages.map((m, i) => [i ? " " : "", go(`#${m}`, "log", m)])))) : el("div", "dim", "none"),
+           x.messages.map((m, i) => [i ? " " : "", go(`#${m}`, "log", m, null, x.memory || mem)])))) : el("div", "dim", "none"),
       sec(`older messages it brought (${t.log.length})`),
-      t.log.length ? t.log.map((x) => row([["n", `#${x.message}`], ["g", `found by ${x.how === "both" ? "words + meaning" : x.how}`]], () => inspect("log", x.message)))
+      t.log.length ? t.log.map((x) => row([["n", `#${x.message}`], ["g", `found by ${x.how === "both" ? "words + meaning" : x.how}${x.memory === "main" && incognito ? " (main)" : ""}`]],
+                                           () => inspect("log", x.message, null, x.memory || mem)))
                    : el("div", "dim", "none"),
       t.skipped ? el("div", "dim", `${t.skipped} more matched but didn't fit`) : null,
       ...toggle("the exact memory note DeepSeek got", r.briefing),
@@ -2041,8 +2133,8 @@ const VIEWS = {
   },
 
   // Search entries and the log.
-  async search(words) {
-    const r = await getJSON(`/api/search?q=${encodeURIComponent(words)}`);
+  async search(words, extra, mem) {
+    const r = await getJSON(api(`/api/search?q=${encodeURIComponent(words)}`, mem));
     return [`search: ${words}`, [
       searchBox(words),
       sec(`entries (${r.entries.length})`),
@@ -2064,8 +2156,7 @@ updateTiles();
 if (still) { drawScope(); drawBars(0); } else requestAnimationFrame(tick);
 loadSettings().then(() => { updateRate(); setInterval(updateRate, 60_000); refreshMemory(); });
 setInterval(() => { if (!document.hidden) refreshMemory(); }, 20_000);   // the indexer works in the background
-loadHistory();
-loadStatus();
+loadStatus();          // then the conversation: the main one, or an incognito one still going
 drawCursor();
 </script>
 </body>

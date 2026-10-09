@@ -6,11 +6,13 @@ Then go:  http://localhost:8000
 
 Text chat only needs Python's standard library. Voice is optional (voice.py).
 Memory (memory.py, indexer.py) remembers everything in data/memory.db.
+An incognito conversation gets its own memory in data/incognito, deleted when it ends.
 Everything Avy writes to disk goes in the data/ folder next to this file.
 """
 
 import json
 import os
+import shutil
 import ssl
 import urllib.error
 import urllib.parse
@@ -33,6 +35,7 @@ ENV_FILE = HERE / ".env"                    # your keys; .gitignore keeps it off
 DATA = HERE / "data"                        # everything else Avy saves (also kept off GitHub)
 SETTINGS_FILE = DATA / "settings.json"      #   your choices from the system card or / commands
 MEMORY_FILE = DATA / "memory.db"            #   everything ever said, and the index into it
+INCOGNITO_DIR = DATA / "incognito"          #   an incognito conversation: deleted when it ends
                                             #   data/models      speech and meaning-search models
                                             #   data/recordings  backups of what you said (voice)
 PORT = 8000
@@ -55,12 +58,15 @@ versions too; the newest one is what's true now. Use what's relevant and ignore 
 the recent messages nor the memory note covers something, say you don't remember it rather than guessing.
 Don't mention entry or message numbers unless he asks where something came from."""
 
+INCOGNITO_NOTE = f"""This is an incognito conversation, separate from your main one with {memory.NAME}. You can use
+your memory of the main conversation, but nothing said here will be remembered once it ends."""
 
-def system_prompt():
+
+def system_prompt(incognito=False):
     """Avy's instructions plus the core of her memory. It only changes when the index does,
     so DeepSeek can reuse its cached copy (the time goes in the memory note instead)."""
-    core = memory.core()
-    return SYSTEM_PROMPT + (f"\n\n{core}" if core else "")
+    core = MEMORIES["main"].core()
+    return SYSTEM_PROMPT + (f"\n\n{INCOGNITO_NOTE}" if incognito else "") + (f"\n\n{core}" if core else "")
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +86,12 @@ SETTINGS = {
                  "options": ["deepseek-flash", "deepseek-v4-pro"], "default": "deepseek-flash"},
     "thinking": {"about": "think before answering (slower, costs more)",
                  "options": ["off", "low", "high", "max"], "default": "off"},
+    "window":   {"about": "how many recent messages Avy reads word for word; the rest comes from memory (all: an ordinary chat)",
+                 "options": ["0", "5", "10", "20", "40", "80", "all"], "default": "20"},
+    "recall":   {"about": "how far memory search reaches on each message",
+                 "options": ["off", "light", "normal", "deep", "max"], "default": "normal"},
+    "live":     {"about": "on: Space talks to Avy and she answers out loud. off: Space types what you say into the box",
+                 "options": ["off", "on"], "default": "off"},
     "voice":    {"about": "Avy's voice (Kokoro). a = American, b = British, f/m = female/male",
                  "options": ENGLISH_VOICES, "default": "af_heart"},
     "speed":    {"about": "how fast Avy talks",
@@ -87,8 +99,6 @@ SETTINGS = {
     "whisper":  {"about": "speech-to-text model: top is fastest, bottom is most accurate",
                  "options": ["tiny.en", "base.en", "distil-small.en", "small.en", "distil-medium.en", "large-v3-turbo"],
                  "default": "distil-small.en"},
-    "speak":    {"about": "say replies out loud when you talk to Avy",
-                 "options": ["on", "off"], "default": "on"},
 }
 
 # Dollars per million tokens at off-peak rates (peak hours cost double), from DeepSeek's pricing page.
@@ -125,6 +135,19 @@ def change_setting(name, value):
     return None
 
 
+def window_size():
+    """The /window: setting as a number of messages (None: all of them)."""
+    value = current_settings()["window"]
+    return None if value == "all" else int(value)
+
+
+def page_size():
+    """Messages per index page. With a small window, pages get smaller, so messages reach the
+    index soon after they leave the window (at window 0: every 4 messages)."""
+    size = window_size()
+    return indexer.PAGE if size is None or size >= indexer.PAGE else max(indexer.MIN_STRETCH, size)
+
+
 def folder_size(folder):
     # skip shortcuts (the Whisper download uses them), or files get counted twice
     return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file() and not f.is_symlink()) if folder.exists() else 0
@@ -143,7 +166,8 @@ def settings_payload():
             "recordings": len(recordings),
             "recordings_mb": round(folder_size(DATA / "recordings") / 1e6, 1),
         },
-        "memory": memory.stats(),
+        "memory": talking_to().stats(),
+        "incognito": MEMORIES["incognito"] is not None,
     }
 
 
@@ -182,7 +206,7 @@ def key_status():
     for name, label in KEYS.items():
         value = os.environ.get(name, "")
         keys.append({"name": name, "label": label, "hint": value[-4:] if value else None})
-    return {"keys": keys, "voice": voice_status()}
+    return {"keys": keys, "voice": voice_status(), "incognito": MEMORIES["incognito"] is not None}
 
 
 # ---------------------------------------------------------------------------
@@ -289,7 +313,56 @@ def ask_json(payload):
 
 
 # ---------------------------------------------------------------------------
-# 5. A turn: one exchange with Avy, typed or spoken. Memory is assembled fresh for
+# 5. Memories: the main one, plus an incognito one while an incognito conversation is on
+# ---------------------------------------------------------------------------
+
+MEMORIES = {"main": None, "incognito": None}
+
+
+def talking_to():
+    """The memory this conversation writes to: the incognito one while it's on, the main one otherwise."""
+    return MEMORIES["incognito"] or MEMORIES["main"]
+
+
+def start_incognito():
+    """A separate conversation with a memory of its own. It can read the main memory,
+    but nothing said in it is ever written there."""
+    if not MEMORIES["incognito"]:
+        name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".db"
+        MEMORIES["incognito"] = memory.Memory(INCOGNITO_DIR / name, name="incognito")
+
+
+def end_incognito():
+    """Delete the incognito conversation: its log, its index and its recordings."""
+    with indexer.RUN_LOCK:              # if it's being indexed right now, wait for that to finish
+        mem, MEMORIES["incognito"] = MEMORIES["incognito"], None
+        if mem:
+            mem.close(delete=True)
+        shutil.rmtree(INCOGNITO_DIR, ignore_errors=True)
+
+
+def recordings_folder():
+    """Where voice recordings go: an incognito conversation keeps its own (deleted with it)."""
+    return INCOGNITO_DIR / "recordings" if MEMORIES["incognito"] else DATA / "recordings"
+
+
+def combine(main, own):
+    """An incognito turn's recall: from the main memory (read-only) and from this conversation's own."""
+    trace = {**own,
+             "entries": own["entries"] + main["entries"], "log": own["log"] + main["log"],
+             "tokens": own["tokens"] + main["tokens"], "skipped": own["skipped"] + main["skipped"],
+             "searched": {k: own["searched"][k] + main["searched"][k] for k in ("entries", "log")},
+             "walked": own["walked"] + main["walked"], "seconds": round(own["seconds"] + main["seconds"], 3)}
+    trace["briefing"] = memory.briefing([
+        ("From your memory of the main conversation (read-only here; quotes are the exact words, #n is a message there):",
+         main["blocks"]["entries"] + main["blocks"]["log"]),
+        ("From earlier in this incognito conversation:", own["blocks"]["entries"] + own["blocks"]["log"]),
+    ])
+    return trace
+
+
+# ---------------------------------------------------------------------------
+# 6. A turn: one exchange with Avy, typed or spoken. Memory is assembled fresh for
 #    every message, so there's never a "new chat": every message is one.
 # ---------------------------------------------------------------------------
 
@@ -303,43 +376,48 @@ class Turn:
     """
 
     def __init__(self, text, via):
-        self.text, self.via = text, via
-        self.model = current_settings()["model"]
-        shown = memory.window()
-        previous = next((m["text"] for m in reversed(shown) if m["role"] == "user"), "")
-        self.recall = memory.recall(text, previous)
-        self.messages = briefing(shown, self.recall["briefing"], text)
+        choice = current_settings()
+        self.text, self.via, self.model = text, via, choice["model"]
+        self.mem = talking_to()
+        self.incognito = self.mem is MEMORIES["incognito"]
+        shown = self.mem.window(window_size())                   # /window: what she reads word for word
+        shown_from = shown[0]["id"] if shown else self.mem.last_id() + 1
+        previous = self.mem.last_said()
+        self.recall = self.mem.recall(text, previous, shown_from, choice["recall"])   # /recall: how far she looks
+        if self.incognito and choice["recall"] != "off":         # incognito also reads the main memory
+            self.recall = combine(MEMORIES["main"].recall(text, previous, None, choice["recall"]), self.recall)
+        self.messages = briefing(shown, self.recall["briefing"], text, self.incognito)
         self.user_id = self.recall_id = self.reply_id = None
 
     def ask(self):
         upstream = ask_deepseek(self.messages, self.model)   # if this fails, nothing is saved
-        self.user_id = memory.add("user", self.text, self.via)
-        self.recall_id = memory.save_recall(self.user_id, self.recall)
+        self.user_id = self.mem.add("user", self.text, self.via)
+        self.recall_id = self.mem.save_recall(self.user_id, self.recall)
         return upstream
 
     def summary(self):
         """What the page shows under the reply: how much memory was brought in."""
-        return {"message": self.user_id, "recall": self.recall_id,
+        return {"message": self.user_id, "recall": self.recall_id, "memory": self.mem.name,
                 "entries": len(self.recall["entries"]), "log": len(self.recall["log"])}
 
     def finish(self, text, usage=None, cut=False):
         """Save Avy's reply (only what was actually sent or heard). Returns its number."""
-        if self.reply_id or not self.user_id or not text.strip():
+        if self.reply_id or not self.user_id or not text.strip() or self.mem.closed:
             return self.reply_id
         meta = {"model": self.model, "recall": self.recall_id}
         if usage:
             meta["usage"] = usage
         if cut:
             meta["cut"] = True
-        self.reply_id = memory.add("assistant", text.strip(), self.via, meta)
+        self.reply_id = self.mem.add("assistant", text.strip(), self.via, meta)
         indexer.nudge()                # index in the background if a page's worth is waiting
         return self.reply_id
 
 
-def briefing(shown, memory_note, text):
+def briefing(shown, memory_note, text, incognito=False):
     """What DeepSeek sees, in this order: instructions and core (same every time, so it's cached),
     the newest messages word for word, the memory note for this message, then your message."""
-    messages = [{"role": "system", "content": system_prompt()}]
+    messages = [{"role": "system", "content": system_prompt(incognito)}]
     previous_at = None
     for m in shown:
         content = m["text"]
@@ -369,7 +447,7 @@ def stream_text(line):
 
 
 # ---------------------------------------------------------------------------
-# 6. The web server: one page, a few small endpoints
+# 7. The web server: one page, a few small endpoints
 # ---------------------------------------------------------------------------
 
 def number(query, name):
@@ -377,6 +455,12 @@ def number(query, name):
         return int(query.get(name, [""])[0])
     except ValueError:
         return None
+
+
+def memory_for(query):
+    """?memory=main or ?memory=incognito; without it, the conversation you're in now."""
+    name = query.get("memory", [None])[0]
+    return talking_to() if name is None else MEMORIES.get(name)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -390,23 +474,26 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, key_status())
         elif url.path == "/api/settings":
             self.send_json(200, settings_payload())
-        # --- memory, for the chat history and the inspector ---
-        elif url.path == "/api/log":            # ?before=41 or ?after=41, &limit=60
-            after = number(q, "after")
-            self.send_json(200, {"messages": memory.log_slice(before=number(q, "before"), after=after,
-                                                              limit=min(number(q, "limit") or 60, 200)),
-                                 "last": memory.last_id()})
-        elif url.path == "/api/memory":
-            pages = memory.pages_list() if q.get("pages", ["1"])[0] != "0" else []
-            self.send_json(200, {"stats": memory.stats(), "pages": pages})
-        elif url.path == "/api/entry":
-            self.send_found(memory.article(number(q, "id") or 0))
-        elif url.path == "/api/page":
-            self.send_found(memory.page_record(number(q, "id") or 0))
-        elif url.path == "/api/recall":
-            self.send_found(memory.recall_record(number(q, "id") or 0))
-        elif url.path == "/api/search":
-            self.send_json(200, memory.find(q.get("q", [""])[0]))
+        # --- memory, for the chat history and the inspector (?memory=main|incognito) ---
+        elif url.path in ("/api/log", "/api/memory", "/api/entry", "/api/page", "/api/recall", "/api/search"):
+            mem = memory_for(q)
+            if not mem:
+                return self.send_json(404, {"error": "That memory isn't open (the incognito conversation has ended)."})
+            if url.path == "/api/log":            # ?before=41 or ?after=41, &limit=60
+                self.send_json(200, {"messages": mem.log_slice(before=number(q, "before"), after=number(q, "after"),
+                                                               limit=min(number(q, "limit") or 60, 200)),
+                                     "last": mem.last_id(), "memory": mem.name})
+            elif url.path == "/api/memory":
+                pages = mem.pages_list() if q.get("pages", ["1"])[0] != "0" else []
+                self.send_json(200, {"stats": mem.stats(), "pages": pages})
+            elif url.path == "/api/entry":
+                self.send_found(mem.article(number(q, "id") or 0))
+            elif url.path == "/api/page":
+                self.send_found(mem.page_record(number(q, "id") or 0))
+            elif url.path == "/api/recall":
+                self.send_found(mem.recall_record(number(q, "id") or 0))
+            else:
+                self.send_json(200, mem.find(q.get("q", [""])[0]))
         else:
             self.send_json(404, {"error": "Not found"})
 
@@ -422,8 +509,12 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/chat":
             self.chat()
         elif self.path == "/api/index":         # /index: index what's waiting now, even a short stretch
-            runs = indexer.index_now(force=True)
-            self.send_json(200, {"runs": runs, "stats": memory.stats()})
+            mem = talking_to()
+            runs = indexer.index_now(mem, force=True)
+            self.send_json(200, {"runs": runs, "stats": mem.stats()})
+        elif self.path == "/api/incognito":     # {"on": true} starts one; {"on": false} ends and deletes it
+            start_incognito() if self.read_json().get("on") else end_incognito()
+            self.send_json(200, {"incognito": MEMORIES["incognito"] is not None, "stats": talking_to().stats()})
         else:
             self.send_json(404, {"error": "Not found"})
 
@@ -521,21 +612,25 @@ class Handler(BaseHTTPRequestHandler):
 
 
 # ---------------------------------------------------------------------------
-# 7. Start
+# 8. Start
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     DATA.mkdir(exist_ok=True)
-    memory.open_memory(MEMORY_FILE, models=DATA / "models" / "meaning")
-    indexer.start(ask=ask_json, prices=PRICES)
+    shutil.rmtree(INCOGNITO_DIR, ignore_errors=True)   # an incognito conversation left over from a crash: gone
+    MEMORIES["main"] = memory.Memory(MEMORY_FILE)
+    memory.embedder.start(DATA / "models" / "meaning")
+    indexer.start(ask=ask_json, prices=PRICES, page=page_size,
+                  memories=lambda: [m for m in MEMORIES.values() if m])
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
     url = f"http://localhost:{PORT}"
     print(f"Avy is up at {url}  (Ctrl+C to stop)")
     print(f"Files go in {DATA.resolve()}")
-    print(f"Memory: {memory.last_id()} messages so far, indexed up to #{memory.indexed_up_to()}.")
+    print(f"Memory: {MEMORIES['main'].last_id()} messages so far, indexed up to #{MEMORIES['main'].indexed_up_to()}.")
     print(f"Checking HTTPS certificates with {SSL_SOURCE}.")
     if voice:
-        voice.start(turn=Turn, settings=current_settings, data=DATA, page_port=PORT, ssl_context=SSL_CONTEXT)
+        voice.start(turn=Turn, settings=current_settings, data=DATA, recordings=recordings_folder,
+                    page_port=PORT, ssl_context=SSL_CONTEXT)
     else:
         print(VOICE_PROBLEM)
     if not os.environ.get("AVY_NO_BROWSER"):
@@ -543,4 +638,5 @@ if __name__ == "__main__":
     try:
         server.serve_forever()
     except KeyboardInterrupt:
+        end_incognito()             # quitting ends an incognito conversation too
         print("\nBye.")

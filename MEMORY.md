@@ -4,6 +4,10 @@ One endless conversation. Nothing is ever summarized away; instead, an index is 
 DeepSeek does the judgment (what matters, how to say it, what connects). Code does everything that
 has to be right every time, and refuses anything it can't check.
 
+A memory is one file holding a log and its index: the main one is `data/memory.db`. An incognito
+conversation gets a memory of its own (in `data/incognito/`). Recall reads both, writing only touches
+the incognito one, and ending it deletes its file.
+
 ## The vocabulary
 
 | Name | What it is | Written by |
@@ -53,16 +57,22 @@ reference: the place lives in one entry, so a change to it reaches everything th
 1. **Search.** Your message is compared with every entry (every version) and every older message,
    by meaning (a small local model) and by shared words (rarer words count more). The score is on a
    fixed scale, so "nothing matches" is a real answer.
-2. **Walk.** From the entries that matched, links are followed one and two steps out (from a hub to what
-   belongs to it, from a note to what it builds on), so things that never mention your words can still
-   come back. A strong match makes weak ones noise: what's far below the best match is dropped.
+   An earlier copy of the same question doesn't count as the best match: it's an echo, not an answer.
+2. **Walk.** From the entries that matched, links are followed outward (from a hub to what belongs to it,
+   from a note to what it builds on), so things that never mention your words can still come back. A
+   strong match makes weak ones noise: what's far below the best match is dropped. How many steps out,
+   how weak a match still counts and how much it may bring depend on `/recall:` (off, light, normal,
+   deep, max).
 3. **Brief.** DeepSeek gets, in order: Avy's instructions and the biggest hubs (they rarely change, so
-   DeepSeek's cache makes them cheap), the newest 20–29 messages word for word, a memory note with the entries it found (their
-   evidence, earlier versions and links) and a few older messages, then your message.
+   DeepSeek's cache makes them cheap), the newest messages word for word (`/window:`, 20 by default),
+   a memory note with the entries it found (their evidence, earlier versions and links) and a few older
+   messages, then your message.
 4. **Record.** What was found, how each thing was reached, and the exact note DeepSeek got are saved with
    the reply. That's what `↳ recalled …` opens.
 5. **Index.** Once a page's worth of messages has built up (or you've been away 30 minutes), DeepSeek
-   writes the next page in the background. `/index` does it now.
+   writes the next page in the background. A page is about 20 messages; with a small `/window:` pages get
+   smaller (every 4 messages at window 0), so nothing waits long outside both the window and the index.
+   `/index` does it now.
 
 ## Testing it
 
