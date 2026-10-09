@@ -172,6 +172,17 @@ button { cursor: pointer; background: none; border: 0; }
 .line.you, .prompt { margin-top: 26px; display: grid; grid-template-columns: 2ch 1fr; font-weight: 700; }
 .line.avy, .line.error { margin-top: 8px; }
 .line.error::before { content: "error: "; font-weight: 700; }
+
+/* Markdown in Avy's replies, terminal style: one size, no colors.
+   Headings are just bold, code sits in a ruled box like the chat itself. */
+.line .dim { opacity: .45; }
+.line code { box-shadow: inset 0 0 0 1px rgb(28 26 23 / .3); padding: 0 .4ch; }
+.line a { color: inherit; text-underline-offset: 3px; }
+.codebox { margin: 10px 0 4px; border: 1.5px solid var(--ink); white-space: normal; }
+.codebox-head { display: flex; justify-content: space-between; padding: 1px 10px; border-bottom: 1.5px solid var(--ink); font-size: 12px; }
+.codebox-head span { opacity: .55; }
+.codebox-head button { font-family: inherit; font-size: 12px; font-weight: 700; }
+.codebox pre { margin: 0; padding: 10px 12px; font: inherit; font-size: 13.5px; white-space: pre; overflow-x: auto; }
 .chat.busy .prompt { display: none; }   /* like a terminal: no prompt while it's running */
 
 /* The input: the real textarea is see-through; the "mirror" behind it draws
@@ -448,8 +459,20 @@ function showStatus(status) {
   $("keyText").textContent = deepseek.hint ? "Key saved" : "No key yet";
   $("keyDot").className = "dot " + (deepseek.hint ? "ok" : "warn");
   $("keyFields").replaceChildren(...status.keys.map(keyField));
-  $("talk").classList.toggle("off", !status.voice.available);
-  $("talk").title = status.voice.problem || "Talk to Avy out loud";
+  showVoice(status.voice);
+}
+
+// Dim [ talk ] until voice is ready; while models load, check again every 3 seconds.
+let voicePoll = null;
+function showVoice(voice) {
+  $("talk").classList.toggle("off", !voice.available);
+  $("talk").title = voice.problem || "Talk to Avy out loud";
+  if (!voice.available && voice.problem?.includes("loading") && !voicePoll) {
+    voicePoll = setTimeout(async () => {
+      voicePoll = null;
+      showVoice((await (await fetch("/api/status")).json()).voice);
+    }, 3000);
+  }
 }
 
 function keyField(key) {
@@ -501,7 +524,7 @@ async function send() {
 
   // Avy's line starts as just a blinking block; words appear in front of it
   const avyLine = addLine("avy", "");
-  const words = document.createTextNode("");
+  const words = document.createElement("span");
   const block = makeCursor();
   avyLine.append(words, block);
   setBusy(true);
@@ -520,7 +543,7 @@ async function send() {
     }
     await readStream(res, (chunk) => {
       const piece = chunk.choices?.[0]?.delta?.content;
-      if (piece) { reply += piece; words.data = reply; scrollDown(); }
+      if (piece) { reply += piece; words.innerHTML = renderMarkdown(reply); scrollDown(); }
       if (chunk.usage) usage = chunk.usage;
     });
   } catch (err) {
@@ -614,6 +637,43 @@ document.addEventListener("selectionchange", () => {
 /* ===================================================================
    6. Small page helpers
    =================================================================== */
+// Markdown, the terminal way. Everything is escaped first, so a reply can't inject HTML.
+// Then: ``` blocks become ruled boxes with [ copy ]; headings, **bold**, `code`,
+// bullets and links get light touches. Nothing changes size.
+function escapeHtml(text) {
+  return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+}
+
+function renderMarkdown(text) {
+  const parts = text.split("```");                 // odd pieces are code (an unclosed one still streaming too)
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      const newline = part.indexOf("\n");
+      const lang = newline >= 0 ? part.slice(0, newline).trim() : "";
+      const code = newline >= 0 ? part.slice(newline + 1) : part;
+      return `<div class="codebox"><div class="codebox-head"><span>${escapeHtml(lang || "code")}</span>` +
+             `<button class="copy" type="button">[ copy ]</button></div><pre>${escapeHtml(code.replace(/\n$/, ""))}</pre></div>`;
+    }
+    if (i > 0) part = part.replace(/^\n/, "");     // the box already breaks the line
+    if (i < parts.length - 1) part = part.replace(/\n$/, "");
+    return escapeHtml(part)
+      .replace(/^(#{1,6} )(.+)$/gm, '<b><span class="dim">$1</span>$2</b>')
+      .replace(/^(\s*)[-*] /gm, "$1• ")
+      .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>")
+      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  }).join("");
+}
+
+// [ copy ] on code boxes
+log.addEventListener("click", (e) => {
+  const button = e.target.closest(".copy");
+  if (!button) return;
+  navigator.clipboard.writeText(button.closest(".codebox").querySelector("pre").textContent);
+  button.textContent = "[ copied ]";
+  setTimeout(() => (button.textContent = "[ copy ]"), 1200);
+});
+
 function addLine(kind, text) {
   const line = document.createElement("div");
   line.className = "line " + kind;
@@ -658,6 +718,17 @@ function grow() {
   input.style.height = "auto";
   input.style.height = Math.min(input.scrollHeight, 192) + "px";
 }
+
+// Up arrow on an empty prompt brings back your last message, like a terminal
+input.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowUp" || input.value) return;
+  const last = [...history].reverse().find((m) => m.role === "user");
+  if (!last) return;
+  e.preventDefault();
+  input.value = last.content;
+  input.setSelectionRange(input.value.length, input.value.length);
+  grow(); drawCursor();
+});
 
 // Enter sends, Shift+Enter makes a new line, Esc stops Avy mid-reply
 input.addEventListener("keydown", (e) => {
@@ -758,7 +829,7 @@ function onLiveMessage(m) {
     case "bot-tts-text":          // each sentence, as she says it
       live.avyLine ??= addLine("avy", "");
       live.avyText += (live.avyText ? " " : "") + m.data.text.trim();
-      live.avyLine.textContent = live.avyText;
+      live.avyLine.innerHTML = renderMarkdown(live.avyText);
       return scrollDown();
     case "bot-stopped-speaking":  // finished, or you cut her off: keep what she said
       $("sticker").classList.remove("spinning");
