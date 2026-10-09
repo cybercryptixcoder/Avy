@@ -5,3 +5,6 @@
 __pycache__/
 *.pyc
 .venv/
+
+# everything Avy saves: settings, speech models, recordings
+data/

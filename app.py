@@ -1,10 +1,11 @@
 """
 Avy's whole server.
 
-Run it:   python app.py
+Run it:   python3 app.py
 Then go:  http://localhost:8000
 
-No installs needed. It only uses Python's standard library.
+Text chat only needs Python's standard library. Voice is optional (voice.py).
+Everything Avy writes to disk goes in the data/ folder next to this file.
 """
 
 import json
@@ -19,14 +20,18 @@ from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
-# 1. Settings
+# 1. Where things live
 # ---------------------------------------------------------------------------
 
 HERE = Path(__file__).parent
-ENV_FILE = HERE / ".env"   # your keys live here; .gitignore keeps it off GitHub
+ENV_FILE = HERE / ".env"                    # your keys; .gitignore keeps it off GitHub
+DATA = HERE / "data"                        # everything else Avy saves (also kept off GitHub)
+SETTINGS_FILE = DATA / "settings.json"      #   your choices from the system card or / commands
+                                            #   data/models      speech models (voice)
+                                            #   data/recordings  backups of what you said (voice)
 PORT = 8000
 
-# Every key the settings panel should ask for. Add a line here to add a field.
+# Every key the Keys panel asks for. Add a line here to add a field.
 KEYS = {
     "DEEPSEEK_API_KEY": "DeepSeek API key",
 }
@@ -45,7 +50,90 @@ def system_prompt():
 
 
 # ---------------------------------------------------------------------------
-# 2. The .env file: read it on startup, rewrite it when you save a key
+# 2. Settings: one list drives the system card, the / commands, and the requests.
+#    To add a setting, add an entry here; the page picks it up by itself.
+# ---------------------------------------------------------------------------
+
+ENGLISH_VOICES = [
+    "af_heart", "af_bella", "af_nicole", "af_aoede", "af_kore", "af_sarah", "af_nova", "af_sky",
+    "af_alloy", "af_jessica", "af_river", "am_michael", "am_fenrir", "am_puck", "am_echo", "am_eric",
+    "am_liam", "am_onyx", "am_adam", "am_santa", "bf_emma", "bf_isabella", "bf_alice", "bf_lily",
+    "bm_george", "bm_fable", "bm_lewis", "bm_daniel",
+]
+
+SETTINGS = {
+    "model":    {"about": "which DeepSeek model answers",
+                 "options": ["deepseek-flash", "deepseek-v4-pro"], "default": "deepseek-flash"},
+    "thinking": {"about": "think before answering (slower, costs more)",
+                 "options": ["off", "low", "high", "max"], "default": "off"},
+    "voice":    {"about": "Avy's voice (Kokoro). a = American, b = British, f/m = female/male",
+                 "options": ENGLISH_VOICES, "default": "af_heart"},
+    "speed":    {"about": "how fast Avy talks",
+                 "options": ["0.8", "0.9", "1.0", "1.1", "1.2", "1.3"], "default": "1.0"},
+    "whisper":  {"about": "speech-to-text model: top is fastest, bottom is most accurate",
+                 "options": ["tiny.en", "base.en", "distil-small.en", "small.en", "distil-medium.en", "large-v3-turbo"],
+                 "default": "distil-small.en"},
+    "speak":    {"about": "say replies out loud when you talk to Avy",
+                 "options": ["on", "off"], "default": "on"},
+}
+
+# Dollars per million tokens at off-peak rates (peak hours cost double), from DeepSeek's pricing page.
+PRICES = {
+    "deepseek-flash":  {"cache_hit": 0.003, "cache_miss": 0.15, "output": 0.60},
+    "deepseek-v4-pro": {"cache_hit": 0.022, "cache_miss": 0.66, "output": 1.98},
+}
+
+
+def current_settings():
+    """Defaults, overridden by whatever valid choices are saved in data/settings.json."""
+    saved = {}
+    if SETTINGS_FILE.exists():
+        try:
+            saved = json.loads(SETTINGS_FILE.read_text())
+        except json.JSONDecodeError:
+            pass
+    return {name: saved.get(name) if saved.get(name) in spec["options"] else spec["default"]
+            for name, spec in SETTINGS.items()}
+
+
+def change_setting(name, value):
+    """Save one choice. Returns an error message, or None if it worked."""
+    if name not in SETTINGS:
+        return f"There's no setting called '{name}'."
+    if value not in SETTINGS[name]["options"]:
+        return f"'{value}' isn't an option for {name}. Options: {', '.join(SETTINGS[name]['options'])}"
+    values = current_settings()
+    values[name] = value
+    DATA.mkdir(exist_ok=True)
+    SETTINGS_FILE.write_text(json.dumps(values, indent=2))
+    if voice and name == "whisper":
+        voice.preload_whisper(value)   # start loading the new model now, not on your next sentence
+    return None
+
+
+def folder_size(folder):
+    # skip shortcuts (the Whisper download uses them), or files get counted twice
+    return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file() and not f.is_symlink()) if folder.exists() else 0
+
+
+def settings_payload():
+    """Everything the system card and / commands need."""
+    recordings = sorted((DATA / "recordings").glob("*.wav")) if (DATA / "recordings").exists() else []
+    return {
+        "values": current_settings(),
+        "schema": {name: {"about": s["about"], "options": s["options"]} for name, s in SETTINGS.items()},
+        "prices": PRICES,
+        "files": {
+            "data": str(DATA.resolve()),
+            "models_mb": round(folder_size(DATA / "models") / 1e6),
+            "recordings": len(recordings),
+            "recordings_mb": round(folder_size(DATA / "recordings") / 1e6, 1),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# 3. The .env file: read it on startup, rewrite it when you save a key
 # ---------------------------------------------------------------------------
 
 def read_env():
@@ -70,8 +158,6 @@ def write_env(env):
 for _name, _value in read_env().items():
     os.environ.setdefault(_name, _value)
 
-# Which DeepSeek model and where to reach it. Both can be changed in .env.
-MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")  # = DeepSeek V4.1 Flash
 API_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com") + "/chat/completions"
 
 
@@ -81,7 +167,7 @@ def key_status():
     for name, label in KEYS.items():
         value = os.environ.get(name, "")
         keys.append({"name": name, "label": label, "hint": value[-4:] if value else None})
-    return {"model": MODEL, "keys": keys, "voice": voice_status()}
+    return {"keys": keys, "voice": voice_status()}
 
 
 # ---------------------------------------------------------------------------
@@ -99,12 +185,11 @@ except Exception as e:   # missing packages raise ImportError; broken native lib
 def voice_status():
     if voice is None:
         return {"available": False, "problem": VOICE_PROBLEM}
-    problem = voice.status["error"] or (None if voice.status["ready"] else "Voice is loading its models...")
-    return {"available": voice.status["ready"], "problem": problem, "port": voice.PORT}
+    return {"available": voice.status["ready"], "problem": voice.status["problem"], "port": voice.PORT}
 
 
 # ---------------------------------------------------------------------------
-# 3. Talking to DeepSeek
+# 4. Talking to DeepSeek (text chat and voice both come through here)
 # ---------------------------------------------------------------------------
 
 def make_ssl_context():
@@ -129,6 +214,7 @@ def make_ssl_context():
 
 SSL_CONTEXT, SSL_SOURCE = make_ssl_context()
 
+
 class FriendlyError(Exception):
     """An error with a message that's safe and useful to show on the page."""
     def __init__(self, status, message):
@@ -137,26 +223,32 @@ class FriendlyError(Exception):
         self.message = message
 
 
-def ask_deepseek(messages):
+def ask_deepseek(raw_messages):
     """Start a streaming request. Returns the open response, or raises a friendly error."""
     key = os.environ.get("DEEPSEEK_API_KEY")
     if not key:
         raise FriendlyError(400, "Add your DeepSeek key first. Click the orange key button at the top right.")
 
+    choice = current_settings()
     payload = {
-        "model": MODEL,
-        "messages": [{"role": "system", "content": system_prompt()}] + messages,
+        "model": choice["model"],
+        "messages": [{"role": "system", "content": system_prompt()}] + clean_messages(raw_messages),
         "stream": True,                              # send words as they're written
         "stream_options": {"include_usage": True},   # token counts arrive at the end
-        "thinking": {"type": "disabled"},            # fast replies; thinking mode is the default otherwise
     }
+    if choice["thinking"] == "off":
+        payload["thinking"] = {"type": "disabled"}   # DeepSeek thinks by default; off is faster
+    else:
+        payload["thinking"] = {"type": "enabled"}
+        payload["reasoning_effort"] = choice["thinking"]   # low, high or max
+
     request = urllib.request.Request(
         API_URL,
         data=json.dumps(payload).encode(),
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
     try:
-        return urllib.request.urlopen(request, timeout=60, context=SSL_CONTEXT)
+        return urllib.request.urlopen(request, timeout=120, context=SSL_CONTEXT)
     except urllib.error.HTTPError as e:
         if e.code == 401:
             raise FriendlyError(401, "DeepSeek rejected the key. Paste a fresh one in Keys.")
@@ -182,7 +274,7 @@ def clean_messages(raw):
 
 
 # ---------------------------------------------------------------------------
-# 4. The web server: one page, three small endpoints
+# 5. The web server: one page, a few small endpoints
 # ---------------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
@@ -192,6 +284,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_file(HERE / "index.html", "text/html; charset=utf-8")
         elif self.path == "/api/status":
             self.send_json(200, key_status())
+        elif self.path == "/api/settings":
+            self.send_json(200, settings_payload())
         else:
             self.send_json(404, {"error": "Not found"})
 
@@ -200,6 +294,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(403, {"error": "Requests are only accepted from Avy's own page."})
         if self.path == "/api/keys":
             self.save_keys()
+        elif self.path == "/api/settings":
+            body = self.read_json()
+            problem = change_setting(body.get("name"), body.get("value"))
+            self.send_json(400 if problem else 200, {"error": problem} if problem else settings_payload())
         elif self.path == "/api/chat":
             self.chat()
         else:
@@ -219,9 +317,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(200, key_status())
 
     def chat(self):
-        messages = clean_messages(self.read_json().get("messages", []))
         try:
-            upstream = ask_deepseek(messages)
+            upstream = ask_deepseek(self.read_json().get("messages", []))
         except FriendlyError as e:
             return self.send_json(e.status, {"error": e.message})
 
@@ -268,19 +365,23 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def log_message(self, format, *args):
+        pass   # keep the terminal for things that matter
+
 
 # ---------------------------------------------------------------------------
-# 5. Start
+# 6. Start
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    DATA.mkdir(exist_ok=True)
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
     url = f"http://localhost:{PORT}"
     print(f"Avy is up at {url}  (Ctrl+C to stop)")
+    print(f"Files go in {DATA.resolve()}")
     print(f"Checking HTTPS certificates with {SSL_SOURCE}.")
     if voice:
-        voice.start(system_prompt, PORT)
-        print(f"Voice: starting on port {voice.PORT}.")
+        voice.start(ask=ask_deepseek, settings=current_settings, data=DATA, page_port=PORT, ssl_context=SSL_CONTEXT)
     else:
         print(VOICE_PROBLEM)
     if not os.environ.get("AVY_NO_BROWSER"):

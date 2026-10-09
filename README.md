@@ -1,7 +1,5 @@
 # Avy
 
-Ava's baby.
-
 A personal agent built from scratch, one small piece at a time, so every line is understood.
 
 ## Rules
@@ -12,41 +10,41 @@ A personal agent built from scratch, one small piece at a time, so every line is
 
 ## Running it
 
-Needs Python 3.10 or newer. One-time setup, so HTTPS works on every computer:
+From this folder, every time (it pulls updates and installs anything new; already-installed packages are skipped):
 
 ```
-python3 -m pip install -r requirements.txt
-```
-
-Then, every time:
-
-```
-python3 app.py
+git pull && python3 -m pip install -q -r requirements-voice.txt && python3 app.py
 ```
 
 Your browser opens http://localhost:8000. Paste your DeepSeek key in the Keys panel once; it's saved to `.env`.
+Voice needs Python 3.10–3.13. Text chat works even if the voice packages aren't installed.
 
-## Voice (optional)
+## Using it
 
-Avy can listen and talk back. Everything except DeepSeek runs on your computer:
-Silero VAD and Smart Turn hear when you start and stop, faster-whisper writes down
-what you said, Kokoro speaks the reply. Pipecat ties them together and handles
-interruptions. Needs Python 3.11–3.13.
+- **Type** at the prompt, Enter to send.
+- **Talk:** hold Space (with the prompt empty) and let go to send. Tap Space twice to lock it on for long
+  stretches; press Space again to send, or Esc to throw it away. Tap Space while Avy talks to cut her off.
+- **Commands:** type `/` and a panel opens on the right. Keep typing to narrow it, Tab to complete, ↑↓ to pick,
+  Enter to run. `/model:`, `/thinking:`, `/voice:`, `/speed:`, `/whisper:`, `/speak:`, `/clear`, `/keys`,
+  `/where`, `/retry`, `/help`.
+- **System card** (left): the same settings, as dropdowns.
 
-```
-python3 -m pip install -r requirements-voice.txt
-python3 app.py
-```
+## Where things live
 
-The first start downloads the speech models (about 1 GB). Then click `[ talk ]`.
-Use headphones at first: if your speakers leak into the mic, Avy may hear herself.
+Everything stays in this folder:
+
+- `.env`: your keys.
+- `data/settings.json`: your choices from the system card or `/` commands.
+- `data/models/`: the speech models (about 0.7 GB, downloaded on the first run).
+- `data/recordings/`: a backup of everything you say, written as you talk, with its transcript next to it.
+  The newest 50 (up to 300 MB) are kept; older ones are deleted. `/retry` re-transcribes the newest one.
+
+`data/` and `.env` are never committed. The conversation itself lives in the browser tab for now.
 
 ## What's here
 
-- `app.py`: the server. Serves the page, saves keys to `.env`, streams replies from DeepSeek (`deepseek-flash`, thinking off).
-- `index.html`: the page. A terminal-style chat, the keys panel, and a running count of tokens and dollars spent.
-- `voice.py`: the voice pipeline. app.py starts it automatically when the voice packages are installed.
-- `requirements-voice.txt`: the voice packages.
-- `requirements.txt`: one optional package, `truststore`, so Python trusts the same HTTPS certificates your computer does.
-
-The conversation lives in the browser tab for now. Refresh and it's gone.
+- `app.py`: the server. The page, keys, settings, and DeepSeek requests (text and voice both go through it).
+- `voice.py`: push-to-talk. faster-whisper writes down what you said, DeepSeek answers, Kokoro speaks it
+  sentence by sentence. Started by app.py when the voice packages are installed.
+- `index.html`: the page.
+- `requirements.txt` / `requirements-voice.txt`: packages. Add new ones here and the run command installs them.

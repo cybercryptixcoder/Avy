@@ -1,51 +1,32 @@
 """
-Avy's voice. app.py starts this automatically when the voice packages are
-installed (see requirements-voice.txt). Text chat works without it.
+Avy's voice: push-to-talk. app.py starts this when the voice packages are installed.
 
-    ears   Silero VAD notices you talking, Smart Turn decides you're done,
-           faster-whisper writes down what you said. All on this computer.
-    brain  DeepSeek, same model as the text chat.
-    mouth  Kokoro 82M turns the reply into speech. Also on this computer.
+You hold Space (or double-tap it to lock) while you talk. When you let go:
+    ears   faster-whisper writes down the whole recording in one go
+    brain  DeepSeek answers (the same request text chat uses, via app.py)
+    mouth  Kokoro 82M speaks the answer, a sentence at a time, while the rest is still coming
+Pressing Space again while Avy talks cuts her off.
 
-Pipecat wires them together and handles interruptions: start talking while
-Avy is speaking and she stops.
+Every recording is written to data/recordings as it comes in, so a crash or a failed
+transcription never loses what you said. The newest ones are kept; old ones are deleted.
+The models are downloaded once into data/models.
 """
 
 import asyncio
 import json
-import os
+import re
 import threading
+import time
+import urllib.request
+import wave
 from functools import lru_cache
+from pathlib import Path
 
-import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from loguru import logger
-
-from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.frames.frames import (
-    InputAudioRawFrame,
-    InterruptionFrame,
-    LLMMessagesAppendFrame,
-    OutputAudioRawFrame,
-    OutputTransportMessageFrame,
-    OutputTransportMessageUrgentFrame,
-)
-from pipecat.pipeline.pipeline import Pipeline
-from pipecat.pipeline.worker import PipelineParams, PipelineWorker
-from pipecat.processors.aggregators.llm_context import LLMContext
-from pipecat.processors.aggregators.llm_response_universal import (
-    LLMContextAggregatorPair,
-    LLMUserAggregatorParams,
-)
-from pipecat.serializers.base_serializer import FrameSerializer
-from pipecat.services.deepseek.llm import DeepSeekLLMService
-from pipecat.services.kokoro.tts import KokoroTTSService
-from pipecat.services.whisper.stt import WhisperSTTService
-from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams, FastAPIWebsocketTransport
-from pipecat.utils.text.markdown_text_filter import MarkdownTextFilter
-from pipecat.workers.runner import WorkerRunner
-import pipecat.services.kokoro.tts as kokoro_tts
-import pipecat.services.whisper.stt as whisper_stt
+import numpy as np
+from faster_whisper import WhisperModel
+from kokoro_onnx import Kokoro
+from websockets.asyncio.server import serve
+from websockets.exceptions import ConnectionClosed
 
 
 # ---------------------------------------------------------------------------
@@ -53,199 +34,334 @@ import pipecat.services.whisper.stt as whisper_stt
 # ---------------------------------------------------------------------------
 
 PORT = 8001
-WHISPER_MODEL = "distil-small.en"    # English only. Each transcription costs about the same however short
-                                     # the clip, and adds that much delay to every reply. Slower but more
-                                     # accurate: "distil-medium.en" (~2.4x), "distil-large-v3" (~4x).
-KOKORO_VOICE = "af_bella"            # try "af_heart", "am_michael", "bf_emma"...
-MIC_RATE = 16000                     # what the page sends: 16-bit mono PCM
-SPEAKER_RATE = 24000                 # what the page plays: Kokoro's native rate
+MIC_RATE = 16000                 # the page sends 16-bit mono PCM at this rate
+KEEP_RECORDINGS = 50             # keep at most this many recordings...
+KEEP_RECORDINGS_MB = 300         # ...and at most this much disk; the oldest go first
+KOKORO_FILES = {
+    "kokoro-v1.0.onnx": "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx",
+    "voices-v1.0.bin": "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin",
+}
 
-status = {"ready": False, "error": None}   # app.py shows this on the page
+status = {"ready": False, "problem": "Voice is starting..."}   # app.py shows this on the page
+app = {}                                                        # filled in by start()
 
 
 # ---------------------------------------------------------------------------
-# 2. Loading the local models
-#    Each service loads its model when it's created, which takes a second or
-#    two and blocks. So we create them in a background thread, never inside
-#    the async server loop. The first run also downloads the models (~1 GB).
-#
-#    Pipecat builds a fresh model for every new service, and the old ones are
-#    never freed: each call to [ talk ] would add ~0.6 GB of memory. lru_cache
-#    makes "build the model" return the same model every time instead.
+# 2. The models: downloaded once into data/models, loaded once, shared by every call
 # ---------------------------------------------------------------------------
 
-whisper_stt.WhisperModel = lru_cache(maxsize=None)(whisper_stt.WhisperModel)
-kokoro_tts.Kokoro = lru_cache(maxsize=None)(kokoro_tts.Kokoro)
+model_lock = threading.Lock()
 
 
-def make_ears_and_mouth():
-    stt = WhisperSTTService(
-        settings=WhisperSTTService.Settings(model=WHISPER_MODEL),
-        compute_type="int8",       # fast on a laptop CPU
-        # The longest we'll wait for a transcript after you stop talking. A transcript
-        # ends your turn the moment it arrives, so this adds no delay; it just stops a
-        # slow transcription from being split off into a turn of its own.
-        ttfs_p99_latency=2.0,
-    )
-    tts = KokoroTTSService(
-        settings=KokoroTTSService.Settings(voice=KOKORO_VOICE),
-        text_filters=[MarkdownTextFilter()],   # so she doesn't read ** and ` out loud
-    )
-    return stt, tts
+def download(url, dest):
+    """Download to a .part file and rename at the end, so a cut-off download is never mistaken for a good one."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    part = dest.with_suffix(dest.suffix + ".part")
+    with urllib.request.urlopen(url, timeout=60, context=app["ssl_context"]) as response, open(part, "wb") as out:
+        total, done, shown = int(response.headers.get("Content-Length") or 0), 0, -1
+        while chunk := response.read(1 << 20):
+            out.write(chunk)
+            done += len(chunk)
+            if total and (pct := done * 100 // total) // 10 != shown:
+                shown = pct // 10
+                status["problem"] = f"Voice is downloading {dest.name}: {pct}%"
+                print(f"Voice: downloading {dest.name} {pct}%")
+    part.rename(dest)
+
+
+@lru_cache(maxsize=None)
+def whisper(name):
+    with model_lock:
+        return WhisperModel(name, device="auto", compute_type="int8",
+                            download_root=str(app["data"] / "models" / "whisper"))
+
+
+@lru_cache(maxsize=None)
+def kokoro():
+    folder = app["data"] / "models" / "kokoro"
+    with model_lock:
+        for name, url in KOKORO_FILES.items():
+            if not (folder / name).exists():
+                download(url, folder / name)
+        return Kokoro(str(folder / "kokoro-v1.0.onnx"), str(folder / "voices-v1.0.bin"))
 
 
 def warm_up():
-    """Download and load the models once at startup, so the first call is quick."""
+    """Load both models and run each once, so your first sentence isn't the slow one."""
     try:
-        logger.info("Voice: loading models (the first run downloads about 1 GB)...")
-        make_ears_and_mouth()
-        SileroVADAnalyzer()
-        status["ready"] = True
-        logger.info("Voice: ready.")
+        status["problem"] = "Voice is loading its models (the first run downloads about 0.7 GB)..."
+        kokoro().create("Ready.", voice="af_heart")
+        whisper(app["settings"]()["whisper"]).transcribe(np.zeros(MIC_RATE, np.float32), language="en")
+        status.update(ready=True, problem=None)
+        print("Voice: ready. Hold Space in the chat to talk.")
     except Exception as e:
-        status["error"] = f"Voice failed to load: {e}"
-        logger.exception("Voice: failed to load models")
+        status.update(ready=False, problem=f"Voice failed to load: {e}")
+        print(f"Voice: failed to load: {e}")
+
+
+def preload_whisper(name):
+    threading.Thread(target=whisper, args=(name,), daemon=True).start()
 
 
 # ---------------------------------------------------------------------------
-# 3. The wire format between the page and the pipeline
-#    Binary messages are raw audio (16-bit PCM, mono). Text messages are JSON.
+# 3. Recordings: written to disk as they arrive, so nothing you say is lost
 # ---------------------------------------------------------------------------
 
-class AvySerializer(FrameSerializer):
-
+class Recording:
     def __init__(self):
-        # Pass Pipecat's status messages (transcripts, who's speaking) to the page.
-        super().__init__(FrameSerializer.InputParams(ignore_rtvi_messages=False))
+        folder = app["data"] / "recordings"
+        folder.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+        self.path, n = folder / f"{stamp}.wav", 2
+        while self.path.exists():
+            self.path, n = folder / f"{stamp}_{n}.wav", n + 1
+        self.file = open(self.path, "wb")
+        self.wav = wave.open(self.file, "wb")
+        self.wav.setnchannels(1)
+        self.wav.setsampwidth(2)
+        self.wav.setframerate(MIC_RATE)
+        self.pcm = bytearray()
 
-    async def serialize(self, frame):
-        """Pipeline -> page."""
-        if isinstance(frame, OutputAudioRawFrame):
-            return frame.audio                                   # Avy's voice
-        if isinstance(frame, InterruptionFrame):
-            return json.dumps({"type": "interrupt"})             # page: stop playing now
-        if isinstance(frame, (OutputTransportMessageFrame, OutputTransportMessageUrgentFrame)):
-            return json.dumps(frame.message)                     # transcripts and status
-        return None
+    def add(self, chunk):
+        self.wav.writeframes(chunk)        # also rewrites the WAV header, so the file is always playable
+        self.pcm += chunk
+        if len(self.pcm) % (MIC_RATE * 2) < len(chunk):
+            self.file.flush()              # push to disk about once a second
 
-    async def deserialize(self, data):
-        """Page -> pipeline."""
-        if isinstance(data, bytes):
-            return InputAudioRawFrame(audio=data, sample_rate=MIC_RATE, num_channels=1)
-        message = json.loads(data)
-        if message.get("type") == "text" and message.get("text"):
-            # typed while live: answer it out loud
-            return LLMMessagesAppendFrame(
-                messages=[{"role": "user", "content": message["text"]}], run_llm=True
-            )
-        return None
+    @property
+    def seconds(self):
+        return len(self.pcm) / (MIC_RATE * 2)
+
+    def close(self):
+        self.wav.close()
+        self.file.close()
+        prune_recordings()
+
+
+def prune_recordings():
+    folder = app["data"] / "recordings"
+    wavs = sorted(folder.glob("*.wav"), key=lambda p: p.stat().st_mtime, reverse=True)
+    kept_bytes = 0
+    for i, wav_file in enumerate(wavs):
+        kept_bytes += wav_file.stat().st_size
+        if i >= KEEP_RECORDINGS or kept_bytes > KEEP_RECORDINGS_MB * 1e6:
+            wav_file.unlink(missing_ok=True)
+            wav_file.with_suffix(".txt").unlink(missing_ok=True)
+
+
+def transcribe(source):
+    """A whole recording in (a .wav path or raw PCM), text out. Runs in a background thread."""
+    if isinstance(source, Path):
+        with wave.open(str(source)) as w:
+            source = w.readframes(w.getnframes())
+    audio = np.frombuffer(bytes(source), np.int16).astype(np.float32) / 32768
+    if len(audio) < MIC_RATE // 4:
+        return ""
+    segments, _ = whisper(app["settings"]()["whisper"]).transcribe(
+        audio, language="en", beam_size=5, without_timestamps=True,
+        condition_on_previous_text=False, hotwords="Avy",
+    )
+    return " ".join(s.text.strip() for s in segments).strip()
 
 
 # ---------------------------------------------------------------------------
-# 4. One live conversation = one websocket = one pipeline
+# 4. Replies: DeepSeek streams text; finished sentences go to Kokoro while the rest is coming
 # ---------------------------------------------------------------------------
 
-server = FastAPI()
-get_system_prompt = lambda: "You are Avy."   # replaced by app.py through start()
-allowed_origins = []                         # filled in by start()
-
-
-@server.websocket("/live")
-async def live(websocket: WebSocket):
-    # Only Avy's own page may open the mic pipeline.
-    if websocket.headers.get("origin") not in allowed_origins:
-        await websocket.close(code=1008)
-        return
-    await websocket.accept()
+def stream_deepseek(messages, put, cancel):
+    """Runs in a background thread: reads DeepSeek's stream and hands pieces to the event loop."""
     try:
-        await run_conversation(websocket)
-    except WebSocketDisconnect:
-        pass   # you hung up before it got going
-    logger.info("Voice: call ended.")
+        upstream = app["ask"](messages)
+    except Exception as e:
+        return put(("error", getattr(e, "message", str(e))))
+    try:
+        with upstream:
+            for line in upstream:
+                if cancel.is_set():
+                    return
+                line = line.decode().strip()
+                if not line.startswith("data:") or line == "data: [DONE]":
+                    continue
+                chunk = json.loads(line[5:])
+                if chunk.get("usage"):
+                    put(("usage", chunk["usage"]))
+                for choice in chunk.get("choices") or []:
+                    delta = choice.get("delta") or {}
+                    if delta.get("reasoning_content"):
+                        put(("thinking", None))
+                    if delta.get("content"):
+                        put(("text", delta["content"]))
+    except Exception as e:
+        return put(("error", f"Lost the connection to DeepSeek partway through ({e})."))
+    put(("end", None))
 
 
-async def run_conversation(websocket: WebSocket):
-    key = os.environ.get("DEEPSEEK_API_KEY")
-    if not key or not status["ready"]:
-        reason = "Add your DeepSeek key first." if not key else (status["error"] or "Voice is still loading. Try again in a moment.")
-        await websocket.send_json({"type": "error", "text": reason})
-        await websocket.close()
-        return
+def take_sentences(buffer, first):
+    """Split finished sentences off the front of the buffer. Never cuts inside a code block."""
+    sentences = []
+    while buffer.count("```") % 2 == 0:
+        match = re.search(r"[.!?…][\"')\]]*\s|\n", buffer)
+        end = match.end() if match else None
+        if end is None and first and not sentences and len(buffer) > 60:
+            comma = re.search(r"[,;:]\s", buffer[40:])       # a long first sentence: start talking at a comma
+            end = 40 + comma.end() if comma else None
+        if end is None:
+            break
+        sentence, buffer = buffer[:end].strip(), buffer[end:]
+        if sentence:
+            sentences.append(sentence)
+    return sentences, buffer
 
-    # The page's first message is the conversation so far, so voice picks up where text left off.
-    hello = await websocket.receive_json()
-    history = [m for m in hello.get("history", []) if m.get("role") in ("user", "assistant")]
 
-    stt, tts = await asyncio.to_thread(make_ears_and_mouth)
+def speakable(text):
+    """What Kokoro should actually say: no code, no markdown symbols."""
+    text = re.sub(r"```.*?```", " (code on screen) ", text, flags=re.S)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"^\s*[-•*]\s+", "", text, flags=re.M)
+    text = re.sub(r"[*_`#>]+", "", text)
+    return " ".join(text.split())
 
-    llm = DeepSeekLLMService(
-        api_key=key,
-        base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-        settings=DeepSeekLLMService.Settings(
-            model="deepseek-flash",   # DeepSeek V4.1 Flash, same as text chat
-            system_instruction=get_system_prompt(),
-            # Thinking off, for fast replies. Pipecat 1.12 has a "thinking" setting for this,
-            # but a bug means it's never sent (and DeepSeek thinks by default), so we
-            # send DeepSeek's own field directly.
-            extra={"extra_body": {"thinking": {"type": "disabled"}}},
-        ),
-    )
 
-    context = LLMContext(messages=history)
-    user_turns, assistant_turns = LLMContextAggregatorPair(
-        context,
-        user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
-    )
+async def reply(ws, messages, speak):
+    loop = asyncio.get_running_loop()
+    pieces, sentences = asyncio.Queue(), asyncio.Queue()
+    cancel = threading.Event()
+    put = lambda item: loop.call_soon_threadsafe(pieces.put_nowait, item)
+    threading.Thread(target=stream_deepseek, args=(messages, put, cancel), daemon=True).start()
+    mouth = asyncio.create_task(speak_sentences(ws, sentences)) if speak else None
 
-    transport = FastAPIWebsocketTransport(
-        websocket=websocket,
-        params=FastAPIWebsocketParams(
-            audio_in_enabled=True,
-            audio_in_sample_rate=MIC_RATE,
-            audio_out_enabled=True,
-            audio_out_sample_rate=SPEAKER_RATE,
-            serializer=AvySerializer(),
-            allowed_origins=allowed_origins,
-        ),
-    )
+    text, pending, usage, told_thinking, queued_any = "", "", None, False, False
+    try:
+        while True:
+            kind, value = await pieces.get()
+            if kind == "thinking" and not told_thinking:
+                told_thinking = True
+                await ws.send(json.dumps({"type": "thinking"}))
+            elif kind == "text":
+                text += value
+                if speak:
+                    done, pending = take_sentences(pending + value, first=not queued_any)
+                    for sentence in done:
+                        sentences.put_nowait(sentence)
+                        queued_any = True
+                else:
+                    await ws.send(json.dumps({"type": "delta", "text": value}))
+            elif kind == "usage":
+                usage = value
+            elif kind == "error":
+                await ws.send(json.dumps({"type": "error", "text": value}))
+                break
+            elif kind == "end":
+                break
+        if mouth:
+            if pending.strip():
+                sentences.put_nowait(pending.strip())
+            sentences.put_nowait(None)
+            await mouth
+        await ws.send(json.dumps({"type": "done", "text": text, "usage": usage}))
+    finally:
+        cancel.set()          # stop reading DeepSeek if we were cut off
+        if mouth:
+            mouth.cancel()
 
-    pipeline = Pipeline([
-        transport.input(),    # your mic audio comes in
-        stt,                  # Whisper: audio -> text, one stretch of speech at a time
-        user_turns,           # Silero (talking?) + Smart Turn (finished?) end your turn, then add it
-        llm,                  # DeepSeek writes the reply
-        tts,                  # Kokoro: reply -> audio, sentence by sentence
-        transport.output(),   # audio goes back to the page
-        assistant_turns,      # adds what Avy actually said (up to any interruption)
-    ])
 
-    worker = PipelineWorker(
-        pipeline,
-        params=PipelineParams(
-            audio_in_sample_rate=MIC_RATE,
-            audio_out_sample_rate=SPEAKER_RATE,
-            enable_usage_metrics=True,   # token counts go to the page's "Spent" tile
-        ),
-    )
-
-    @transport.event_handler("on_client_disconnected")
-    async def on_client_disconnected(transport, websocket):
-        await worker.cancel()   # you turned live off or closed the tab
-
-    await websocket.send_json({"type": "ready"})
-    runner = WorkerRunner(handle_sigint=False, force_gc=True)   # app.py owns Ctrl+C; free memory after each call
-    await runner.add_workers(worker)
-    await runner.run()
+async def speak_sentences(ws, sentences):
+    choice = app["settings"]()
+    voice, speed = choice["voice"], float(choice["speed"])
+    while (sentence := await sentences.get()) is not None:
+        words = speakable(sentence)
+        if not words:
+            await ws.send(json.dumps({"type": "say", "text": sentence, "silent": True}))
+            continue
+        samples, _rate = await asyncio.to_thread(
+            kokoro().create, words, voice=voice, speed=speed, lang="en-gb" if voice.startswith("b") else "en-us")
+        await ws.send(json.dumps({"type": "say", "text": sentence}))      # caption for the audio that follows
+        await ws.send((np.clip(samples, -1, 1) * 32767).astype(np.int16).tobytes())   # 24 kHz 16-bit mono
 
 
 # ---------------------------------------------------------------------------
-# 5. Start (called by app.py)
+# 5. One connection per page. Messages from the page:
+#      {"type": "start"}       you pressed Space: stop Avy, start a new recording
+#      <binary>                microphone audio while you hold Space
+#      {"type": "stop"}        you let go: transcribe it
+#      {"type": "cancel"}      just a tap: don't transcribe (still kept on disk if over 1 second)
+#      {"type": "reply", "messages": [...], "speak": true}    answer the conversation
+#      {"type": "retry"}       transcribe the newest recording again
 # ---------------------------------------------------------------------------
 
-def start(system_prompt, page_port):
-    global get_system_prompt, allowed_origins
-    get_system_prompt = system_prompt
-    allowed_origins = [f"http://localhost:{page_port}", f"http://127.0.0.1:{page_port}"]
+async def session(ws):
+    recording, job = None, None
+
+    def stop_reply():
+        nonlocal job
+        if job and not job.done():
+            job.cancel()
+        job = None
+
+    async def send_transcript(path, pcm=None):
+        where = str(path.relative_to(app["data"].parent))
+        await ws.send(json.dumps({"type": "transcribing"}))
+        try:
+            text = await asyncio.to_thread(transcribe, pcm if pcm is not None else path)
+            if text:
+                path.with_suffix(".txt").write_text(text)
+            await ws.send(json.dumps({"type": "transcript", "text": text, "file": where}))
+        except Exception as e:
+            await ws.send(json.dumps({"type": "error", "text":
+                f"Couldn't transcribe ({e}). Your recording is safe in {where}. Type /retry to try again."}))
+
+    try:
+        async for message in ws:
+            if isinstance(message, bytes):
+                if recording:
+                    recording.add(message)
+                continue
+            m = json.loads(message)
+            kind = m.get("type")
+            if kind == "start":
+                stop_reply()
+                if recording:
+                    recording.close()
+                recording = Recording()
+            elif kind == "cancel" and recording:
+                recording.close()
+                if recording.seconds < 1:
+                    recording.path.unlink(missing_ok=True)
+                recording = None
+            elif kind == "stop" and recording:
+                done, recording = recording, None
+                done.close()
+                asyncio.create_task(send_transcript(done.path, done.pcm))
+            elif kind == "reply":
+                stop_reply()
+                job = asyncio.create_task(reply(ws, m.get("messages", []), m.get("speak", True)))
+            elif kind == "retry":
+                folder = app["data"] / "recordings"
+                wavs = sorted(folder.glob("*.wav"), key=lambda p: p.stat().st_mtime) if folder.exists() else []
+                if wavs:
+                    asyncio.create_task(send_transcript(wavs[-1]))
+                else:
+                    await ws.send(json.dumps({"type": "error", "text": "There are no recordings yet."}))
+    except ConnectionClosed:
+        pass
+    finally:
+        stop_reply()
+        if recording:
+            recording.close()   # whatever arrived is safe on disk
+
+
+# ---------------------------------------------------------------------------
+# 6. Start (called by app.py)
+# ---------------------------------------------------------------------------
+
+async def serve_forever(origins):
+    async with serve(session, "127.0.0.1", PORT, origins=origins, max_size=None):
+        await asyncio.Future()
+
+
+def start(ask, settings, data, page_port, ssl_context):
+    app.update(ask=ask, settings=settings, data=Path(data), ssl_context=ssl_context)
+    origins = [f"http://localhost:{page_port}", f"http://127.0.0.1:{page_port}"]   # only Avy's own page
     threading.Thread(target=warm_up, daemon=True).start()
-    config = uvicorn.Config(server, host="127.0.0.1", port=PORT, log_level="warning")
-    threading.Thread(target=uvicorn.Server(config).run, daemon=True).start()
+    threading.Thread(target=lambda: asyncio.run(serve_forever(origins)), daemon=True).start()
+    print(f"Voice: starting on port {PORT}.")
