@@ -42,6 +42,7 @@ from pipecat.services.deepseek.llm import DeepSeekLLMService
 from pipecat.services.kokoro.tts import KokoroTTSService
 from pipecat.services.whisper.stt import WhisperSTTService
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams, FastAPIWebsocketTransport
+from pipecat.utils.text.markdown_text_filter import MarkdownTextFilter
 from pipecat.workers.runner import WorkerRunner
 import pipecat.services.kokoro.tts as kokoro_tts
 import pipecat.services.whisper.stt as whisper_stt
@@ -86,7 +87,10 @@ def make_ears_and_mouth():
         # slow transcription from being split off into a turn of its own.
         ttfs_p99_latency=2.0,
     )
-    tts = KokoroTTSService(settings=KokoroTTSService.Settings(voice=KOKORO_VOICE))
+    tts = KokoroTTSService(
+        settings=KokoroTTSService.Settings(voice=KOKORO_VOICE),
+        text_filters=[MarkdownTextFilter()],   # so she doesn't read ** and ` out loud
+    )
     return stt, tts
 
 
