@@ -1,3 +1,7 @@
 # Optional, but install it once: lets Python use your computer's own HTTPS
 # certificates, which fixes "CERTIFICATE_VERIFY_FAILED" errors.
 truststore
+
+# Memory: search by meaning, with a small local model (about 65 MB, downloaded into
+# data/models on first run). Without it, memory still works with keyword search.
+fastembed==0.9.0
