@@ -1,0 +1,8 @@
+# Voice: Pipecat + Silero VAD + faster-whisper + Kokoro, with DeepSeek as the brain.
+# Needs Python 3.11-3.13 (Pipecat needs 3.11+, Kokoro doesn't support 3.14 yet). Models download on first run (~1 GB).
+-r requirements.txt
+pipecat-ai[silero,whisper,kokoro,deepseek,websocket]==1.12.0
+uvicorn   # runs the voice server; Pipecat's websocket extra brings FastAPI but not this
+
+# On Apple Silicon Macs, Pipecat's Whisper module won't import without this.
+pipecat-ai[mlx-whisper]==1.12.0 ; sys_platform == "darwin" and platform_machine == "arm64"
