@@ -197,10 +197,12 @@ button { cursor: pointer; background: none; border: 0; }
   background: transparent; color: inherit; box-shadow: inset 0 0 0 1.5px var(--ink); animation: none;
 }
 
-.status { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 9px 2px 0; font-size: 13px; }
-.status .how { opacity: .55; }
-.status button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 2px 0; margin-left: auto; }
+.status { display: flex; align-items: center; gap: 18px; padding: 9px 2px 0; font-size: 13px; }
+.status .how { opacity: .55; margin-right: auto; }
+.status .how.live { opacity: 1; }
+.status button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 2px 0; }
 .status button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.status button.off { opacity: .4; }
 
 /* ===================================================================
    5. The keys panel
@@ -249,7 +251,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   .sticker { width: 33cqi; bottom: -30px; }
   .chat  { margin-top: 30px; font-size: 14px; }
   .log { padding: 16px 10px 24px; }
-  .status .how { display: none; }
+  .status .how:not(.live) { visibility: hidden; }
   .tile b { font-size: 44px; }
 }
 
@@ -331,7 +333,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
           <path d="M91 105 Q100 114 109 105" fill="none" stroke="#1C1A17" stroke-width="3" stroke-linecap="round"/>
         </svg>
 
-        <p class="micro">Ava's baby. Built from scratch, one small file at a time. Text first, voice next.</p>
+        <p class="micro">Ava's baby. Built from scratch, one small file at a time. Type or talk.</p>
       </div>
 
       <div class="info">
@@ -369,7 +371,8 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
       </div>
       <div class="rule bottom"></div>
       <div class="status">
-        <span class="how">enter to send, shift+enter for a new line</span>
+        <span class="how" id="how">enter to send, shift+enter for a new line</span>
+        <button id="talk" type="button">[ talk ]</button>
         <button id="send" type="button">[ send ]</button>
       </div>
     </section>
@@ -419,10 +422,11 @@ function isPeak(now = new Date()) {
 }
 
 function costOf(usage) {
-  const perMillion =
-    (usage.prompt_cache_hit_tokens  || 0) * PRICE.cacheHit +
-    (usage.prompt_cache_miss_tokens || 0) * PRICE.cacheMiss +
-    (usage.completion_tokens        || 0) * PRICE.output;
+  // Text chat gets DeepSeek's own fields. Voice gets Pipecat's, where prompt_tokens
+  // includes cached tokens; if no cache count comes through, we assume none (errs high).
+  const hit  = usage.prompt_cache_hit_tokens ?? usage.cache_read_input_tokens ?? 0;
+  const miss = usage.prompt_cache_miss_tokens ?? (usage.prompt_tokens || 0) - hit;
+  const perMillion = hit * PRICE.cacheHit + miss * PRICE.cacheMiss + (usage.completion_tokens || 0) * PRICE.output;
   return (perMillion / 1e6) * (isPeak() ? 2 : 1);
 }
 
@@ -444,6 +448,8 @@ function showStatus(status) {
   $("keyText").textContent = deepseek.hint ? "Key saved" : "No key yet";
   $("keyDot").className = "dot " + (deepseek.hint ? "ok" : "warn");
   $("keyFields").replaceChildren(...status.keys.map(keyField));
+  $("talk").classList.toggle("off", !status.voice.available);
+  $("talk").title = status.voice.problem || "Talk to Avy out loud";
 }
 
 function keyField(key) {
@@ -483,6 +489,11 @@ async function send() {
   const text = input.value.trim();
   if (!text || controller) return;
   input.value = ""; grow(); drawCursor();
+
+  if (live) {   // talking out loud: Avy answers this one out loud too.
+    // The pipeline echoes it back as "user-llm-text", which adds the line.
+    return live.ws.send(JSON.stringify({ type: "text", text }));
+  }
 
   const chat = history;   // if you press New chat mid-reply, this reply is dropped
   const yourLine = addLine("you", text);
@@ -664,6 +675,7 @@ log.addEventListener("click", () => {
 
 $("newChat").onclick = () => {
   if (controller) controller.abort();
+  stopLive();
   history = [];
   log.querySelectorAll(".line").forEach((line) => line.remove());
   updateTiles();
@@ -672,7 +684,168 @@ $("newChat").onclick = () => {
 
 
 /* ===================================================================
-   7. Start
+   7. Talking out loud
+      Your mic goes to voice.py as 16 kHz audio; Avy's voice comes back as
+      24 kHz audio. Listening, transcribing and speaking all happen there.
+   =================================================================== */
+let live = null;   // while talking: the connection, the mic, and what's playing
+
+async function startLive() {
+  // Make the audio contexts right away, inside the click, so the browser lets them play.
+  const micCtx = new AudioContext(), speakerCtx = new AudioContext();
+  const quit = (problem) => { micCtx.close(); speakerCtx.close(); addLine("error", problem); };
+
+  const status = await (await fetch("/api/status")).json();
+  showStatus(status);
+  if (!status.voice.available) return quit(status.voice.problem);
+
+  let mic;
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+    });
+  } catch {
+    return quit("Microphone blocked. Allow it for localhost in the browser's site settings, then try again.");
+  }
+
+  const ws = new WebSocket(`ws://${location.hostname}:${status.voice.port}/live`);
+  ws.binaryType = "arraybuffer";
+  live = { ws, mic, micCtx, speakerCtx, playAt: 0, playing: [], avyLine: null, avyText: "" };
+  setLiveState("warming up");
+
+  ws.onopen = () => ws.send(JSON.stringify({ history }));   // voice picks up where text left off
+  ws.onmessage = (e) => {
+    if (live?.ws !== ws) return;   // a leftover message after hanging up
+    if (typeof e.data === "string") onLiveMessage(JSON.parse(e.data));
+    else playAudio(e.data);
+  };
+  ws.onclose = () => { if (live?.ws === ws) stopLive("Voice disconnected. Is app.py still running?"); };
+}
+
+function stopLive(problem) {
+  if (!live) return;
+  const { ws, mic, micCtx, speakerCtx, avyText } = live;
+  if (avyText) history.push({ role: "assistant", content: avyText });   // keep what she'd said
+  live = null;
+  ws.close();
+  mic.getTracks().forEach((track) => track.stop());
+  micCtx.close(); speakerCtx.close();
+  $("sticker").classList.remove("spinning");
+  setLiveState(null);
+  updateTiles();
+  if (problem) addLine("error", problem);
+}
+
+// What the voice pipeline tells the page. Pipecat sends more than this; the rest is ignored.
+function onLiveMessage(m) {
+  switch (m.type) {
+    case "ready":                 // models loaded, pipeline running
+      return startMic();
+    case "error":
+      return stopLive(m.text);
+    case "interrupt":             // you started talking: stop her voice right now
+      return stopPlayback();
+    case "user-started-speaking":
+      return setLiveState("listening");
+    case "user-llm-text":         // your whole turn, as sent to DeepSeek
+      addLine("you", m.data.text);
+      history.push({ role: "user", content: m.data.text });
+      updateTiles();
+      return setLiveState("thinking");
+    case "bot-started-speaking":
+      $("sticker").classList.add("spinning");
+      return setLiveState("avy is speaking");
+    case "bot-tts-text":          // each sentence, as she says it
+      live.avyLine ??= addLine("avy", "");
+      live.avyText += (live.avyText ? " " : "") + m.data.text.trim();
+      live.avyLine.textContent = live.avyText;
+      return scrollDown();
+    case "bot-stopped-speaking":  // finished, or you cut her off: keep what she said
+      $("sticker").classList.remove("spinning");
+      if (live.avyText) history.push({ role: "assistant", content: live.avyText });
+      live.avyLine = null; live.avyText = "";
+      updateTiles();
+      return setLiveState("listening");
+    case "metrics":               // token counts for the Spent tile
+      for (const usage of m.data?.tokens || []) {
+        session.tokens += usage.total_tokens || 0;
+        session.dollars += costOf(usage);
+      }
+      return updateTiles();
+  }
+}
+
+// The mic: a tiny audio worklet hands us raw samples; we shrink them to
+// 16 kHz and send 20 ms (320 samples) at a time.
+const MIC_WORKLET = `registerProcessor("mic", class extends AudioWorkletProcessor {
+  process(inputs) { if (inputs[0][0]) this.port.postMessage(inputs[0][0].slice(0)); return true; }
+});`;
+
+async function startMic() {
+  const { micCtx, mic, ws } = live;
+  await micCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([MIC_WORKLET], { type: "text/javascript" })));
+  const node = new AudioWorkletNode(micCtx, "mic", { numberOfInputs: 1, numberOfOutputs: 0 });
+  micCtx.createMediaStreamSource(mic).connect(node);
+
+  const step = micCtx.sampleRate / 16000;   // e.g. 3 input samples per output sample at 48 kHz
+  const out = new Int16Array(320);
+  let pos = 0, sum = 0, count = 0, filled = 0;
+  node.port.onmessage = ({ data }) => {
+    for (const sample of data) {
+      sum += sample; count++; pos++;
+      if (pos < step) continue;
+      pos -= step;
+      out[filled++] = Math.max(-1, Math.min(1, sum / count)) * 32767;   // average = gentle low-pass
+      sum = 0; count = 0;
+      if (filled === out.length) {
+        if (ws.readyState === WebSocket.OPEN) ws.send(out.slice().buffer);
+        filled = 0;
+      }
+    }
+  };
+  setLiveState("listening");
+}
+
+// The speaker: queue each chunk right after the previous one, so there are no gaps.
+function playAudio(buffer) {
+  if (!live) return;
+  const ctx = live.speakerCtx;
+  const pcm = new Int16Array(buffer);
+  const audio = ctx.createBuffer(1, pcm.length, 24000);
+  const samples = audio.getChannelData(0);
+  for (let i = 0; i < pcm.length; i++) samples[i] = pcm[i] / 32768;
+
+  const source = ctx.createBufferSource();
+  source.buffer = audio;
+  source.connect(ctx.destination);
+  live.playAt = Math.max(live.playAt, ctx.currentTime + 0.05);
+  source.start(live.playAt);
+  live.playAt += audio.duration;
+  live.playing.push(source);
+  source.onended = () => { if (live) live.playing = live.playing.filter((s) => s !== source); };
+}
+
+function stopPlayback() {
+  if (!live) return;
+  live.playing.forEach((source) => source.stop());
+  live.playing = [];
+  live.playAt = 0;
+}
+
+function setLiveState(state) {
+  $("how").classList.toggle("live", !!state);
+  $("how").textContent = state ? `live: ${state}` : "enter to send, shift+enter for a new line";
+  $("talk").textContent = state ? "[ hang up ]" : "[ talk ]";
+}
+
+$("talk").onclick = () => {
+  live ? stopLive() : startLive();
+  input.focus();   // so you can still type while talking
+};
+
+
+/* ===================================================================
+   8. Start
    =================================================================== */
 setBusy(false);
 updateRate();

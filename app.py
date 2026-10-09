@@ -38,6 +38,12 @@ Keep it to a few sentences unless he asks for more.
 Right now it is {now}."""
 
 
+def system_prompt():
+    """The prompt with today's date and time filled in. Text and voice both use this."""
+    now = datetime.now().astimezone().strftime("%A, %B %d, %Y, %I:%M %p %Z")
+    return SYSTEM_PROMPT.format(now=now)
+
+
 # ---------------------------------------------------------------------------
 # 2. The .env file: read it on startup, rewrite it when you save a key
 # ---------------------------------------------------------------------------
@@ -75,7 +81,26 @@ def key_status():
     for name, label in KEYS.items():
         value = os.environ.get(name, "")
         keys.append({"name": name, "label": label, "hint": value[-4:] if value else None})
-    return {"model": MODEL, "keys": keys}
+    return {"model": MODEL, "keys": keys, "voice": voice_status()}
+
+
+# ---------------------------------------------------------------------------
+# Voice is optional: it needs the packages in requirements-voice.txt
+# ---------------------------------------------------------------------------
+
+try:
+    import voice
+    VOICE_PROBLEM = None
+except Exception as e:   # missing packages raise ImportError; broken native libraries can raise others
+    voice = None
+    VOICE_PROBLEM = f"Voice isn't installed ({e}). Run: python3 -m pip install -r requirements-voice.txt"
+
+
+def voice_status():
+    if voice is None:
+        return {"available": False, "problem": VOICE_PROBLEM}
+    problem = voice.status["error"] or (None if voice.status["ready"] else "Voice is loading its models...")
+    return {"available": voice.status["ready"], "problem": problem, "port": voice.PORT}
 
 
 # ---------------------------------------------------------------------------
@@ -118,10 +143,9 @@ def ask_deepseek(messages):
     if not key:
         raise FriendlyError(400, "Add your DeepSeek key first. Click the orange key button at the top right.")
 
-    now = datetime.now().astimezone().strftime("%A, %B %d, %Y, %I:%M %p %Z")
     payload = {
         "model": MODEL,
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT.format(now=now)}] + messages,
+        "messages": [{"role": "system", "content": system_prompt()}] + messages,
         "stream": True,                              # send words as they're written
         "stream_options": {"include_usage": True},   # token counts arrive at the end
         "thinking": {"type": "disabled"},            # fast replies; thinking mode is the default otherwise
@@ -254,6 +278,11 @@ if __name__ == "__main__":
     url = f"http://localhost:{PORT}"
     print(f"Avy is up at {url}  (Ctrl+C to stop)")
     print(f"Checking HTTPS certificates with {SSL_SOURCE}.")
+    if voice:
+        voice.start(system_prompt, PORT)
+        print(f"Voice: starting on port {voice.PORT}.")
+    else:
+        print(VOICE_PROBLEM)
     if not os.environ.get("AVY_NO_BROWSER"):
         webbrowser.open(url)
     try:
