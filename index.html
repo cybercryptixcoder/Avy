@@ -1211,7 +1211,20 @@ function closeMic() {
 }
 $("micOff").onclick = () => { if (ptt.state === "idle") closeMic(); };
 
+// Avy's speaker. Browsers can leave it stuck (silent but "working") after another tab
+// takes over the sound device, or headphones connect. So when you come back to this tab
+// or your audio devices change, we build a fresh one on your next key press.
+let speakerStale = false;
+document.addEventListener("visibilitychange", () => { if (!document.hidden) speakerStale = true; });
+navigator.mediaDevices?.addEventListener?.("devicechange", () => { speakerStale = true; });
+
 function speaker() {
+  const stuck = voice.speaker && (speakerStale || voice.speaker.state !== "running");
+  if (stuck && !voice.playing.length) {
+    voice.speaker.close().catch(() => {});
+    voice.speaker = null;
+  }
+  speakerStale = false;
   if (!voice.speaker) {
     voice.speaker = new AudioContext();
     voice.meter = voice.speaker.createAnalyser();
