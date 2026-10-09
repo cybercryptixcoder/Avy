@@ -3,9 +3,9 @@ Avy's voice: push-to-talk. app.py starts this when the voice packages are instal
 
 You hold Space (or double-tap it to lock) while you talk. When you let go:
     ears   faster-whisper writes down the whole recording in one go
-    brain  DeepSeek answers (the same request text chat uses, via app.py)
+    brain  DeepSeek answers, with memory, exactly like a typed message (a Turn from app.py)
     mouth  Kokoro 82M speaks the answer, a sentence at a time, while the rest is still coming
-Pressing Space again while Avy talks cuts her off.
+Pressing Space again while Avy talks cuts her off. Only the part you heard is saved to the log.
 
 Every recording is written to data/recordings as it comes in, so a crash or a failed
 transcription never loses what you said. The newest ones are kept; old ones are deleted.
@@ -168,12 +168,13 @@ def transcribe(source):
 # 4. Replies: DeepSeek streams text; finished sentences go to Kokoro while the rest is coming
 # ---------------------------------------------------------------------------
 
-def stream_deepseek(messages, put, cancel):
-    """Runs in a background thread: reads DeepSeek's stream and hands pieces to the event loop."""
+def stream_deepseek(turn, put, cancel):
+    """Runs in a background thread: starts the turn, reads DeepSeek's stream, hands pieces to the event loop."""
     try:
-        upstream = app["ask"](messages)
+        upstream = turn.ask()
     except Exception as e:
         return put(("error", getattr(e, "message", str(e))))
+    put(("asked", turn.summary()))
     try:
         with upstream:
             for line in upstream:
@@ -197,8 +198,9 @@ def stream_deepseek(messages, put, cancel):
 
 
 def take_sentences(buffer, first):
-    """Split finished sentences off the front of the buffer. Never cuts inside a code block."""
-    sentences = []
+    """Split finished sentences off the front of the buffer. Never cuts inside a code block.
+    Returns ([(sentence, where it ends in the buffer)], what's left)."""
+    sentences, used = [], 0
     while buffer.count("```") % 2 == 0:
         match = re.search(r"[.!?…][\"')\]]*\s|\n", buffer)
         end = match.end() if match else None
@@ -208,8 +210,9 @@ def take_sentences(buffer, first):
         if end is None:
             break
         sentence, buffer = buffer[:end].strip(), buffer[end:]
+        used += end
         if sentence:
-            sentences.append(sentence)
+            sentences.append((sentence, used))
     return sentences, buffer
 
 
@@ -222,43 +225,74 @@ def speakable(text):
     return " ".join(text.split())
 
 
-async def reply(ws, messages, speak):
+class Spoken:
+    """A reply on its way to you: the text so far, and where each sentence sent to the page ends,
+    so that when you cut in, the log keeps exactly the sentences you heard."""
+    def __init__(self, turn):
+        self.turn, self.text, self.ends, self.usage, self.done = turn, "", [], None, False
+
+    def settle(self, heard=None, cut=False):
+        """Save it to the log. heard: how many sentences the page played (None if we don't know)."""
+        text = self.text
+        if heard is not None and self.ends:
+            heard = min(int(heard), len(self.ends))
+            text = self.text[:self.ends[heard - 1]] if heard > 0 else ""
+        cut = cut or not self.done or len(text.strip()) < len(self.text.strip())
+        return self.turn.finish(text, self.usage, cut)
+
+
+async def reply(ws, text, speak, state):
     loop = asyncio.get_running_loop()
     pieces, sentences = asyncio.Queue(), asyncio.Queue()
     cancel = threading.Event()
     put = lambda item: loop.call_soon_threadsafe(pieces.put_nowait, item)
-    threading.Thread(target=stream_deepseek, args=(messages, put, cancel), daemon=True).start()
+    try:
+        turn = await asyncio.to_thread(app["turn"], text, "voice")     # recall memory
+    except Exception as e:
+        return await ws.send(json.dumps({"type": "error", "text": f"Memory couldn't be read ({e})."}))
+    spoken = state["spoken"] = Spoken(turn)
+    threading.Thread(target=stream_deepseek, args=(turn, put, cancel), daemon=True).start()
     mouth = asyncio.create_task(speak_sentences(ws, sentences)) if speak else None
 
-    text, pending, usage, told_thinking, queued_any = "", "", None, False, False
+    pending, told_thinking = "", False
     try:
         while True:
             kind, value = await pieces.get()
-            if kind == "thinking" and not told_thinking:
+            if kind == "asked":
+                await ws.send(json.dumps({"type": "recall", **value}))
+            elif kind == "thinking" and not told_thinking:
                 told_thinking = True
                 await ws.send(json.dumps({"type": "thinking"}))
             elif kind == "text":
-                text += value
+                start = len(spoken.text) - len(pending)        # where the unsplit tail begins
+                spoken.text += value
                 if speak:
-                    done, pending = take_sentences(pending + value, first=not queued_any)
-                    for sentence in done:
+                    done, pending = take_sentences(pending + value, first=not spoken.ends)
+                    for sentence, end in done:
+                        spoken.ends.append(start + end)
                         sentences.put_nowait(sentence)
-                        queued_any = True
                 else:
                     await ws.send(json.dumps({"type": "delta", "text": value}))
             elif kind == "usage":
-                usage = value
+                spoken.usage = value
             elif kind == "error":
                 await ws.send(json.dumps({"type": "error", "text": value}))
                 break
             elif kind == "end":
+                spoken.done = True
                 break
         if mouth:
             if pending.strip():
+                spoken.ends.append(len(spoken.text))
                 sentences.put_nowait(pending.strip())
             sentences.put_nowait(None)
             await mouth
-        await ws.send(json.dumps({"type": "done", "text": text, "usage": usage}))
+        saved = None
+        if not speak or not spoken.ends:
+            saved = spoken.settle()            # nothing to listen to: what was sent is what was said
+            state["spoken"] = None
+        # spoken replies are saved when the page says how much you heard ("heard")
+        await ws.send(json.dumps({"type": "done", "text": spoken.text, "usage": spoken.usage, "saved": saved}))
     finally:
         cancel.set()          # stop reading DeepSeek if we were cut off
         if mouth:
@@ -285,18 +319,24 @@ async def speak_sentences(ws, sentences):
 #      <binary>                microphone audio while you hold Space
 #      {"type": "stop"}        you let go: transcribe it
 #      {"type": "cancel"}      just a tap: don't transcribe (still kept on disk if over 1 second)
-#      {"type": "reply", "messages": [...], "speak": true}    answer the conversation
+#      {"type": "reply", "text": "...", "speak": true}   answer this (memory does the rest)
+#      {"type": "heard", "sentences": 3, "cut": true}   Avy stopped talking: after 3 sentences,
+#                              because you cut in (or "cut": false: she finished). Saves her reply.
 #      {"type": "retry"}       transcribe the newest recording again
 # ---------------------------------------------------------------------------
 
 async def session(ws):
     recording, job = None, None
+    state = {"spoken": None}        # the reply in progress, until it's saved
 
-    def stop_reply():
+    def stop_reply(heard=None, cut=True):
         nonlocal job
         if job and not job.done():
             job.cancel()
         job = None
+        if state["spoken"]:          # save what we know you heard (or everything sent, if we don't know)
+            state["spoken"].settle(heard, cut)
+            state["spoken"] = None
 
     async def send_transcript(path, pcm=None):
         where = str(path.relative_to(app["data"].parent))
@@ -332,9 +372,11 @@ async def session(ws):
                 done, recording = recording, None
                 done.close()
                 asyncio.create_task(send_transcript(done.path, done.pcm))
-            elif kind == "reply":
+            elif kind == "reply" and str(m.get("text") or "").strip():
                 stop_reply()
-                job = asyncio.create_task(reply(ws, m.get("messages", []), m.get("speak", True)))
+                job = asyncio.create_task(reply(ws, m["text"].strip(), m.get("speak", True), state))
+            elif kind == "heard":
+                stop_reply(heard=m.get("sentences"), cut=bool(m.get("cut")))
             elif kind == "retry":
                 folder = app["data"] / "recordings"
                 wavs = sorted(folder.glob("*.wav"), key=lambda p: p.stat().st_mtime) if folder.exists() else []
@@ -359,8 +401,8 @@ async def serve_forever(origins):
         await asyncio.Future()
 
 
-def start(ask, settings, data, page_port, ssl_context):
-    app.update(ask=ask, settings=settings, data=Path(data), ssl_context=ssl_context)
+def start(turn, settings, data, page_port, ssl_context):
+    app.update(turn=turn, settings=settings, data=Path(data), ssl_context=ssl_context)
     origins = [f"http://localhost:{page_port}", f"http://127.0.0.1:{page_port}"]   # only Avy's own page
     threading.Thread(target=warm_up, daemon=True).start()
     threading.Thread(target=lambda: asyncio.run(serve_forever(origins)), daemon=True).start()

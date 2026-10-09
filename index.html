@@ -195,6 +195,10 @@ button { cursor: pointer; background: none; border: 0; }
 .line.cmd { margin-top: 26px; display: grid; grid-template-columns: 2ch 1fr; opacity: .6; }
 .line.note { opacity: .6; font-size: 13.5px; }
 .line.cut::after { content: " —"; opacity: .5; }
+.line.trace { margin-top: 3px; font-size: 13px; opacity: .42; cursor: pointer; width: fit-content; }
+.line.trace:hover, .line.trace:focus-visible { opacity: .9; text-decoration: underline; text-underline-offset: 3px; }
+.earlier { margin-bottom: 6px; font-size: 13px; font-weight: 700; opacity: .55; }
+.earlier:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
 .chat.busy .prompt { display: none; }   /* like a terminal: no prompt while it's running */
 .line a.save { font-weight: 700; color: inherit; }
 
@@ -248,6 +252,43 @@ button { cursor: pointer; background: none; border: 0; }
 .cmds-list .empty { opacity: .55; cursor: default; }
 .cmds-foot { padding: 8px 14px 0; opacity: .45; font-size: 11.5px; line-height: 1.5; }
 
+/* The memory inspector: opens on the right like the command panel, wider.
+   Each view is a small page (an entry, a stretch of the log, a recall); links lead to the next. */
+.insp { width: 0; overflow: hidden; flex: none; font-size: 13px; line-height: 1.55; transition: width .16s ease-out; }
+.insp.open { width: min(60ch, 54%); border-left: 1.5px solid var(--ink); }
+.chat.commanding .insp { display: none; }
+.insp-inner { height: 100%; min-width: 36ch; display: flex; flex-direction: column; }
+.insp-head { display: flex; gap: 1.5ch; align-items: baseline; padding: 18px 14px 8px; white-space: nowrap; }
+.insp-head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; opacity: .55; }
+.insp-head button { font-family: inherit; font-size: 13px; font-weight: 700; }
+.insp-head button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.insp-body { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 14px 22px; scrollbar-width: thin; overflow-wrap: anywhere; }
+.insp .dim { opacity: .55; }
+.insp .sec { margin: 16px 0 3px; opacity: .55; white-space: nowrap; overflow: hidden; }
+.insp .big { font-weight: 700; margin-top: 6px; }
+.insp .para { margin: 6px 0 2px; white-space: pre-wrap; }
+.insp .banner { margin: 4px 0 8px; padding: 3px 8px; border: 1.5px solid var(--ink); }
+.insp .row { display: flex; gap: 1ch; padding: 1px 5px; margin: 0 -5px; cursor: pointer; white-space: nowrap; }
+.insp .row:hover, .insp .row:focus-visible { background: var(--ink); color: var(--card); outline: none; }
+.insp .row .k { flex: none; opacity: .55; }
+.insp .row .g { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.insp .row .n { flex: none; opacity: .55; font-variant-numeric: tabular-nums; }
+.insp .row.old .g { text-decoration: line-through; text-decoration-thickness: 1px; }
+.insp .ref { font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.insp .ref:hover { background: var(--ink); color: var(--card); text-decoration: none; }
+.insp .msg { padding: 7px 0 7px 12px; border-left: 1.5px solid transparent; }
+.insp .msg + .msg { border-top: 1px dashed rgb(28 26 23 / .25); }
+.insp .msg.here { border-left-color: var(--ink); }
+.insp .msg .text { white-space: pre-wrap; margin-top: 2px; }
+.insp mark { background: var(--ink); color: var(--card); padding: 0 1px; }
+.insp .more { font-family: inherit; font-size: 13px; font-weight: 700; margin: 6px 0; opacity: .7; }
+.insp .more:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+.insp pre.raw { margin: 6px 0; padding: 8px 10px; border: 1.5px solid var(--ink); font: inherit; font-size: 12px; line-height: 1.5;
+                white-space: pre-wrap; max-height: 55vh; overflow: auto; }
+.insp input.find { width: 100%; margin: 10px 0 2px; padding: 3px 8px; border: 1.5px solid var(--ink); background: none; font: inherit; outline: none; }
+.insp input.find:focus { box-shadow: inset 0 0 0 1px var(--ink); }
+.insp .problems { margin: 2px 0 0 2ch; }
+
 .status { display: flex; align-items: center; gap: 18px; padding: 9px 2px 0; font-size: 13px; }
 .status .how { opacity: .55; margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .status .how.live { opacity: 1; }
@@ -262,7 +303,7 @@ button { cursor: pointer; background: none; border: 0; }
   font: 700 12px/1.1 var(--mono); white-space: pre;
   opacity: .62; pointer-events: none; user-select: none;
 }
-.chat.commanding .scope { display: none; }
+.chat.commanding .scope, .chat.inspecting .scope { display: none; }
 @media (max-width: 1399px) { .scope { display: none; } }
 
 /* ===================================================================
@@ -311,8 +352,12 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   .tiles { order: 4; }
   .log { padding: 16px 10px 24px; }
   .chat-body { flex-direction: column; }
+  .cmds, .insp { width: auto; height: 0; }          /* stacked under the conversation: closed means no height */
   .cmds.open { width: auto; height: 40%; border-left: 0; border-top: 1.5px solid var(--ink); }
   .cmds-inner { width: auto; padding-top: 10px; }
+  .insp.open { width: auto; height: 58%; border-left: 0; border-top: 1.5px solid var(--ink); }
+  .insp-inner { min-width: 0; }
+  .insp-head { padding-top: 10px; }
   .tile b { font-size: 40px; }
 }
 
@@ -330,7 +375,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
 
 @media (prefers-reduced-motion: reduce) {
   .badge.busy .ring, .cursor { animation: none; }
-  .cmds { transition: none; }
+  .cmds, .insp { transition: none; }
 }
 </style>
 </head>
@@ -361,10 +406,10 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
       <ul class="nav-items">
         <li><span class="dot ok"></span>Brain: <span id="navModel">deepseek-flash</span></li>
         <li><span class="dot" id="keyDot"></span><span id="keyText">Checking key</span></li>
-        <li><span class="dot"></span>Memory: this tab only</li>
+        <li><span class="dot" id="memDot"></span><span id="memText">Memory</span></li>
         <li><span class="dot ok" id="rateDot"></span><span id="rateText">Off-peak rate</span></li>
       </ul>
-      <button class="pill-btn" id="newChat" type="button">New chat <svg class="icon"><use href="#i-arrow"/></svg></button>
+      <button class="pill-btn" id="openMemory" type="button" title="Look inside Avy's memory (/memory)">Memory <svg class="icon"><use href="#i-arrow"/></svg></button>
     </div>
     <button class="round-btn" id="openKeys" type="button" aria-label="Keys" title="Keys"><svg class="icon"><use href="#i-key"/></svg></button>
   </header>
@@ -435,6 +480,16 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
             <div class="cmds-foot">tab completes, ↑↓ picks<br>enter runs, esc closes</div>
           </div>
         </aside>
+        <aside class="insp" id="insp" aria-label="Memory inspector">
+          <div class="insp-inner">
+            <div class="insp-head">
+              <button id="inspBack" type="button" hidden>[ back ]</button>
+              <span class="t" id="inspTitle">── memory</span>
+              <button id="inspClose" type="button" title="Close (Esc)">[ close ]</button>
+            </div>
+            <div class="insp-body" id="inspBody"></div>
+          </div>
+        </aside>
       </div>
       <div class="rule bottom"></div>
       <div class="status">
@@ -472,13 +527,21 @@ const log = $("log"), input = $("input"), sendBtn = $("send");
 const prompt = $("prompt"), mirror = $("mirror");
 
 /* ===================================================================
-   1. What this tab remembers (gone on refresh, on purpose for now)
+   1. What the page keeps track of. The conversation itself lives in Avy's
+      memory (data/memory.db); the page only shows it, and asks for more.
    =================================================================== */
-let history = [];        // the whole conversation; sent to DeepSeek every turn
 let controller = null;   // exists while a typed message is being answered; Stop uses it
 const session = { tokens: 0, dollars: 0 };
-let settings = { values: {}, schema: {}, prices: {}, files: {} };   // from app.py: /api/settings
+let settings = { values: {}, schema: {}, prices: {}, files: {}, memory: {} };   // from app.py: /api/settings
 let voiceInfo = { available: false, problem: "Checking voice..." };
+let oldestShown = null;  // the earliest message number on screen (older ones: [ load earlier ])
+
+async function getJSON(url, options) {
+  const res = await fetch(url, options);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `Avy's server answered ${res.status}.`);
+  return body;
+}
 
 
 /* ===================================================================
@@ -612,10 +675,13 @@ function renderSystem() {
   }));
 
   const price = settings.prices[v.model] || {};
-  const f = settings.files;
+  const f = settings.files, m = settings.memory || {};
   const info = [
     ["mic", voiceInfo.available ? "hold space, tap twice to lock" : (voiceInfo.problem || "voice off")],
     ["price", `$${price.cache_miss} in, $${price.output} out /1M${isPeak() ? " ×2 now" : ""}`],
+    ["memory", `${m.messages ?? 0} msgs · ${m.pages ?? 0} pages · ${m.entries ?? 0} entries`],
+    ["index", `up to #${m.indexed_to ?? 0}${m.waiting ? `, ${m.waiting} waiting` : ""}${m.failed_runs ? `, ${m.failed_runs} failed` : ""}`],
+    ["search", m.meaning === "on" ? "words + meaning" : `words only (${m.meaning || "starting"})`],
     ["files", f.data],
     ["models", `${f.models_mb} MB`],
     ["recs", `${f.recordings} kept, ${f.recordings_mb} MB`],
@@ -634,7 +700,7 @@ function renderSystem() {
   $("meta").append(
     `avy 0.2: ${v.model}, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
     document.createElement("br"),
-    "hold space to talk, type / for commands. this conversation lives in this tab.",
+    "one endless conversation: avy remembers it all. hold space to talk, / for commands.",
   );
 }
 
@@ -707,10 +773,8 @@ async function send() {
   input.value = ""; grow(); drawCursor(); showHow();
   interruptAvy();
 
-  const chat = history;   // if you press New chat mid-reply, this reply is dropped
   const model = settings.values.model;
   const yourLine = addLine("you", text);
-  chat.push({ role: "user", content: text });
 
   // Avy's line starts as just a blinking block; words appear in front of it
   const avyLine = addLine("avy", "");
@@ -719,12 +783,13 @@ async function send() {
   avyLine.append(words, block);
   setBusy(true);
 
-  let reply = "", usage = null, failed = null, thought = null;
+  // Only your message goes to the server: it builds the rest from memory.
+  let reply = "", usage = null, failed = null, thought = null, turn = null, trace = null, stopped = false;
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: chat }),
+      body: JSON.stringify({ text }),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -732,6 +797,10 @@ async function send() {
       throw new Error(err.error || `Avy's server answered ${res.status}.`);
     }
     await readStream(res, (chunk) => {
+      if (chunk.avy) {                        // from Avy's server: what memory brought, and that it's saved
+        if (chunk.avy.turn) { turn = chunk.avy.turn; trace = addTrace(avyLine, turn); }
+        return;
+      }
       const delta = chunk.choices?.[0]?.delta || {};
       if (delta.reasoning_content && !thought) thought = thinkingLine(avyLine);
       if (delta.content) {
@@ -743,29 +812,25 @@ async function send() {
       if (chunk.usage) usage = chunk.usage;
     });
   } catch (err) {
-    if (err.name !== "AbortError") {
-      failed = err instanceof TypeError
-        ? "Can't reach Avy's server. Is python3 app.py still running?"
-        : err.message;
-    }
+    if (err.name === "AbortError") stopped = true;
+    else failed = err instanceof TypeError ? "Can't reach Avy's server. Is python3 app.py still running?" : err.message;
   }
 
   thought?.finish();
   block.remove();
   setBusy(false);
   countUsage(usage, model);
-  if (chat !== history) { input.focus(); return; }
 
-  if (reply) {
-    chat.push({ role: "assistant", content: reply });
-  } else {
-    // nothing came back: undo this turn and put your message back at the prompt
-    avyLine.remove(); yourLine.remove(); chat.pop();
-    thought?.line.remove();
-    input.value = text; grow(); drawCursor();
+  if (reply && stopped) avyLine.classList.add("cut");     // saved as cut off, too
+  if (!reply) {
+    avyLine.remove(); trace?.remove(); thought?.line.remove();
+    if (!turn) {          // nothing reached the log: undo this turn and put your message back at the prompt
+      yourLine.remove();
+      input.value = text; grow(); drawCursor();
+    }
   }
   if (failed) addLine("error", failed);
-  updateTiles();
+  refreshMemory();
   scrollDown();
   input.focus();
 }
@@ -852,7 +917,7 @@ log.addEventListener("click", (e) => {
 });
 
 // kinds: you, avy, error, note (dim info), cmd (a command you ran; never sent to DeepSeek)
-function addLine(kind, text) {
+function addLine(kind, text, before = prompt) {
   const line = document.createElement("div");
   line.className = "line " + kind;
   if (kind === "you" || kind === "cmd") {
@@ -864,12 +929,88 @@ function addLine(kind, text) {
   } else {
     line.textContent = text;
   }
-  log.insertBefore(line, prompt);
-  scrollDown();
+  log.insertBefore(line, before);
+  if (before === prompt) scrollDown();
   return line;
 }
 
+// The dim line under a reply: what memory brought for it. Click to look under the hood.
+function addTrace(after, recalled) {
+  const n = recalled?.entries || 0, m = recalled?.log || 0;
+  if (!n && !m) return null;
+  const line = document.createElement("div");
+  line.className = "line trace";
+  line.tabIndex = 0;
+  line.textContent = "↳ recalled " + [n && `${n} entr${n === 1 ? "y" : "ies"}`, m && `${m} log line${m === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
+  const open = (e) => { e.stopPropagation(); inspect("recall", recalled.recall ?? recalled.id); };
+  line.onclick = open;
+  line.onkeydown = (e) => { if (e.key === "Enter") open(e); };
+  after.after(line);
+  return line;
+}
+
+// A message from the log, drawn the same way it was the first time.
+function showMessage(m, before) {
+  if (m.role === "user") return addLine("you", m.text, before);
+  const line = addLine("avy", "", before);
+  line.innerHTML = renderMarkdown(m.text);
+  if (m.meta.cut) line.classList.add("cut");
+  if (m.recalled) addTrace(line, m.recalled);
+  return line;
+}
+
+// The conversation comes back on reload: there's no new chat, just one long one.
+function clearedAt() {
+  try { return Number(localStorage.getItem("avy.clearedAt")) || 0; } catch { return 0; }
+}
+
+async function loadHistory() {
+  try {
+    const { messages, last } = await getJSON("/api/log?limit=40");
+    const shown = messages.filter((m) => m.id > clearedAt());
+    shown.forEach((m) => showMessage(m, prompt));
+    oldestShown = shown.length ? shown[0].id : last + 1;
+    drawEarlier();
+    scrollDown();
+  } catch (e) {
+    addLine("error", `Couldn't load the conversation (${e.message}).`);
+  }
+}
+
+function drawEarlier() {
+  log.querySelector(".earlier")?.remove();
+  if (!oldestShown || oldestShown <= 1) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "earlier";
+  button.textContent = "[ load earlier ]";
+  button.onclick = loadEarlier;
+  $("meta").after(button);
+}
+
+async function loadEarlier(e) {
+  e?.stopPropagation();
+  const { messages } = await getJSON(`/api/log?before=${oldestShown}&limit=40`);
+  const first = log.querySelector(".earlier").nextSibling;
+  const height = log.scrollHeight;
+  messages.forEach((m) => showMessage(m, first));
+  log.scrollTop += log.scrollHeight - height;          // keep your place
+  oldestShown = messages.length ? messages[0].id : 1;
+  drawEarlier();
+}
+
 function scrollDown() { log.scrollTop = log.scrollHeight; }
+
+// When a panel opens or closes beside the conversation, the lines rewrap. If you were
+// reading the newest line, stay there. Only your own scrolling (wheel, drag, touch) moves you
+// off it; the rewrap itself also fires scroll events, and those don't count.
+let pinned = true, dragging = false;
+const atNewest = () => log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+log.addEventListener("pointerdown", () => { dragging = true; });
+addEventListener("pointerup", () => { dragging = false; });
+log.addEventListener("wheel", () => requestAnimationFrame(() => { pinned = atNewest(); }), { passive: true });
+log.addEventListener("scroll", () => { if (dragging || atNewest()) pinned = atNewest(); });
+new ResizeObserver(() => { if (pinned) scrollDown(); }).observe(log);
 
 function makeCursor(char = " ") {
   const block = document.createElement("span");
@@ -921,7 +1062,7 @@ function setBusy(busy) {
 }
 
 function updateTiles() {
-  $("tMessages").textContent = history.length;
+  $("tMessages").textContent = (settings.memory?.messages ?? 0).toLocaleString();
   $("tTokens").textContent = session.tokens.toLocaleString();
   $("tSpent").textContent = "$" + session.dollars.toFixed(4);
 }
@@ -935,15 +1076,31 @@ function updateRate() {
   renderSystem();
 }
 
-function newChat() {
+// /clear: a clean screen. Memory keeps everything; [ load earlier ] brings it back.
+async function clearScreen() {
   if (controller) controller.abort();
   interruptAvy();
-  history = [];
   log.querySelectorAll(".line").forEach((line) => line.remove());
-  updateTiles();
+  const stats = await refreshMemory();
+  oldestShown = (stats?.messages || 0) + 1;
+  try { localStorage.setItem("avy.clearedAt", String(oldestShown - 1)); } catch {}
+  drawEarlier();
   input.focus();
 }
-$("newChat").onclick = newChat;
+
+// Memory numbers for the tiles, the top bar and the system card.
+async function refreshMemory() {
+  try {
+    const { stats } = await getJSON("/api/memory?pages=0");
+    settings.memory = stats;
+    $("memText").textContent = `Memory: ${stats.messages.toLocaleString()} messages`;
+    $("memDot").className = "dot " + (stats.failed_runs ? "warn" : "ok");
+    renderSystem();
+    updateTiles();
+    return stats;
+  } catch { return null; }
+}
+$("openMemory").onclick = () => (insp.stack.length ? closeInspector() : inspect("memory"));
 
 
 /* ===================================================================
@@ -951,7 +1108,9 @@ $("newChat").onclick = newChat;
       Settings become commands by themselves; add actions to ACTIONS.
    =================================================================== */
 const ACTIONS = {
-  clear: { about: "start a new chat", run: newChat },
+  memory: { about: "look inside memory (/memory: words searches it)", run: (words) => words ? inspect("search", words) : inspect("memory") },
+  index: { about: "index what's waiting now, not after ~20 messages", run: indexNow },
+  clear: { about: "clear the screen (memory keeps everything)", run: clearScreen },
   keys:  { about: "open the keys panel", run: openKeys },
   where: { about: "where Avy keeps its files", run: showWhere },
   retry: { about: "transcribe your newest recording again", run: retryRecording },
@@ -1074,8 +1233,8 @@ async function runCommand(text) {
     return problem ? addLine("error", problem) : addLine("note", `${command.name} is now ${value}`);
   }
   clearInput();
-  addLine("cmd", `/${command.name}`);
-  command.run();
+  addLine("cmd", `/${command.name}${typed.arg ? ": " + typed.arg : ""}`);
+  command.run(typed.arg);
 }
 
 function runIfAction() {
@@ -1090,14 +1249,30 @@ function clearInput() {
 
 async function showWhere() {
   await loadSettings();
-  const f = settings.files;
+  const f = settings.files, m = settings.memory;
   addLine("note", [
     `everything Avy saves is in ${f.data}`,
+    `  memory.db       every message, and the index into them, ${m.mb} MB`,
     `  settings.json   your choices (system card and / commands)`,
-    `  models/         speech models, ${f.models_mb} MB`,
+    `  models/         speech and meaning-search models, ${f.models_mb} MB`,
     `  recordings/     your last ${f.recordings} recordings with their transcripts, ${f.recordings_mb} MB`,
-    `keys are in .env next to app.py. the conversation itself lives in this tab only.`,
+    `keys are in .env next to app.py.`,
   ].join("\n"));
+}
+
+async function indexNow() {
+  const note = addLine("note", "indexing what's waiting…");
+  try {
+    const { runs, stats } = await getJSON("/api/index", { method: "POST" });
+    note.textContent = runs.length ? runs.map((r) => r.status === "error"
+      ? `couldn't index #${r.first}-#${r.last}: ${(r.problems.at(-1) || [])[0] || "unknown problem"}`
+      : `indexed #${r.first}-#${r.last} as page p${r.page}: ${r.entries} entr${r.entries === 1 ? "y" : "ies"}` +
+        (r.status === "ok" ? "" : ` (${r.status}, ${r.attempts} tries)`)).join("\n") + "\n/memory to look"
+      : "nothing waiting to index.";
+    settings.memory = stats; renderSystem(); updateTiles();
+  } catch (e) {
+    note.textContent = `couldn't index (${e.message})`;
+  }
 }
 
 function showHelp() {
@@ -1360,9 +1535,12 @@ function onVoiceMessage(m) {
       loadSettings();          // refresh the recordings count on the system card
       if (!m.text) { addLine("note", "(didn't catch anything)"); return setState("idle"); }
       addLine("you", m.text);
-      history.push({ role: "user", content: m.text });
-      updateTiles();
-      return askAloud();
+      return askAloud(m.text);
+    case "recall":           // what memory brought for this reply
+      if (!reply) return;
+      reply.recalled = m;
+      if (reply.line) reply.trace = addTrace(reply.line, m);
+      return;
     case "thinking":
       if (reply && !reply.thought) reply.thought = thinkingLine(prompt);
       return;
@@ -1394,16 +1572,19 @@ function onVoiceMessage(m) {
   }
 }
 
-function askAloud() {
+function askAloud(text) {
   const speak = settings.values.speak === "on";
   if (voice.ws?.readyState !== WebSocket.OPEN) { addLine("error", "The voice connection dropped. Type your message instead."); return setState("idle"); }
-  reply = { speak, model: settings.values.model, text: "", heard: [], captions: [], line: null, done: false };
-  voice.ws.send(JSON.stringify({ type: "reply", messages: history, speak }));
+  reply = { speak, model: settings.values.model, text: "", heard: [], captions: [], line: null, done: false, recalled: null, trace: null };
+  voice.ws.send(JSON.stringify({ type: "reply", text, speak }));
   setState("thinking");
 }
 
 function showReply(text) {
-  if (!reply.line) reply.line = addLine("avy", "");
+  if (!reply.line) {
+    reply.line = addLine("avy", "");
+    if (reply.recalled) reply.trace = addTrace(reply.line, reply.recalled);
+  }
   reply.line.innerHTML = renderMarkdown(text);
   scrollDown();
 }
@@ -1445,14 +1626,16 @@ function queueCaption(text, at) {
 
 function finishReply(text) {
   if (!reply) return;
-  if (reply.speak) showReply(text);   // make sure the whole reply is on screen
-  if (text) history.push({ role: "assistant", content: text });
+  if (reply.speak) {
+    showReply(text);   // make sure the whole reply is on screen
+    voice.ws?.send(JSON.stringify({ type: "heard", sentences: null, cut: false }));   // she finished: save it all
+  }
   reply = null;
-  updateTiles();
+  refreshMemory();
   if (ptt.state !== "recording") setState("idle");
 }
 
-// Stop Avy right now. History keeps only what you actually heard.
+// Stop Avy right now. The log keeps only the sentences you actually heard.
 function interruptAvy() {
   voice.playing.forEach((s) => { try { s.stop(); } catch {} });
   voice.playing = [];
@@ -1465,16 +1648,15 @@ function interruptAvy() {
   if (heard) {
     showReply(heard);
     reply.line.classList.add("cut");
-    history.push({ role: "assistant", content: heard });
   } else {
     reply.line?.remove();
+    reply.trace?.remove();
   }
-  if (!reply.done && voice.ws?.readyState === WebSocket.OPEN && ptt.state !== "arming") {
-    voice.ws.send(JSON.stringify({ type: "start" }));     // tell voice.py to stop generating
-    voice.ws.send(JSON.stringify({ type: "cancel" }));
+  if (voice.ws?.readyState === WebSocket.OPEN) {     // stop generating, and save what you heard
+    voice.ws.send(JSON.stringify({ type: "heard", sentences: reply.speak ? reply.heard.length : null, cut: true }));
   }
   reply = null;
-  updateTiles();
+  refreshMemory();
 }
 
 // --- one place that knows what's going on, for the status line and the badge ---
@@ -1537,14 +1719,15 @@ input.addEventListener("keydown", (e) => {
   }
   if (commanding && e.key === "Escape") {
     e.preventDefault();
+    e.stopPropagation();     // this Esc only closes the command panel
     return clearInput();
   }
   // Up arrow on an empty prompt brings back your last message, like a terminal
   if (e.key === "ArrowUp" && !input.value) {
-    const last = [...history].reverse().find((m) => m.role === "user");
-    if (!last) return;
+    const yours = log.querySelectorAll(".line.you span:last-child");
+    if (!yours.length) return;
     e.preventDefault();
-    input.value = last.content;
+    input.value = yours[yours.length - 1].textContent;
     input.setSelectionRange(input.value.length, input.value.length);
     grow(); drawCursor(); showHow();
     return;
@@ -1553,6 +1736,7 @@ input.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !controller && !menu && insp.stack.length && !input.value.startsWith("/")) closeInspector();
   if (e.key === "Escape" && controller) controller.abort();
   if (e.key === "Escape" && menu) closeMenu();
   if (menu && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
@@ -1630,13 +1814,257 @@ function drawBars(now) {
 
 
 /* ===================================================================
-   11. Start
+   11. The memory inspector: look under the hood.
+       Every view is a small page: memory (all pages), a page, an entry,
+       the log around a message, a recall, a search. Links open the next
+       view; [ back ] walks back along the way you came.
+   =================================================================== */
+const insp = { stack: [] };
+
+function inspect(view, arg, extra) {
+  insp.stack.push({ view, arg, extra });
+  drawInspector();
+}
+function inspectInstead(view, arg, extra) {     // same place in the path, different view (paging, a new search)
+  insp.stack[insp.stack.length - 1] = { view, arg, extra };
+  drawInspector();
+}
+function closeInspector() {
+  insp.stack = [];
+  $("insp").classList.remove("open");
+  $("chat").classList.remove("inspecting");
+}
+$("inspBack").onclick = () => { insp.stack.pop(); insp.stack.length ? drawInspector() : closeInspector(); };
+$("inspClose").onclick = closeInspector;
+
+async function drawInspector() {
+  const here = insp.stack[insp.stack.length - 1];
+  $("insp").classList.add("open");
+  $("chat").classList.add("inspecting");
+  $("inspBack").hidden = insp.stack.length < 2;
+  const body = $("inspBody");
+  try {
+    const [title, nodes] = await VIEWS[here.view](here.arg, here.extra);
+    if (insp.stack[insp.stack.length - 1] !== here) return;      // you moved on while it loaded
+    $("inspTitle").textContent = "── " + title;
+    body.replaceChildren(...nodes.flat(Infinity).filter((n) => n != null && n !== false));
+    body.scrollTop = 0;
+    body.querySelector(".here")?.scrollIntoView({ block: "center" });
+  } catch (e) {
+    body.replaceChildren(el("div", "", `couldn't load this: ${e.message}`));
+  }
+}
+
+// --- small builders ---
+function el(tag, cls, ...kids) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  kids.flat(Infinity).forEach((k) => k != null && k !== false && node.append(k));
+  return node;
+}
+function go(label, view, arg, extra) {          // an inline link to another view
+  const b = el("button", "ref", label);
+  b.type = "button";
+  b.onclick = (e) => { e.stopPropagation(); inspect(view, arg, extra); };
+  return b;
+}
+function row(cells, onclick, cls = "") {         // a clickable line: [dim key] [main text] [dim number]
+  const r = el("div", "row " + cls, ...cells.map(([c, text]) => el("span", c, text)));
+  r.tabIndex = 0;
+  r.onclick = onclick;
+  r.onkeydown = (e) => { if (e.key === "Enter") onclick(); };
+  return r;
+}
+function toggle(label, content) {               // [ show ... ] that reveals a raw block
+  const b = el("button", "more", `[ ${label} ]`);
+  const box = el("pre", "raw", content);
+  box.hidden = true;
+  b.type = "button";
+  b.onclick = () => { box.hidden = !box.hidden; b.textContent = `[ ${box.hidden ? label : "hide"} ]`; };
+  return [b, box];
+}
+const sec = (text) => el("div", "sec", `── ${text}`);
+const who = (role) => (role === "user" ? "you" : "avy");
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+function day(iso) {
+  const d = new Date(iso), thisYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleString([], { month: "short", day: "numeric", year: thisYear ? undefined : "numeric", hour: "numeric", minute: "2-digit" });
+}
+function withMentions(text, titles) {           // "[e3]'s place" -> a link titled Rohan
+  return text.split(/\[e(\d+)\]/).map((part, i) => (i % 2 ? go(titles[part] || `e${part}`, "entry", Number(part)) : part));
+}
+function pointer(v) {                           // evidence: #388 Oct 2 · you  "the exact words"
+  return row([["n", `#${v.message}`], ["k", `${day(v.at)} · ${who(v.role)}`],
+              ["g", v.exact ? `"${v.quote}"` : "(the whole message)"]],
+             () => inspect("log", v.message, v.exact ? { start: v.start, end: v.end } : null));
+}
+function entryRow(e, extra = "") {
+  return row([["k", e.kind.padEnd(10)], ["g", e.title + (e.version > 1 ? `  v${e.version}` : "")], ["n", `${extra}e${e.id}`]],
+             () => inspect("entry", e.id), e.current === false ? "old" : "");
+}
+function searchBox(words) {
+  const box = el("input", "find");
+  box.placeholder = "search memory, enter to go";
+  box.value = words || "";
+  box.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter" && box.value.trim()) {
+      insp.stack[insp.stack.length - 1].view === "search" ? inspectInstead("search", box.value.trim()) : inspect("search", box.value.trim());
+    }
+    if (e.key === "Escape") closeInspector();
+  };
+  return box;
+}
+
+const VIEWS = {
+  // Everything at a glance: the numbers, and every page newest first.
+  async memory() {
+    const { stats: s, pages } = await getJSON("/api/memory");
+    settings.memory = s;
+    const index = el("button", "more", s.waiting ? `[ index the ${s.waiting} waiting now ]` : "[ index now ]");
+    index.type = "button";
+    index.onclick = async () => { index.textContent = "indexing…"; await getJSON("/api/index", { method: "POST" }).catch(() => {}); inspectInstead("memory"); refreshMemory(); };
+    return ["memory", [
+      el("div", "", `${s.messages} messages · ${plural(s.pages, "page")} · ${plural(s.entries, "entry").replace("entrys", "entries")} · ${plural(s.links, "link")}`),
+      el("div", "dim", `indexed up to #${s.indexed_to}${s.waiting ? ` · ${s.waiting} waiting (a page is written every ~20)` : ""}` +
+                       `${s.failed_runs ? ` · ${s.failed_runs} failed runs` : ""}`),
+      el("div", "dim", `search by meaning: ${s.meaning} · ${s.mb} MB in memory.db`),
+      s.waiting ? index : null,
+      searchBox(""),
+      sec("pages, newest first"),
+      pages.length ? pages.map((p) => row([["n", `p${p.id}`.padEnd(5)], ["k", `#${p.first}-${p.last}`.padEnd(10)], ["g", p.headline],
+                                          ["n", `${p.n}${p.status && p.status !== "ok" ? " " + p.status : ""}`]], () => inspect("page", p.id)))
+                   : el("div", "dim", "nothing yet. a page is written for every ~20 messages, or now with /index."),
+    ]];
+  },
+
+  // One page: its headline, its entries, and how it was written (the run).
+  async page(id) {
+    const { page: p, entries, run } = await getJSON(`/api/page?id=${id}`);
+    const nodes = [
+      el("div", "big", p.headline),
+      el("div", "dim", `p${p.id} · written ${day(p.at)} · from messages `, go(`#${p.first}-#${p.last}`, "log", p.first)),
+      sec(`entries (${entries.length})`),
+      entries.length ? entries.map((e) => entryRow(e)) : el("div", "dim", "nothing here worth remembering, or the run couldn't save any"),
+    ];
+    if (run) {
+      nodes.push(sec("how it was written"),
+        el("div", "dim", `${run.status} · ${plural(run.attempts, "try").replace("trys", "tries")} · ${run.model} · ${run.seconds}s · ` +
+                         `${run.tokens_in}+${run.tokens_out} tokens · $${(run.cost || 0).toFixed(4)}`));
+      (run.problems || []).forEach((list, i) => list.length &&
+        nodes.push(el("div", "", `try ${i + 1}: ${plural(list.length, "problem")}`), el("div", "problems dim", list.map((t) => el("div", "", "· " + t)))));
+      const shown = (run.prompt || []).map((m) => `[${m.role}]\n${m.content}`).join("\n\n");
+      const said = (run.replies || []).map((r, i) => {
+        const call = r.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+        try { return `try ${i + 1}:\n` + JSON.stringify(JSON.parse(call), null, 1); } catch { return `try ${i + 1}:\n` + (call || JSON.stringify(r).slice(0, 2000)); }
+      }).join("\n\n");
+      nodes.push(...toggle("what DeepSeek was shown", shown), ...toggle("what it answered", said));
+    }
+    return [`page p${p.id}`, nodes];
+  },
+
+  // One entry, like a wiki article: text, evidence, links both ways, every version.
+  async entry(id) {
+    const a = await getJSON(`/api/entry?id=${id}`);
+    const e = a.entry;
+    const nodes = [];
+    if (a.current !== e.id) nodes.push(el("div", "banner", "an older version. what's true now: ", go(`e${a.current}`, "entry", a.current)));
+    nodes.push(el("div", "big", e.title),
+      el("div", "dim", `${e.kind} · e${e.id} · version ${e.version} of ${a.versions.length} · ${day(e.at)}`),
+      el("div", "para", withMentions(e.text, a.mentions)),
+      sec("said in"), a.evidence.map(pointer));
+    if (a.links.length) {
+      nodes.push(sec("links"), a.links.map((l) => row([["k", l.kind.replace("_", " ").padEnd(10)], ["g", l.title],
+        ["n", `${l.by === "system" ? "auto " : ""}${l.moved_on ? "updated since " : ""}e${l.to}`]], () => inspect("entry", l.to))));
+    }
+    nodes.push(sec(`linked from (${a.backlinks.length})`), a.backlinks.length
+      ? a.backlinks.map((l) => row([["k", l.kind.replace("_", " ").padEnd(10)], ["g", l.title], ["n", `${l.by === "system" ? "auto " : ""}e${l.from}`]],
+                                   () => inspect("entry", l.from)))
+      : el("div", "dim", "nothing yet"));
+    nodes.push(sec("versions, newest first"), a.versions.map((v) => el("div", v.id === e.id ? "" : "dim",
+      row([["k", `v${v.version}`], ["g", v.readable], ["n", v.replaced_by ? `until ${day(v.replaced_at)}` : "now"]], () => inspect("entry", v.id), v.replaced_by ? "old" : ""),
+      v.evidence.map(pointer))));
+    nodes.push(el("div", "dim", "\nwritten in ", go(`page p${a.page.id}`, "page", a.page.id), ` (#${a.page.first}-#${a.page.last})`));
+    return [`e${e.id} ${e.kind}`, nodes];
+  },
+
+  // The log itself, around one message, with the quoted words highlighted.
+  async log(id, quote) {
+    const { messages, last } = await getJSON(`/api/log?after=${Math.max(0, id - 7)}&limit=13`);
+    const nodes = [];
+    if (messages.length && messages[0].id > 1) {
+      const up = el("button", "more", "[ earlier ]");
+      up.onclick = () => inspectInstead("log", Math.max(1, messages[0].id - 6));
+      nodes.push(up);
+    }
+    for (const m of messages) {
+      let text = [m.text];
+      if (m.id === id && quote) text = [m.text.slice(0, quote.start), el("mark", "", m.text.slice(quote.start, quote.end)), m.text.slice(quote.end)];
+      nodes.push(el("div", "msg" + (m.id === id ? " here" : ""),
+        el("div", "dim", `#${m.id} · ${day(m.at)} · ${who(m.role)}${m.via === "voice" ? " (spoken)" : ""}${m.meta.cut ? " (cut off)" : ""}`,
+           m.page ? [" · ", go(`p${m.page}`, "page", m.page)] : " · not indexed yet",
+           m.cited_by.length ? [" · cited by ", m.cited_by.map((c, i) => [i ? " " : "", go(`e${c}`, "entry", c)])] : null,
+           m.recalled ? [" · ", go("recall", "recall", m.recalled.id)] : null),
+        el("div", "text", text)));
+    }
+    if (messages.length && messages[messages.length - 1].id < last) {
+      const down = el("button", "more", "[ later ]");
+      down.onclick = () => inspectInstead("log", messages[messages.length - 1].id + 7);
+      nodes.push(down);
+    }
+    return [`log #${id}`, nodes];
+  },
+
+  // What memory brought for one reply, and how each thing was reached.
+  async recall(id) {
+    const r = await getJSON(`/api/recall?id=${id}`);
+    const t = r.trace;
+    const titles = Object.fromEntries(t.entries.map((x) => [x.entry, x.title]));
+    const how = (x) => x.how === "link"
+      ? `via ${titles[x.via] || "e" + x.via} (${x.link}${x.direction === "in" ? ", backlink" : ""})`
+      : x.how === "page" ? "its page matched" : `found by ${x.how === "both" ? "words + meaning" : x.how}`;
+    return [`recall for #${r.message}`, [
+      el("div", "", `"${t.query}"`),
+      el("div", "dim", `searched ${t.searched.entries} entries and ${t.searched.log} older messages · followed links to ${t.walked} more · ` +
+                       `~${t.tokens} tokens · ${t.seconds}s · meaning search ${t.meaning === "on" ? "on" : "off"}`),
+      sec(`entries it brought (${t.entries.length})`),
+      t.entries.length ? t.entries.map((x) => el("div", "",
+        row([["n", x.score.toFixed(2)], ["k", x.kind.padEnd(10)], ["g", x.title + (x.version > 1 ? `  v${x.version}` : "")], ["n", `e${x.entry}`]], () => inspect("entry", x.entry)),
+        el("div", "dim", "      ", how(x), x.matched ? ` · matched older version e${x.matched}` : "", " · ",
+           x.messages.map((m, i) => [i ? " " : "", go(`#${m}`, "log", m)])))) : el("div", "dim", "none"),
+      sec(`older messages it brought (${t.log.length})`),
+      t.log.length ? t.log.map((x) => row([["n", `#${x.message}`], ["g", `found by ${x.how === "both" ? "words + meaning" : x.how}`]], () => inspect("log", x.message)))
+                   : el("div", "dim", "none"),
+      t.skipped ? el("div", "dim", `${t.skipped} more matched but didn't fit`) : null,
+      ...toggle("the exact memory note DeepSeek got", r.briefing),
+    ]];
+  },
+
+  // Search entries and the log.
+  async search(words) {
+    const r = await getJSON(`/api/search?q=${encodeURIComponent(words)}`);
+    return [`search: ${words}`, [
+      searchBox(words),
+      sec(`entries (${r.entries.length})`),
+      r.entries.length ? r.entries.map((e) => entryRow(e)) : el("div", "dim", "none"),
+      sec(`messages (${r.messages.length})`),
+      r.messages.length ? r.messages.map((m) => row([["n", `#${m.id}`], ["k", who(m.role)], ["g", m.text]], () => inspect("log", m.id)))
+                        : el("div", "dim", "none"),
+    ]];
+  },
+};
+
+
+/* ===================================================================
+   12. Start
    =================================================================== */
 setBusy(false);
 setState("idle");
 updateTiles();
 if (still) { drawScope(); drawBars(0); } else requestAnimationFrame(tick);
-loadSettings().then(() => { updateRate(); setInterval(updateRate, 60_000); });
+loadSettings().then(() => { updateRate(); setInterval(updateRate, 60_000); refreshMemory(); });
+setInterval(() => { if (!document.hidden) refreshMemory(); }, 20_000);   // the indexer works in the background
+loadHistory();
 loadStatus();
 drawCursor();
 </script>

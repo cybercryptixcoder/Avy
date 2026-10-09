@@ -5,6 +5,7 @@ Run it:   python3 app.py
 Then go:  http://localhost:8000
 
 Text chat only needs Python's standard library. Voice is optional (voice.py).
+Memory (memory.py, indexer.py) remembers everything in data/memory.db.
 Everything Avy writes to disk goes in the data/ folder next to this file.
 """
 
@@ -12,11 +13,15 @@ import json
 import os
 import ssl
 import urllib.error
+import urllib.parse
 import urllib.request
 import webbrowser
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import indexer
+import memory
 
 
 # ---------------------------------------------------------------------------
@@ -27,7 +32,8 @@ HERE = Path(__file__).parent
 ENV_FILE = HERE / ".env"                    # your keys; .gitignore keeps it off GitHub
 DATA = HERE / "data"                        # everything else Avy saves (also kept off GitHub)
 SETTINGS_FILE = DATA / "settings.json"      #   your choices from the system card or / commands
-                                            #   data/models      speech models (voice)
+MEMORY_FILE = DATA / "memory.db"            #   everything ever said, and the index into it
+                                            #   data/models      speech and meaning-search models
                                             #   data/recordings  backups of what you said (voice)
 PORT = 8000
 
@@ -36,17 +42,25 @@ KEYS = {
     "DEEPSEEK_API_KEY": "DeepSeek API key",
 }
 
-SYSTEM_PROMPT = """You are Avy, Shreyas's personal assistant.
+SYSTEM_PROMPT = f"""You are Avy, {memory.NAME}'s personal assistant.
 Talk like a sharp, warm friend: plain words, short answers, no filler.
 Reply in plain text with no markdown, because your replies may be read aloud.
 Keep it to a few sentences unless he asks for more.
-Right now it is {now}."""
+
+You and {memory.NAME} are in one endless conversation: there is no "new chat". You see the latest
+messages word for word. Older things come from your memory, in a note just before his newest message:
+entries like [e12] (people, facts, plans, decisions...) with the exact words they came from (#41 means
+message 41), plus older messages that matched. When an entry has been corrected you'll see its earlier
+versions too; the newest one is what's true now. Use what's relevant and ignore the rest. If neither
+the recent messages nor the memory note covers something, say you don't remember it rather than guessing.
+Don't mention entry or message numbers unless he asks where something came from."""
 
 
 def system_prompt():
-    """The prompt with today's date and time filled in. Text and voice both use this."""
-    now = datetime.now().astimezone().strftime("%A, %B %d, %Y, %I:%M %p %Z")
-    return SYSTEM_PROMPT.format(now=now)
+    """Avy's instructions plus the core of her memory. It only changes when the index does,
+    so DeepSeek can reuse its cached copy (the time goes in the memory note instead)."""
+    core = memory.core()
+    return SYSTEM_PROMPT + (f"\n\n{core}" if core else "")
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +143,7 @@ def settings_payload():
             "recordings": len(recordings),
             "recordings_mb": round(folder_size(DATA / "recordings") / 1e6, 1),
         },
+        "memory": memory.stats(),
     }
 
 
@@ -158,7 +173,7 @@ def write_env(env):
 for _name, _value in read_env().items():
     os.environ.setdefault(_name, _value)
 
-API_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com") + "/chat/completions"
+API_BASE = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 
 
 def key_status():
@@ -223,27 +238,14 @@ class FriendlyError(Exception):
         self.message = message
 
 
-def ask_deepseek(raw_messages):
-    """Start a streaming request. Returns the open response, or raises a friendly error."""
+def deepseek(payload, beta=False):
+    """Send one request to DeepSeek. Returns the open response, or raises a friendly error.
+    beta=True uses DeepSeek's beta address, where tool calls can be marked strict."""
     key = os.environ.get("DEEPSEEK_API_KEY")
     if not key:
         raise FriendlyError(400, "Add your DeepSeek key first. Click the orange key button at the top right.")
-
-    choice = current_settings()
-    payload = {
-        "model": choice["model"],
-        "messages": [{"role": "system", "content": system_prompt()}] + clean_messages(raw_messages),
-        "stream": True,                              # send words as they're written
-        "stream_options": {"include_usage": True},   # token counts arrive at the end
-    }
-    if choice["thinking"] == "off":
-        payload["thinking"] = {"type": "disabled"}   # DeepSeek thinks by default; off is faster
-    else:
-        payload["thinking"] = {"type": "enabled"}
-        payload["reasoning_effort"] = choice["thinking"]   # low, high or max
-
     request = urllib.request.Request(
-        API_URL,
+        API_BASE + ("/beta" if beta else "") + "/chat/completions",
         data=json.dumps(payload).encode(),
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
@@ -263,29 +265,148 @@ def ask_deepseek(raw_messages):
         raise FriendlyError(502, f"Can't reach DeepSeek ({e.reason}). Check your internet connection, then send again.")
 
 
-def clean_messages(raw):
-    """Only pass along user/assistant turns with text in them."""
-    return [
-        {"role": m["role"], "content": m["content"]}
-        for m in raw if isinstance(m, dict)
-        and m.get("role") in ("user", "assistant")
-        and isinstance(m.get("content"), str)
-    ]
+def ask_deepseek(messages, model):
+    """Start a streaming reply."""
+    choice = current_settings()
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": True,                              # send words as they're written
+        "stream_options": {"include_usage": True},   # token counts arrive at the end
+    }
+    if choice["thinking"] == "off":
+        payload["thinking"] = {"type": "disabled"}   # DeepSeek thinks by default; off is faster
+    else:
+        payload["thinking"] = {"type": "enabled"}
+        payload["reasoning_effort"] = choice["thinking"]   # low, high or max
+    return deepseek(payload)
+
+
+def ask_json(payload):
+    """One structured request for the indexer: no streaming, the whole answer at once."""
+    with deepseek(payload, beta=True) as response:
+        return json.loads(response.read())
 
 
 # ---------------------------------------------------------------------------
-# 5. The web server: one page, a few small endpoints
+# 5. A turn: one exchange with Avy, typed or spoken. Memory is assembled fresh for
+#    every message, so there's never a "new chat": every message is one.
 # ---------------------------------------------------------------------------
+
+class Turn:
+    """Your message in, Avy's reply out, both saved to the log.
+
+        turn = Turn("when's rohan's birthday?", "text")   # recalls memory, lays out the briefing
+        upstream = turn.ask()                             # starts DeepSeek; saves your message
+        ...stream the reply...
+        turn.finish(reply, usage, cut=False)              # saves Avy's reply
+    """
+
+    def __init__(self, text, via):
+        self.text, self.via = text, via
+        self.model = current_settings()["model"]
+        shown = memory.window()
+        previous = next((m["text"] for m in reversed(shown) if m["role"] == "user"), "")
+        self.recall = memory.recall(text, previous)
+        self.messages = briefing(shown, self.recall["briefing"], text)
+        self.user_id = self.recall_id = self.reply_id = None
+
+    def ask(self):
+        upstream = ask_deepseek(self.messages, self.model)   # if this fails, nothing is saved
+        self.user_id = memory.add("user", self.text, self.via)
+        self.recall_id = memory.save_recall(self.user_id, self.recall)
+        return upstream
+
+    def summary(self):
+        """What the page shows under the reply: how much memory was brought in."""
+        return {"message": self.user_id, "recall": self.recall_id,
+                "entries": len(self.recall["entries"]), "log": len(self.recall["log"])}
+
+    def finish(self, text, usage=None, cut=False):
+        """Save Avy's reply (only what was actually sent or heard). Returns its number."""
+        if self.reply_id or not self.user_id or not text.strip():
+            return self.reply_id
+        meta = {"model": self.model, "recall": self.recall_id}
+        if usage:
+            meta["usage"] = usage
+        if cut:
+            meta["cut"] = True
+        self.reply_id = memory.add("assistant", text.strip(), self.via, meta)
+        indexer.nudge()                # index in the background if a page's worth is waiting
+        return self.reply_id
+
+
+def briefing(shown, memory_note, text):
+    """What DeepSeek sees, in this order: instructions and core (same every time, so it's cached),
+    the newest messages word for word, the memory note for this message, then your message."""
+    messages = [{"role": "system", "content": system_prompt()}]
+    previous_at = None
+    for m in shown:
+        content = m["text"]
+        at = datetime.fromisoformat(m["at"])
+        if m["role"] == "user" and (previous_at is None or (at - previous_at).total_seconds() > 3600):
+            content = f"({memory.when(m['at'])}) {content}"     # a new sitting: say when it was
+        if m["meta"].get("cut"):
+            content += " [he cut you off here]"
+        messages.append({"role": m["role"], "content": content})
+        previous_at = at
+    messages.append({"role": "system", "content": memory_note})
+    messages.append({"role": "user", "content": text})
+    return messages
+
+
+def stream_text(line):
+    """The words and token counts in one line of DeepSeek's stream: (text, usage or None)."""
+    line = line.decode(errors="replace").strip() if isinstance(line, bytes) else line.strip()
+    if not line.startswith("data:") or line == "data: [DONE]":
+        return "", None
+    try:
+        chunk = json.loads(line[5:])
+    except json.JSONDecodeError:
+        return "", None
+    text = "".join((c.get("delta") or {}).get("content") or "" for c in chunk.get("choices") or [])
+    return text, chunk.get("usage")
+
+
+# ---------------------------------------------------------------------------
+# 6. The web server: one page, a few small endpoints
+# ---------------------------------------------------------------------------
+
+def number(query, name):
+    try:
+        return int(query.get(name, [""])[0])
+    except ValueError:
+        return None
+
 
 class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        if self.path == "/":
+        url = urllib.parse.urlparse(self.path)
+        q = urllib.parse.parse_qs(url.query)
+        if url.path == "/":
             self.send_file(HERE / "index.html", "text/html; charset=utf-8")
-        elif self.path == "/api/status":
+        elif url.path == "/api/status":
             self.send_json(200, key_status())
-        elif self.path == "/api/settings":
+        elif url.path == "/api/settings":
             self.send_json(200, settings_payload())
+        # --- memory, for the chat history and the inspector ---
+        elif url.path == "/api/log":            # ?before=41 or ?after=41, &limit=60
+            after = number(q, "after")
+            self.send_json(200, {"messages": memory.log_slice(before=number(q, "before"), after=after,
+                                                              limit=min(number(q, "limit") or 60, 200)),
+                                 "last": memory.last_id()})
+        elif url.path == "/api/memory":
+            pages = memory.pages_list() if q.get("pages", ["1"])[0] != "0" else []
+            self.send_json(200, {"stats": memory.stats(), "pages": pages})
+        elif url.path == "/api/entry":
+            self.send_found(memory.article(number(q, "id") or 0))
+        elif url.path == "/api/page":
+            self.send_found(memory.page_record(number(q, "id") or 0))
+        elif url.path == "/api/recall":
+            self.send_found(memory.recall_record(number(q, "id") or 0))
+        elif url.path == "/api/search":
+            self.send_json(200, memory.find(q.get("q", [""])[0]))
         else:
             self.send_json(404, {"error": "Not found"})
 
@@ -300,6 +421,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400 if problem else 200, {"error": problem} if problem else settings_payload())
         elif self.path == "/api/chat":
             self.chat()
+        elif self.path == "/api/index":         # /index: index what's waiting now, even a short stretch
+            runs = indexer.index_now(force=True)
+            self.send_json(200, {"runs": runs, "stats": memory.stats()})
         else:
             self.send_json(404, {"error": "Not found"})
 
@@ -317,23 +441,47 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(200, key_status())
 
     def chat(self):
+        text = str(self.read_json().get("text") or "").strip()
+        if not text:
+            return self.send_json(400, {"error": "There's nothing to send."})
+        turn = Turn(text, "text")
         try:
-            upstream = ask_deepseek(self.read_json().get("messages", []))
+            upstream = turn.ask()
         except FriendlyError as e:
             return self.send_json(e.status, {"error": e.message})
 
-        # Pass DeepSeek's stream straight through to the page, line by line.
+        # Pass DeepSeek's stream through to the page line by line, keeping what got there.
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
-        with upstream:
-            try:
+        reply, usage, cut = "", None, False
+        try:
+            self.event({"avy": {"turn": turn.summary()}})
+            with upstream:
                 for line in upstream:
+                    if line.strip() == b"data: [DONE]":
+                        break
                     self.wfile.write(line)
                     self.wfile.flush()
-            except (BrokenPipeError, ConnectionResetError):
-                pass  # you pressed Stop or closed the tab
+                    words, counts = stream_text(line)
+                    reply += words
+                    usage = counts or usage
+        except (BrokenPipeError, ConnectionResetError):
+            cut = True                     # you pressed Stop or closed the tab
+        except OSError:
+            cut = True                     # DeepSeek dropped the connection partway through
+        saved = turn.finish(reply, usage, cut)
+        if not cut:
+            try:
+                self.event({"avy": {"saved": saved}})
+                self.wfile.write(b"data: [DONE]\n\n")
+            except OSError:
+                pass
+
+    def event(self, data):
+        self.wfile.write(f"data: {json.dumps(data)}\n\n".encode())
+        self.wfile.flush()
 
     # --- helpers ---
 
@@ -348,6 +496,9 @@ class Handler(BaseHTTPRequestHandler):
             return json.loads(self.rfile.read(length) or b"{}")
         except json.JSONDecodeError:
             return {}
+
+    def send_found(self, data):
+        self.send_json(200, data) if data else self.send_json(404, {"error": "Not found"})
 
     def send_json(self, status, data):
         body = json.dumps(data).encode()
@@ -370,18 +521,21 @@ class Handler(BaseHTTPRequestHandler):
 
 
 # ---------------------------------------------------------------------------
-# 6. Start
+# 7. Start
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     DATA.mkdir(exist_ok=True)
+    memory.open_memory(MEMORY_FILE, models=DATA / "models" / "meaning")
+    indexer.start(ask=ask_json, prices=PRICES)
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
     url = f"http://localhost:{PORT}"
     print(f"Avy is up at {url}  (Ctrl+C to stop)")
     print(f"Files go in {DATA.resolve()}")
+    print(f"Memory: {memory.last_id()} messages so far, indexed up to #{memory.indexed_up_to()}.")
     print(f"Checking HTTPS certificates with {SSL_SOURCE}.")
     if voice:
-        voice.start(ask=ask_deepseek, settings=current_settings, data=DATA, page_port=PORT, ssl_context=SSL_CONTEXT)
+        voice.start(turn=Turn, settings=current_settings, data=DATA, page_port=PORT, ssl_context=SSL_CONTEXT)
     else:
         print(VOICE_PROBLEM)
     if not os.environ.get("AVY_NO_BROWSER"):
