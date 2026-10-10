@@ -42,6 +42,8 @@ DEPTHS = {
     "max":    {"seeds": 24, "hops": 4, "fanout": 12, "found": 0.54, "words_found": 0.20, "near": 0.30, "keep": 0.10, "log": 12, "nodes": 50, "tokens": 40_000, "rounds": 4},
 }
 
+PARTS_SHOWN = 8     # when a thing is shown, this many of its newest parts are listed under it
+
 # How strongly one step carries relevance, by kind of connection and direction.
 # "out" follows a part_of / builds_on edge as written (a birthday -> Rohan); "in" goes backwards (Rohan -> his birthday).
 STEP = {
@@ -281,6 +283,15 @@ class Recall:
                 lines.append(f"   #{m['id']} {when(m['at'])}, {who(m['role'])}: {clip(text, v['start'], 600)}")
             else:
                 lines.append(f"   #{v['message']} {when(v['at'])}, {who(v['role'])}: \"{v['quote']}\"")
+        if n["shape"] == "thing":                # a hub shows what hangs on it, like a wiki page's contents
+            parts = self.parts(chain)
+            if parts:
+                lines.append(f"   what belongs to it, newest first ({len(parts)}):")
+                for p in parts[:PARTS_SHOWN]:
+                    lines.append(f"     [{self.handle(p['chain'])}] {p['title']} ({p['label'] or p['shape']}; {self.standing(p)}; "
+                                 f"{when(p['at'])}): {clip(p['text'], 0, 160)}")
+                if len(parts) > PARTS_SHOWN:
+                    lines.append(f"     ...and {len(parts) - PARTS_SHOWN} older")
         if n["origin"] == "inferred":
             rests = []
             for b in self.basis_of(n["id"]):
@@ -303,19 +314,25 @@ class Recall:
     def message_block(self, m):
         return f"#{m['id']} {when(m['at'])}, {who(m['role'])}: {clip(m['text'], 0, 700)}"
 
-    def core(self, limit=10):
-        """The biggest hubs, sent with every message so Avy always knows the big things in Shreyas's
-        world. It only changes when the network does, so DeepSeek can cache it."""
+    def hubs(self, limit=10, said_only=False):
+        """The biggest things (3+ live connections), most connected first: [(node, degree)]."""
         degree = {}
         for e in self.live_edges():
             degree[e["a"]] = degree.get(e["a"], 0) + 1
             degree[e["b"]] = degree.get(e["b"], 0) + 1
-        hubs = [n for n in self.things() if degree.get(n["chain"], 0) >= 3 and n["origin"] != "inferred"]   # identity, not conclusions
-        hubs.sort(key=lambda n: (-degree[n["chain"]], n["chain"]))
+        found = [n for n in self.things() if degree.get(n["chain"], 0) >= 3 and not (said_only and n["origin"] == "inferred")]
+        found.sort(key=lambda n: (-degree[n["chain"]], n["chain"]))
+        return [(n, degree[n["chain"]]) for n in found[:limit]]
+
+    def core(self, limit=10):
+        """The biggest hubs, sent with every message so Avy always knows the big things in Shreyas's
+        world. Only things that were said: identity, not conclusions. It only changes when the network
+        does, so DeepSeek can cache it."""
+        hubs = self.hubs(limit, said_only=True)
         if not hubs:
             return ""
         lines = [f"[{self.handle(n['chain'])}] {n['title']}" + (f" ({n['label']})" if n["label"] else "") + f": {n['text']}"
-                 for n in hubs[:limit]]
+                 for n, _ in hubs]
         return "The big things in his world (the hubs of your memory):\n" + "\n".join(lines)
 
     def save_recall(self, mid, trace):

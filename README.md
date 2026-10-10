@@ -95,5 +95,5 @@ Everything stays in this folder:
 - `tools/copy_log.py`: carry the log from one memory file to another (see VERSIONS.md).
 - `tests/test_memory.py`: memory checks that run offline (`python3 tests/test_memory.py`).
 - `tests/bench/`: the benchmark: a month of conversation replayed through the real Avy, questions that need
-  memory, a judge. `python3 tests/bench/run.py` (about an hour, under a dollar; a throwaway memory, never yours).
+  memory, a judge. `python3 tests/bench/run.py` (about half an hour and 40 cents; a throwaway memory, never yours).
 - `requirements.txt` / `requirements-voice.txt`: packages. Add new ones here and the run command installs them.

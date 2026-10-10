@@ -81,6 +81,9 @@ def check_node(mem, op):
                 return f"the words pointed at in #{mid} are outside the message.", None
             roles.append(m["role"])
         derived.update(origin="user" if "user" in roles else "avy", depth=0, certainty=None)
+        if replaced and replaced["origin"] == "user" and derived["origin"] == "avy":
+            return (f"would change {node_name(mem, replaced['chain'])}, which {NAME} said, using only Avy's words. "
+                    "Only his own words can change what he said; what Avy adds gets its own node, connected to his.", None)
     else:                                                # inferred: rests on other nodes
         if op.get("certainty") not in ("likely", "possible"):
             return "an inference needs a certainty: likely or possible.", None

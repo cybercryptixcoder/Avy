@@ -297,6 +297,7 @@ notices. Most of the time the right answer is nothing new, or one inference. Nev
 - say anything about Avy herself, predict what he'll say next, or forecast costs and outcomes
 - build on Avy's own asides or general advice: infer from what he said and did
 - split a thing that already has a node into stages, parts or aspects, or name it again in other words
+  (a genuine piece of it, like a component he's building for it, is connected part_of it, never beside it)
 - restate a single node, or summarize
 - infer health conditions or diagnoses, or speculate about other people's private lives
 
@@ -458,12 +459,28 @@ class Think(Job):
                 plan.problems.append(f"{name}: {mem.handle(twin['chain'])} \"{twin['title']}\" already says this or nearly. "
                                      f"If what's in view changes it, write a new version of it (replaces: {mem.handle(twin['chain'])}); "
                                      "otherwise leave it out.")
-        things = {op["ref"] for op in plan.ops if op["op"] == "add_node" and op["shape"] == "thing" and not op["replaces"]}
-        for t in things:
-            parts = sum(1 for op in plan.ops if op["op"] == "connect" and op["kind"] == "part_of" and op["b"] == t)
-            if parts < 2:
+        things = {op["ref"]: op for op in plan.ops if op["op"] == "add_node" and op["shape"] == "thing" and not op["replaces"]}
+        gathers = None
+        for t, op in things.items():
+            parts = [c["a"] for c in plan.ops if c["op"] == "connect" and c["kind"] == "part_of" and c["b"] == t]
+            if len(parts) < 2:
                 plan.problems.append(f"{t}: a new thing needs at least two of its parts connected to it (part_of, from each part to {t}); "
                                      "if fewer than two belong to it, it isn't a thing.")
+                continue
+            # A new thing gathering mostly what an existing thing already gathers is that thing, or a piece of
+            # it: it nests under it (or holds it), never sits beside it as a second hub for the same project.
+            if gathers is None:
+                gathers = {T["chain"]: {T["chain"]} | {p["chain"] for p in mem.parts(T["chain"])} for T in mem.things()}
+            nested_in = {c["b"] for c in plan.ops if c["op"] == "connect" and c["kind"] == "part_of" and c["a"] == t}
+            for T, held in gathers.items():
+                shared = [p for p in parts if p in held]
+                if len(shared) >= 2 and 2 * len(shared) >= len(parts) and T not in parts and T not in nested_in:
+                    plan.problems.append(
+                        f"{t} \"{op['title']}\": gathers what {mem.handle(T)} \"{mem.current(T)['title']}\" already gathers "
+                        f"({', '.join(mem.handle(p) for p in shared)}). It's the same thing or a piece of it, not a second one beside "
+                        f"it: if it's a distinct piece, connect it part_of {mem.handle(T)}; if it's the same, leave it out and "
+                        f"connect what's new to {mem.handle(T)}.")
+                    break
         return plan
 
     def after(self, run_id, plan, results, refs):

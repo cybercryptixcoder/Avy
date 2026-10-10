@@ -53,8 +53,9 @@ plans, dates, decisions; preferences; problems he's working on and how they turn
 and concepts he talks about, his own most of all. A conversation about an interesting concept should
 leave nodes for the concepts themselves (what they are, how they work), not a note that it happened.
 What Avy says becomes a node only when it's a concrete suggestion for his situation, or when he takes
-it up, answers it or pushes back. Her tips, asides and explanations of general facts (how to tame chili
-heat, how sensors work, what a word means) aren't memory about him: skip them.
+it up or pushes back. Her questions are never nodes: when he answers one, his answer is the node, quoting
+him. Her tips, asides and explanations of general facts (how to tame chili heat, how sensors work, what a
+word means) aren't memory about him: skip them.
 Skip greetings and small talk, passing moments that show nothing lasting, his questions about things
 memory already holds and Avy's answers to them (her recalling or repeating something isn't new knowledge),
 Avy's generic advice, and anything only implied. Never write a node saying something is unknown,
@@ -79,6 +80,8 @@ Rules:
    task now done, a corrected fact, a concept refined), write a new version: set replaces to its handle
    (k12) and keep its title. Never create a second node with the same title as an existing one. If {NAME}
    confirms something Avy had only inferred or suggested, write a new version with his words as evidence.
+   Only his words can change what he said: if Avy corrects or adds to one of his nodes, that's her own
+   node, connected to his.
 4. Edges. Connect each node to what it belongs with, by handle: k12 for what memory holds, n1 for your new
    nodes. At most {MAX_EDGES} per node. Kinds ("from" -> "to"):
      part_of     from belongs to to, or is a piece or an instance of it
@@ -143,6 +146,15 @@ def describe(mem, n, degree=None):
     if degree:
         bits.append(f"{degree} connections")
     return line + f"  [{'; '.join(bits)}]"
+
+
+def in_question(text, start, end):
+    """Whether the words text[start:end] sit in a question: the sentence they belong to ends with '?'."""
+    span = text[start:end].rstrip()
+    if span and span[-1] in ".!?":
+        return span[-1] == "?"
+    end_of_sentence = re.search(r"[.!?\n]", text[end:])
+    return bool(end_of_sentence) and end_of_sentence.group() == "?"
 
 
 def as_line(m, limit):
@@ -217,7 +229,7 @@ class Write(Job):
         current = {n["chain"]: n for n in mem.current_nodes()}
 
         # A. each node on its own
-        kept, taken = [], set()
+        kept, taken, dropped = [], set(), set()
         raw = answer.get("nodes") if isinstance(answer.get("nodes"), list) else []
         for i, n in enumerate(raw, 1):
             n = n if isinstance(n, dict) else {}
@@ -277,6 +289,18 @@ class Write(Job):
                 if replaces is None or not mem.head(replaces):
                     problems.append(f"{name}: replaces {n['replaces']}, which isn't a node. Use a handle from the list, or null.")
                     replaces = None
+            avys = all(self.stretch[v[0]]["role"] == "assistant" for v in evidence)
+            if avys and all(in_question(self.stretch[v[0]]["text"], v[1], v[2]) for v in evidence):
+                problems.append(f"{name}: quotes only a question Avy asked. Her questions aren't knowledge: if {NAME} "
+                                "answered it, the node is his answer, quoting him; otherwise leave it out.")
+                dropped.add(ref)
+                continue
+            if avys and replaces is not None and mem.head(replaces)["origin"] == "user":
+                problems.append(f"{name}: would change {mem.handle(replaces)} \"{mem.head(replaces)['title']}\", which {NAME} said, "
+                                "using only Avy's words. Only his words can change what he said: write what Avy added as "
+                                "its own node (a different title), connected to his.")
+                dropped.add(ref)
+                continue
             kept.append({"ref": ref, "name": name, "shape": shape, "label": " ".join(str(n.get("label") or "").split())[:40],
                          "title": title, "text": text, "about": about, "evidence": evidence, "replaces": replaces})
 
@@ -333,6 +357,8 @@ class Write(Job):
         edges, pairs, per_node = [], set(), {}
         for e in answer.get("edges") if isinstance(answer.get("edges"), list) else []:
             e = e if isinstance(e, dict) else {}
+            if {str(e.get("from") or "").strip(), str(e.get("to") or "").strip()} & dropped:
+                continue                                  # its node was left out above; that problem is enough
             a, b = resolve(e.get("from")), resolve(e.get("to"))
             label = f"edge {e.get('from')} -> {e.get('to')}"
             if a is None or b is None:

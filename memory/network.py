@@ -92,6 +92,16 @@ class Network:
     def degree(self, chain):
         return len(self.links(chain))
 
+    def parts(self, chain):
+        """What belongs to a thing (live part_of connections into it), newest first: current node rows.
+        Not capped by the strongest-12 limit on following: a hub's newest parts are often its weakest yet."""
+        found = []
+        for e in self._with_strength(self.rows("SELECT * FROM edges WHERE b = ? AND kind = 'part_of'", chain)):
+            n = self.current(e["a"]) if e["strength"] >= LIVE else None
+            if n:
+                found.append(n)
+        return sorted(found, key=lambda n: (n["at"], n["id"]), reverse=True)
+
     def live_edges(self, as_of=None):
         """Every edge strong enough to follow, between nodes that exist now (for health and the graph)."""
         alive = {r["chain"] for r in self.rows("SELECT chain FROM current")}

@@ -27,6 +27,20 @@ What it needs:
   - bridges between distant areas
   - the network's health numbers at scale
 
+## What's coming up
+
+*Found by the benchmark (see tests/bench/RESULTS.md, "Still weak").*
+
+Avy always knows the big things in your world (the hubs), but not what's ahead: a race in six weeks, a
+trip at the end of the year. Questions about your time ("a routine for the next couple of months",
+"anything before I leave?") need exactly that, and today they only get it if a search happens to land
+there. Nodes have a "when", but the writer uses it loosely (for the race, it's the day you signed up,
+not race day). What it needs:
+- the writer records when a thing will happen, separately from when it was said
+- a "coming up" list (the next few months of what you've said is ahead), always in view like the hubs,
+  for Avy's answers and her search
+- dates that pass quietly turn into history (done, or an open question: did it happen?)
+
 ## Smaller ones
 
 - **"Keep this" from incognito.** Before ending an incognito conversation, promote chosen messages

@@ -73,7 +73,9 @@ words, and the same words go back to DeepSeek when one of its proposals breaks a
    - current nodes, resting on things Shreyas said in **at least two different conversations**
    - "likely" needs at least two basis nodes
    - depth (steps from said words) at most 3
-4. **An inference can't replace what was said.** Only new evidence (his words) can.
+4. **Only his words change what he said.** An inference can't replace something said, and neither can
+   Avy's words alone: when she corrects or adds to one of his nodes, that's her own node, connected to his.
+   (His words can take over hers: when he confirms her suggestion, the new version is his.)
 5. **A new version keeps the sort of thing**: a thing stays a thing.
 6. **Shreyas is never a node.**
 7. **One node per thing**: no two current nodes of the same shape with the same title.
@@ -133,7 +135,7 @@ Every job goes through `jobs.run(mem, job)`:
 
 | Job | When | Shown | Answers (contract) | Code then |
 |---|---|---|---|---|
-| **Write** | a sitting ends (30 quiet minutes) or ~20 messages are waiting (fewer when `/window:` is small) | up to 50 nodes from the whole memory (hubs, newest, and what each message brings up in search), 4 messages of context, the stretch | `write_episode {headline, nodes[{ref, replaces, shape, label, title, text, when, evidence[{message, quote}]}], edges[{from, to, kind, reason, said}]}` | locates every quote; turns same-title duplicates into versions; reuses an existing thing instead of copying it; holds a thing's text to one short sentence; keeps Avy's guesses out of nodes about what he said (by instruction); downgrades a `said` that isn't his words; caps edges; strengthens edges between things that came up together again (`observed`) |
+| **Write** | a sitting ends (30 quiet minutes) or ~20 messages are waiting (fewer when `/window:` is small) | up to 50 nodes from the whole memory (hubs, newest, and what each message brings up in search), 4 messages of context, the stretch | `write_episode {headline, nodes[{ref, replaces, shape, label, title, text, when, evidence[{message, quote}]}], edges[{from, to, kind, reason, said}]}` | locates every quote; turns same-title duplicates into versions; reuses an existing thing instead of copying it; holds a thing's text to one short sentence; sends back a node that only quotes a question Avy asked (her questions aren't knowledge; his answer is) and a version of his node quoting only her; keeps Avy's guesses out of nodes about what he said (by instruction); downgrades a `said` that isn't his words; caps edges; strengthens edges between things that came up together again (`observed`) |
 | **Connect** | after every Write and Think | pairs: each new node with partners from anywhere in memory that are **at least 3 steps away** (close in meaning or words, sharing neighbors, or whose edges have similar reasons) | `judge_connections {verdicts[{pair, connect, kind, from, reason}]}` | at most 3 new edges per node per run; records the pairs judged |
 | **Think** | quiet times (30 minutes without a message), within the daily budget | a focus: the newest unthought episode plus the older nodes closest to each of its nodes, or a said hub that gained 3+ connections, or a quiet corner and its distant relatives; plus the existing inferences closest to it all | `write_inferences {inferences[{ref, replaces, shape, label, title, text, certainty, basis[]}], edges[]}` | the rules above; at most 2; no near-repeats of an existing inference (meaning ≥ 0.84) or thing; no "He…" traits; a new thing needs 2+ parts |
 | **Check** | quiet times, before Think | inferences whose basis has newer versions or was retracted; non-part_of edges whose ends have new versions (16 at a time) | `recheck {verdicts[{item, verdict: holds/revise/retract, title, text, certainty, kind, reason, why}]}` | reaffirm, new version, retract, or a negative support |
@@ -161,7 +163,9 @@ For each message, at the `/recall:` depth (off, light, normal, deep, max):
    STEP: part_of 0.75 out / 0.6 in, builds_on 0.8 / 0.6, like 0.7, against 0.7, related 0.5, rests on
    0.7, supports 0.75, same message 0.35, same episode 0.25.
 3. **Keep** what scores at least `keep × best`, strongest first, up to a number of nodes (light 5,
-   normal 12, deep 24, max 50) and a token budget.
+   normal 12, deep 24, max 50) and a token budget. (Measured: on one finished month, raising normal's
+   cap to 24 or 50 brought no more of what questions needed, only noise, and answers got worse. See
+   `tests/bench/RESULTS.md`.)
 4. **Safety net**: older messages that match by themselves (not on screen, not next to a message a kept
    node cites).
 5. **The note**, in tiers:
@@ -171,7 +175,10 @@ For each message, at the `/recall:` depth (off, light, normal, deep, max):
    - how these connect (edge reasons)
    - older messages
 
-   A node that changed hands says who said it first. Versions show their earlier texts.
+   A node that changed hands says who said it first. Versions show their earlier texts. A thing lists
+   what belongs to it (its part_of connections, newest first, up to 8, each with a line of its text), the
+   way a wiki page shows its contents: a hub that comes up shows where the project stands, not just its
+   name.
 
 The core in the system prompt lists the biggest hubs, and only things that were said (identity, never
 conclusions).
@@ -185,6 +192,9 @@ Rounds as set by `/recall:` (light 1, normal 2, deep 3, max 4):
 - **Round 0 (code).** Ordinary recall plus a plain search give the landing frontier: up to 14
   previews, each with its first four connections (kind, reason). Nodes with 6+ connections are marked
   as hubs, and the instructions point at them: opening a hub shows a whole project at once.
+- **The map, every round (code).** The 10 biggest things, said or inferred (`HUBS_SHOWN`), each with
+  its connections, parts and when it was last touched, so she can open what he's in the middle of even
+  when nothing in the message points there ("anything to wrap up before I leave?").
 - **Each round**, DeepSeek answers `explore_memory {task, questions[], open[], follow[], search[], keep[{item, why}], done}`:
   - `open` reads up to 5 nodes in full: the exact words and every connection
   - `follow` adds up to 4 nodes' neighbors to the frontier
@@ -196,6 +206,9 @@ What's kept becomes the note (same tiers), followed by the task it took the mess
 followed to something kept get a `used` support (only in the memory being talked to, never from
 incognito into the main memory, never in benchmark probes). If DeepSeek can't be reached, it falls back
 to recall by rules.
+
+In incognito she reads both memories: the main one is read-only, and its older messages that match by
+themselves (its safety net) come along in their own section. The fallback reads both too.
 
 ## The Turn (`app.py`)
 
@@ -221,5 +234,11 @@ command: words, meaning, footnotes, thinking, voice, speed, whisper.
   DeepSeek (repair loops, failures, give-ups), recall in all modes, explore, incognito, carrying the v1
   log, the inspector's views. Offline, in seconds.
 - `python3 tests/bench/run.py`: the benchmark (see CONCEPT.md, and `tests/bench/RESULTS.md`). Real
-  DeepSeek, about an hour and well under a dollar. `tests/bench/check_words.py` proves its questions
-  share no searchable words with what they need.
+  DeepSeek, about half an hour and about 40 cents. `tests/bench/check_words.py` proves its questions
+  share no searchable words with what they need. Around it:
+  - `judge.py`: the grader (two passes, averaged; the whole true log in front of it)
+  - `v1_replay.py`: plays the same month through version 1's code, unchanged, and grades it the same way
+  - `regrade.py`: grades a finished run again with the current judge and rubrics
+  - `ask_again.py`: asks a finished run's questions again on its finished memory with one setting
+    changed (how the node cap was settled)
+  - `summary.py`: puts several runs side by side (the tables in RESULTS.md)
