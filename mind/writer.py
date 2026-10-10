@@ -39,7 +39,9 @@ You're given one stretch of the conversation, and what memory already holds that
 Nodes have one of three shapes:
   thing        something with an identity that other knowledge gathers around: a person, a pet, a place,
                an organization, a course, a project, an ongoing effort, a book, a topic. Its text says only
-               what it is, in one sentence; facts that change get their own nodes, connected to it.
+               what it is, in one short sentence ("A book Shreyas is writing"); never how it's going, its
+               dates, its problems or its details: those are information nodes connected to it. A pattern
+               or a habit is information, never a thing.
   information  one claim: a fact, an event, a plan, a decision and why, a preference, a problem, a result.
   idea         a concept, a principle, an insight, a proposal, a hypothesis, an analogy, an open question,
                whether {NAME} came up with it, read about it, or Avy suggested it.
@@ -66,7 +68,9 @@ connected to what they concern (his sleep, his course, his job).
 Rules:
 1. Evidence. Every node cites the message(s) it came from, with the exact words copied character for
    character: a short span that shows the point. Only cite messages from the stretch to write. Code
-   checks every quote, and decides from it who said it ({NAME} or Avy).
+   checks every quote, and decides from it who said it ({NAME} or Avy). Everything a node's text claims
+   must be in its quotes. Never fold Avy's guesses or suggestions into a node about what {NAME} said:
+   if Avy assumed or proposed something, it gets its own node, quoted from her message.
 2. Write for someone who wasn't there. Titles are short names, like wiki page titles, that make sense on
    their own ("Maya's move to Toronto", not "The move"). Text: one or two plain sentences, with absolute
    dates worked out from the message times ("Friday", said on Thu Oct 9 2026, is Fri Oct 10, 2026). Put
@@ -238,6 +242,9 @@ class Write(Job):
                 problems.append(f"{name}: the title is too long; make it a short name.")
                 title = title[:80]
             text = " ".join(str(n.get("text") or "").split()) or title
+            if shape == "thing" and len(text) > 160:
+                problems.append(f"{name}: a thing's text says only what it is, in one short sentence; how it's going, "
+                                "its dates and details are information nodes connected to it.")
             if len(text) > 600:
                 problems.append(f"{name}: the text is too long; one or two sentences.")
                 text = text[:600]

@@ -48,8 +48,9 @@ old file is left exactly as it was.
   - `/window:` how many recent messages she reads word for word: 0, 5, 10, 20 (default), 40, 80, or all.
   - `/recall:` how far memory reaches: off, light, normal (default), deep, max.
   - `/words:` and `/meaning:` switch the two halves of memory search; both off means no memory at all.
-  - `/explore: on` lets Avy search her memory herself, step by step: slower, and smarter about what a
-    message really needs. You'll see what she's looking at while she does.
+  - `/explore:` on (the default) lets Avy search her memory herself, step by step: a few seconds slower,
+    and much better at finding what a message really needs. You'll see what she's looking at while she
+    does. Off searches by rules, instantly.
 - **Incognito:** `/incognito` starts a separate conversation. Avy can still use her memory, but nothing
   said there is kept: it has its own temporary memory, deleted when you end it.
 - **Memory's own work:** it writes each sitting into knowledge when the sitting ends, and reflects when

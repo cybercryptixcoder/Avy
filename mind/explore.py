@@ -44,6 +44,10 @@ and principles of his that apply (even from very different topics), plans or peo
 in tension with it, and how earlier attempts turned out. Work out what the task is and what would help,
 then go and look for that.
 
+Things with many connections are hubs (a person, a project, an ongoing effort): opening one shows
+everything attached to it, so it's the fastest way to see the whole of something. When the message could
+touch something he's in the middle of, open that hub rather than skimming around it.
+
 Each round you can:
   open     read nodes in full: their exact words and all their connections
   follow   look at the neighbors of nodes (one step along their connections)
@@ -90,8 +94,9 @@ class Library:
 
 def preview(mem, chain, links=4):
     n = mem.current(chain)
-    out = f"{mem.handle(chain)} [{n['shape']}" + (f" · {n['label']}" if n["label"] else "") + f"; {mem.standing(n)}] {n['title']}: {clip(n['text'], 0, 220)}"
     ls = mem.links(chain)
+    out = (f"{mem.handle(chain)} [{n['shape']}" + (f" · {n['label']}" if n["label"] else "") + f"; {mem.standing(n)}"
+           + (f"; hub, {len(ls)} connections" if len(ls) >= 6 else "") + f"] {n['title']}: {clip(n['text'], 0, 220)}")
     if ls:
         bits = [f"{mem.handle(l['other'])} {mem.current(l['other'])['title']} ({l['kind'].replace('_', ' ')}: {clip(l['reason'], 0, 90)})"
                 for l in ls[:links]]

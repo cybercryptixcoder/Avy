@@ -133,7 +133,7 @@ Every job goes through `jobs.run(mem, job)`:
 
 | Job | When | Shown | Answers (contract) | Code then |
 |---|---|---|---|---|
-| **Write** | a sitting ends (30 quiet minutes) or ~20 messages are waiting (fewer when `/window:` is small) | up to 50 nodes from the whole memory (hubs, newest, and what each message brings up in search), 4 messages of context, the stretch | `write_episode {headline, nodes[{ref, replaces, shape, label, title, text, when, evidence[{message, quote}]}], edges[{from, to, kind, reason, said}]}` | locates every quote; turns same-title duplicates into versions; reuses an existing thing instead of copying it; downgrades a `said` that isn't his words; caps edges; strengthens edges between things that came up together again (`observed`) |
+| **Write** | a sitting ends (30 quiet minutes) or ~20 messages are waiting (fewer when `/window:` is small) | up to 50 nodes from the whole memory (hubs, newest, and what each message brings up in search), 4 messages of context, the stretch | `write_episode {headline, nodes[{ref, replaces, shape, label, title, text, when, evidence[{message, quote}]}], edges[{from, to, kind, reason, said}]}` | locates every quote; turns same-title duplicates into versions; reuses an existing thing instead of copying it; holds a thing's text to one short sentence; keeps Avy's guesses out of nodes about what he said (by instruction); downgrades a `said` that isn't his words; caps edges; strengthens edges between things that came up together again (`observed`) |
 | **Connect** | after every Write and Think | pairs: each new node with partners from anywhere in memory that are **at least 3 steps away** (close in meaning or words, sharing neighbors, or whose edges have similar reasons) | `judge_connections {verdicts[{pair, connect, kind, from, reason}]}` | at most 3 new edges per node per run; records the pairs judged |
 | **Think** | quiet times (30 minutes without a message), within the daily budget | a focus: the newest unthought episode plus the older nodes closest to each of its nodes, or a said hub that gained 3+ connections, or a quiet corner and its distant relatives; plus the existing inferences closest to it all | `write_inferences {inferences[{ref, replaces, shape, label, title, text, certainty, basis[]}], edges[]}` | the rules above; at most 2; no near-repeats of an existing inference (meaning ≥ 0.84) or thing; no "He…" traits; a new thing needs 2+ parts |
 | **Check** | quiet times, before Think | inferences whose basis has newer versions or was retracted; non-part_of edges whose ends have new versions (16 at a time) | `recheck {verdicts[{item, verdict: holds/revise/retract, title, text, certainty, kind, reason, why}]}` | reaffirm, new version, retract, or a negative support |
@@ -160,7 +160,8 @@ For each message, at the `/recall:` depth (off, light, normal, deep, max):
    ```
    STEP: part_of 0.75 out / 0.6 in, builds_on 0.8 / 0.6, like 0.7, against 0.7, related 0.5, rests on
    0.7, supports 0.75, same message 0.35, same episode 0.25.
-3. **Keep** what scores at least `keep × best`, within the token budget.
+3. **Keep** what scores at least `keep × best`, strongest first, up to a number of nodes (light 5,
+   normal 12, deep 24, max 50) and a token budget.
 4. **Safety net**: older messages that match by themselves (not on screen, not next to a message a kept
    node cites).
 5. **The note**, in tiers:
@@ -172,14 +173,18 @@ For each message, at the `/recall:` depth (off, light, normal, deep, max):
 
    A node that changed hands says who said it first. Versions show their earlier texts.
 
+The core in the system prompt lists the biggest hubs, and only things that were said (identity, never
+conclusions).
+
 `/words:` and `/meaning:` switch the halves of search. With both off, nothing is looked up and the
 always-on hub list is left out too.
 
-## Avy searching herself (`mind/explore.py`, `/explore: on`)
+## Avy searching herself (`mind/explore.py`, `/explore:`, on by default)
 
 Rounds as set by `/recall:` (light 1, normal 2, deep 3, max 4):
 - **Round 0 (code).** Ordinary recall plus a plain search give the landing frontier: up to 14
-  previews, each with its first four connections (kind, reason).
+  previews, each with its first four connections (kind, reason). Nodes with 6+ connections are marked
+  as hubs, and the instructions point at them: opening a hub shows a whole project at once.
 - **Each round**, DeepSeek answers `explore_memory {task, questions[], open[], follow[], search[], keep[{item, why}], done}`:
   - `open` reads up to 5 nodes in full: the exact words and every connection
   - `follow` adds up to 4 nodes' neighbors to the frontier

@@ -2564,12 +2564,13 @@ function layoutStep(heat) {
       a.vx += dx; a.vy += dy; a.vz += dz; b.vx -= dx; b.vy -= dy; b.vz -= dz;
     }
   }
+  const soften = 1 / Math.sqrt(Math.max(1, (2 * graph.edges.length) / Math.max(1, n) / 3));   // dense networks: gentler springs
   for (const e of graph.edges) {
     const a = graph.byChain.get(e.a), b = graph.byChain.get(e.b);
     const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
     const d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
     const strength = Math.min(3, e.strength);
-    const rest = e.rests ? 34 : 46 - strength * 6, k = (e.rests ? 0.012 : 0.01 + strength * 0.006) * (d - rest) / d;
+    const rest = e.rests ? 34 : 46 - strength * 6, k = soften * (e.rests ? 0.012 : 0.01 + strength * 0.006) * (d - rest) / d;
     a.vx += dx * k; a.vy += dy * k; a.vz += dz * k; b.vx -= dx * k; b.vy -= dy * k; b.vz -= dz * k;
   }
   for (const p of ns) {
@@ -2580,20 +2581,21 @@ function layoutStep(heat) {
   }
 }
 
-// From layout space to the screen: turn, tilt, then perspective. Each node breathes a little.
+// From layout space to the screen: turn, tilt, then a gentle perspective (the camera stands well back,
+// so nothing near it balloons). Each node breathes a little. z is scaled to -1 (near) .. 1 (far).
 function project(p, w, h, scale, t) {
   const breathe = Math.sin(t * 0.0007 + p.phase) * 2.2;
   const cy = Math.cos(graph.yaw), sy = Math.sin(graph.yaw), cp = Math.cos(graph.pitch), sp = Math.sin(graph.pitch);
   const x1 = p.x * cy - p.z * sy, z1 = p.x * sy + p.z * cy;
   const y1 = (p.y + breathe) * cp - z1 * sp, z2 = (p.y + breathe) * sp + z1 * cp;
-  const persp = 420 / (420 + z2);
-  return { x: w / 2 + graph.panX + x1 * persp * scale, y: h / 2 + graph.panY + y1 * persp * scale, z: z2, s: persp };
+  const R = graph.radius || 100, persp = 3 * R / (3 * R + z2);
+  return { x: w / 2 + graph.panX + x1 * persp * scale, y: h / 2 + graph.panY + y1 * persp * scale, z: z2 / R, s: persp };
 }
 
 function fitScale(w, h) {
-  let r = 1;
-  for (const p of graph.nodes) r = Math.max(r, Math.abs(p.x), Math.abs(p.y), Math.abs(p.z));
-  return Math.min(w, h) / (2.9 * r);
+  const d = graph.nodes.map((p) => Math.hypot(p.x, p.y, p.z)).sort((a, b) => a - b);
+  graph.radius = Math.max(30, d[Math.floor(d.length * 0.95)] || 30);       // a stray node doesn't shrink everyone else
+  return Math.min(w, h) / (2.5 * graph.radius);
 }
 
 function isLit(chain, now) {
@@ -2623,7 +2625,8 @@ function drawGraph(canvas, full, now) {
   const at = new Map(shown.map((s) => [s.p.chain, s.q]));
   const focus = full && (graph.hover || graph.selected);
   const near = new Set(focus ? [focus, ...graph.adj.get(focus).map((e) => (e.a === focus ? e.b : e.a))] : []);
-  const fade = (z) => Math.max(0.18, Math.min(1, 1 - z / 260));
+  const fade = (z) => Math.max(0.2, Math.min(1, 0.6 - z * 0.4));            // farther is fainter
+  const busy = Math.min(1, 260 / Math.max(1, graph.edges.length));           // many lines: each one fainter
 
   // connections first, faint; the ones around what you're pointing at, darker
   ctx.lineCap = "round";
@@ -2631,7 +2634,7 @@ function drawGraph(canvas, full, now) {
     const a = at.get(e.a), b = at.get(e.b);
     const around = focus && (e.a === focus || e.b === focus);
     const lit = Math.min(isLit(e.a, now), isLit(e.b, now));
-    let alpha = (e.rests ? 0.08 : 0.08 + 0.16 * Math.min(1, e.strength / 3)) * fade((a.z + b.z) / 2) * (full ? 1 : 0.8);
+    let alpha = (e.rests ? 0.08 : 0.08 + 0.2 * Math.min(1, e.strength / 3)) * fade((a.z + b.z) / 2) * (full ? 1 : 0.8) * (0.35 + 0.65 * busy);
     if (focus) alpha = around ? 0.75 : alpha * 0.45;
     ctx.globalAlpha = Math.max(alpha, lit * 0.8);
     ctx.strokeStyle = lit > 0.05 ? TEAL : ink;
@@ -2646,7 +2649,7 @@ function drawGraph(canvas, full, now) {
   for (const { p, q } of shown) {
     const born = graph.born.get(p.chain), grow = born ? Math.min(1, (now - born) / 2500) : 1;
     const lit = isLit(p.chain, now);
-    let r = ((p.shape === "thing" ? 2.6 : 1.9) + Math.min(5, Math.sqrt(p.degree) * 0.9)) * q.s * (full ? 1.25 : 0.62) * grow;
+    let r = ((p.shape === "thing" ? 2.4 : 1.7) + Math.min(4.5, Math.sqrt(p.degree) * 0.75)) * q.s * (full ? 1.2 : 0.6) * grow;
     let alpha = fade(q.z) * grow;
     if (focus) alpha *= near.has(p.chain) ? 1 : 0.35;
     ctx.globalAlpha = alpha;
@@ -2665,18 +2668,24 @@ function drawGraph(canvas, full, now) {
     q.r = r;
   }
 
-  // light labels: the biggest hubs, plus whatever you're pointing at and what it connects to
+  // light labels: the biggest things (what was said, not inferred), or whatever you're pointing at and
+  // what it connects to. Nearest first, and never on top of one another.
   if (full) {
-    const hubs = new Set(graph.nodes.filter((n) => n.degree >= 3).sort((a, b) => b.degree - a.degree).slice(0, 16).map((n) => n.chain));
+    const hubs = new Set(graph.nodes.filter((n) => n.degree >= 3 && n.origin !== "inferred" && n.shape === "thing")
+      .sort((a, b) => b.degree - a.degree).slice(0, 10).map((n) => n.chain));
     ctx.font = "11px 'Space Mono', monospace";
     ctx.textBaseline = "middle";
-    for (const { p, q } of shown) {
+    const taken = [];
+    for (const { p, q } of shown.slice().sort((u, v) => (u.p.chain === focus ? -1 : v.p.chain === focus ? 1 : u.q.z - v.q.z))) {
       const show = focus ? near.has(p.chain) : hubs.has(p.chain) || isLit(p.chain, now) > 0.2;
       if (!show) continue;
-      ctx.globalAlpha = (focus ? (p.chain === focus ? 1 : 0.75) : 0.6) * fade(q.z);
+      const label = (p.title.length > 30 ? p.title.slice(0, 29) + "…" : p.title).toLowerCase();
+      const box = { x: q.x + (q.r || 2) + 5, y: q.y - 7, w: ctx.measureText(label).width, h: 14 };
+      if (taken.some((t) => box.x < t.x + t.w + 6 && t.x < box.x + box.w + 6 && box.y < t.y + t.h && t.y < box.y + box.h)) continue;
+      taken.push(box);
+      ctx.globalAlpha = (focus ? (p.chain === focus ? 1 : 0.75) : 0.62) * Math.max(0.5, fade(q.z));
       ctx.fillStyle = ink;
-      const label = p.title.length > 34 ? p.title.slice(0, 33) + "…" : p.title;
-      ctx.fillText(label.toLowerCase(), q.x + (q.r || 2) + 5, q.y);
+      ctx.fillText(label, box.x, q.y);
     }
   }
   ctx.globalAlpha = 1;

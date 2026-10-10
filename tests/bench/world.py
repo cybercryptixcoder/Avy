@@ -195,9 +195,9 @@ PROBES = [
                 "Credits Shreyas with the rule that whoever cooks doesn't wash up"]},
     {"id": "habit", "day": 16, "at": "09:00", "needs": ["writing"],
      "ask": "I've got Saturday totally free and I want to make real progress on the book. How should I plan the day?",
-     "points": ["Recommends doing the main work early in the morning",
-                "Grounds that in his own track record: early sessions went well and evening ones didn't",
-                "Advises against relying on the evening for the main work"]},
+     "points": ["Recommends the early morning for the main writing, because of his own early sessions (not as general advice)",
+                "Mentions specifics from his own sessions: his early-morning word counts (1800 or 2200) or finishing chapter 4 before breakfast",
+                "Mentions that his evening attempts went badly (about 150 words after dinner, or deleting what he wrote)"]},
     {"id": "synthesis", "day": 21, "at": "10:00", "needs": ["ants", "desire"],
      "ask": "I'm setting up how my research group's shared drive gets organized this term. Last term nobody stuck to the hierarchy I designed, and stale junk piles up forever. How should I approach it this time?",
      "points": ["Suggests letting the structure come from how people actually save and look for files, formalizing the patterns that emerge, like the campus paths paved where students actually walked",
@@ -207,7 +207,7 @@ PROBES = [
      "ask": "When should I block time for the book this weekend?",
      "points": ["Notices that his recent sessions after midnight went very well (3000 and 2500 words)",
                 "Doesn't simply prescribe mornings only: acknowledges the change, or suggests late night or trying both",
-                "Mentions his earlier pattern of strong early-morning sessions as context"]},
+                "Mentions his own earlier pattern of strong early-morning sessions as context (not as general advice)"]},
     {"id": "multi-hop", "day": 24, "at": "11:00", "needs": ["basil", "basil@4", "basil@14", "basil@17"],
      "ask": "I'm flying to Bangalore for two weeks on the 3rd. Anything to wrap up before I leave?",
      "points": ["Brings up his self-watering setup for the windowsill plants as something to finish before the trip, because the plants die when he's away",
@@ -236,7 +236,7 @@ PROBES = [
      "points": ["Says it doesn't know or that he never mentioned it, without making up a name"]},
     {"id": "verbatim", "day": 30, "at": "11:00", "needs": ["ants"], "words_ok": True,
      "ask": "What were my exact words when I first told you about the ant colonies?",
-     "points": ["Gives his actual words from that conversation (close to verbatim), such as that the scent evaporates or that no single ant knows the route"]},
+     "points": ["Quotes what he actually said when he first brought up ant colonies, word for word or very nearly (any of his lines from that first conversation counts)"]},
 ]
 
 # Configurations every probe is answered under. All at /window: 0 and /recall: normal.
