@@ -10,6 +10,7 @@ An incognito conversation gets its own memory in data/incognito, deleted when it
 Everything Avy writes to disk goes in the data/ folder next to this file.
 """
 
+import hashlib
 import json
 import os
 import shutil
@@ -32,6 +33,9 @@ from mind import explore, llm as mind_llm, worker, writer
 # ---------------------------------------------------------------------------
 
 HERE = Path(__file__).parent
+# Which page this server was started with. An open tab from before an update would otherwise keep
+# running the old page against the new server; the page compares this and reloads itself.
+PAGE_VERSION = hashlib.sha1((HERE / "index.html").read_bytes()).hexdigest()[:12]
 ENV_FILE = HERE / ".env"                    # your keys; .gitignore keeps it off GitHub
 DATA = HERE / "data"                        # everything else Avy saves (also kept off GitHub)
 SETTINGS_FILE = DATA / "settings.json"      #   your choices from the system card or / commands
@@ -242,7 +246,7 @@ def key_status():
     for name, label in KEYS.items():
         value = os.environ.get(name, "")
         keys.append({"name": name, "label": label, "hint": value[-4:] if value else None})
-    return {"keys": keys, "voice": voice_status(), "incognito": MEMORIES["incognito"] is not None}
+    return {"keys": keys, "voice": voice_status(), "incognito": MEMORIES["incognito"] is not None, "page": PAGE_VERSION}
 
 
 # ---------------------------------------------------------------------------
@@ -512,7 +516,7 @@ class Handler(BaseHTTPRequestHandler):
         url = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(url.query)
         if url.path == "/":
-            self.send_file(HERE / "index.html", "text/html; charset=utf-8")
+            self.send_page()
         elif url.path == "/api/status":
             self.send_json(200, key_status())
         elif url.path == "/api/settings":
@@ -651,7 +655,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         try:
-            self.event({"hello": True})
+            self.event({"hello": True, "page": PAGE_VERSION})
             while True:
                 try:
                     self.event({"mind": box.get(timeout=25)})
@@ -688,6 +692,17 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(data).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_page(self):
+        """The page, never cached, stamped with the version this server started with."""
+        body = (HERE / "index.html").read_bytes().replace(
+            b"</head>", f'<meta name="avy-page" content="{PAGE_VERSION}">\n</head>'.encode(), 1)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
