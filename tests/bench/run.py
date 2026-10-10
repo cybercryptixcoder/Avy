@@ -20,7 +20,7 @@ What happens:
   6. The network's shape is checked: did a hub form for the unnamed project, did the habit get inferred
      and then revised, how close did the two concepts end up, is the tension recorded?
 Writes tests/bench/results/<time>.json and .md, and keeps the memory file for the inspector.
-Costs roughly ten to thirty cents and takes about an hour.
+Costs about 40 cents and takes about half an hour.
 """
 
 import argparse
@@ -137,7 +137,9 @@ def reflect(day):
 
 # --- what retrieval brought -------------------------------------------------------------------------
 
-def node_tags(chain, depth=0):
+def node_tags(chain, depth=0, parts=False):
+    """The (thread, day) tags of the words a node rests on. parts: also a thing's newest parts, which the
+    briefing lists under it (for scoring what a search brought; not for the network checks)."""
     n = mem.head(chain)
     if not n:
         return set()
@@ -145,11 +147,14 @@ def node_tags(chain, depth=0):
     if n["origin"] == "inferred" and depth < 3:
         for b in mem.basis_of(n["id"]):
             found |= node_tags(b["chain"], depth + 1)
+    if parts and n["shape"] == "thing" and depth == 0:        # a thing's newest parts are listed under it in the briefing
+        for p in mem.parts(chain)[:memory.recall.PARTS_SHOWN]:
+            found |= node_tags(p["chain"], depth + 1)
     return found
 
 
 def score_retrieval(probe, trace):
-    items = [node_tags(x["node"]) for x in trace["nodes"]] + [{tags[l["message"]]} if l["message"] in tags else set()
+    items = [node_tags(x["node"], parts=True) for x in trace["nodes"]] + [{tags[l["message"]]} if l["message"] in tags else set()
                                                                for l in trace["log"]]
     return judge.retrieval(probe, items, trace["tokens"])
 
@@ -251,6 +256,17 @@ def check_graph(moment_name):
                 best = (n, len(days))
         out["hub"] = {"pass": bool(best and best[1] >= 4),
                       "hub": f"{best[0]['title']} ({mem.standing(best[0])}, {best[1]} of 7 sittings)" if best else None}
+        # one project, one hub: of the things gathering the gadget's sittings, how many stand on their own
+        # (not nested part_of another of them)? Sub-projects nested under the project are fine.
+        def about_gadget(n):        # most of its parts, and at least two, come from the gadget's sittings
+            parts = mem.parts(n["chain"])
+            gadget = [x for x in parts if any(t == "basil" for t, _ in node_tags(x["chain"]))]
+            return len(gadget) >= 2 and 2 * len(gadget) >= len(parts)
+        project = [n for n in mem.things() if about_gadget(n)]
+        nested = {p["chain"] for n in project for p in mem.parts(n["chain"])}
+        top = [n for n in project if n["chain"] not in nested]
+        out["one_hub"] = {"pass": len(top) == 1, "top_level": [f"{n['title']} ({mem.standing(n)})" for n in top],
+                          "nested": [f"{n['title']} ({mem.standing(n)})" for n in project if n["chain"] in nested]}
         p = path(said_in("basil", 4), set(said_in("basil", 14)) | set(said_in("basil", 17)), adj)
         out["travel_to_open_problems"] = {"steps": len(p) - 1 if p else None, "path": describe_path(p)}
     if moment_name == "tension":
@@ -316,6 +332,7 @@ results["runs"] = mem.rows("SELECT job, COUNT(*) AS n, SUM(cost) AS cost, SUM(CA
                            "FROM runs GROUP BY job")
 results["refused"] = mem.rows("SELECT op, why, COUNT(*) AS n FROM journal WHERE result = 'rejected' GROUP BY op, why ORDER BY n DESC LIMIT 20")
 results["replies_cost"] = round(spent["replies"], 4)
+results["tags"] = {str(k): v for k, v in tags.items()}     # for ask_again.py
 (OUT / f"{STAMP}.json").write_text(json.dumps(results, indent=1, default=str))
 
 # --- the report -----------------------------------------------------------------------------------

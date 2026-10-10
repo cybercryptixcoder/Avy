@@ -27,11 +27,13 @@ Everything it did is in the trace, so the inspector (and the graph view) can rep
 import time
 
 from memory import NAME, embedder, node_ref, message_ref, tokens, clip, when, who
-from memory.recall import DEPTHS, briefing
+from memory.common import day
+from memory.recall import DEPTHS, briefing, combine
 
 from . import llm
 
 PREVIEWS = 14           # nodes shown at the frontier each round
+HUBS_SHOWN = 10         # the biggest things, listed every round so she can always open one
 MAX_OPEN, MAX_FOLLOW, MAX_SEARCH = 5, 4, 3
 
 INSTRUCTIONS = f"""You are the part of Avy that searches her memory before she answers {NAME}.
@@ -45,8 +47,12 @@ in tension with it, and how earlier attempts turned out. Work out what the task 
 then go and look for that.
 
 Things with many connections are hubs (a person, a project, an ongoing effort): opening one shows
-everything attached to it, so it's the fastest way to see the whole of something. When the message could
-touch something he's in the middle of, open that hub rather than skimming around it.
+everything attached to it, its newest parts first, so it's the fastest way to see the whole of something
+and where it stands now (what's done, what's still open). The biggest ones are listed every round with
+when each was last touched. When the message could touch something he's in the middle of, open that hub
+rather than skimming around it, and keep the parts that matter, not just the hub. When the message is about
+his time or plans as a whole (being away, a busy stretch, what he might be forgetting), the hubs it could
+affect matter even if nothing at the frontier mentions them.
 
 Each round you can:
   open     read nodes in full: their exact words and all their connections
@@ -142,10 +148,12 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
         if h not in frontier:
             frontier.append(h)
 
-    landing = []
+    landing, other_logs = [], {}       # other_logs: the main memory's safety net, when talking in incognito
     for mem in library.mems:
         r = mem.recall(text, "", shown_from if mem is home else None, depth, words, meaning)
         landing += [(mem, x["node"], x["score"]) for x in r["nodes"]]
+        if mem is not home:
+            other_logs[mem.name] = r["log"]
     landing += search(library, text, words, meaning, PREVIEWS)
     for mem, chain, _ in sorted(landing, key=lambda x: -x[2])[:PREVIEWS]:
         add(mem, chain)
@@ -234,6 +242,8 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
     if convo_answer is None and not kept:
         # the model couldn't be reached or never answered properly: fall back to ordinary recall
         fallback = home.recall(text, "", shown_from, depth, words, meaning)
+        for other in (m for m in library.mems if m is not home):        # incognito: the main memory too, read-only
+            fallback = combine(other, other.recall(text, "", None, depth, words, meaning), home, fallback)
         fallback["explore"] = {**rec, "fell_back": True}
         return fallback
 
@@ -273,15 +283,23 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
     trace.update({"nodes": picked, "log": log_lines, "tokens": used, "seconds": round(time.time() - started, 2),
                   "searched": {"nodes": len(rec["visited"]), "log": len(log_hits)}, "walked": len(came_by)})
     if len(library.mems) > 1:
-        sections = []
+        sections, extra = [], {}
+        for name, lines in other_logs.items():      # older messages from the main memory (read-only) that match by themselves
+            for l in lines:
+                if used + tokens(l["block"]) <= level["tokens"]:
+                    used += tokens(l["block"])
+                    extra.setdefault(name, []).append(l)
+        trace["tokens"] = used
+        trace["main_messages"] = sorted(l["message"] for ls in extra.values() for l in ls)
         for mem in library.mems:
-            part = {**trace, "nodes": by_mem.get(mem.name, []), "log": log_lines if mem is home else [], "connections": []}
+            part = {**trace, "nodes": by_mem.get(mem.name, []), "log": log_lines if mem is home else extra.get(mem.name, []),
+                    "connections": []}
             mem.finish_trace(part)
             trace["connections"] += part["connections"]
             label = " (from the main conversation; read-only here)" if mem is not home else " (from earlier in this incognito conversation)"
             sections += mem.sections(part, label)
         trace["messages"] = sorted(cited | {l["message"] for l in log_lines})
-        trace["briefing"] = briefing(sections) if picked or log_lines else briefing([], "Avy searched her memory and found nothing that helps with this.")
+        trace["briefing"] = briefing(sections) if picked or log_lines or extra else briefing([], "Avy searched her memory and found nothing that helps with this.")
     else:
         home.finish_trace(trace, cited)
         if not picked and not log_lines:
@@ -298,6 +316,15 @@ def make_prompt(library, home, text, recent, frontier, opened, kept, notes, sear
     parts.append(f"Round {rnd} of {rounds}." + (" This is the last round: decide what to keep, and set done." if rnd == rounds else ""))
     if notes["task"]:
         parts.append(f"Your notes so far. Task: {notes['task']}\nOpen questions: " + ("; ".join(notes["questions"]) or "none"))
+    hub_lines = []
+    for mem in library.mems:              # the map: the big things in his world, always there to open
+        for n, degree in mem.hubs(HUBS_SHOWN):
+            parts_now = mem.parts(n["chain"])
+            touched = max([n["at"]] + [p["at"] for p in parts_now])
+            hub_lines.append(f"{mem.handle(n['chain'])} {n['title']} ({mem.standing(n)}; {degree} connections, "
+                             f"{len(parts_now)} parts; last touched {day(touched)})")
+    if hub_lines:
+        parts.append("The big things in his world (hubs; open any of them by its handle):\n" + "\n".join(hub_lines))
     if opened:
         parts.append("Read in full:\n" + "\n\n".join(opened.values()))
     previews = []

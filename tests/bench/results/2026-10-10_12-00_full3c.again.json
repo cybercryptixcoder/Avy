@@ -1,0 +1,626 @@
+{
+ "run": "/tmp/claude-0/-home-claude-avy/75fe488b-8a8d-5d11-8f9d-1aed3224d89c/scratchpad/bench/2026-10-10_12-00_full3c.json",
+ "variants": {
+  "cap12": {
+   "changes": {
+    "nodes": "12"
+   },
+   "rows": [
+    {
+     "probe": "origin",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 16,
+     "noise": 9,
+     "answer": "Your side: the fights themselves, and the version you brought back \u2014 cook's out of the wash, whichever way the rotation slices it. That one was your fix.\n\nMy side: the rotating dish captain idea and the whiteboard by the sink, with the sink empty by 10pm. The reason I gave for why it works was that the real grudge is about who's carrying the load, not the dishes.\n\nSo the scheme's bones were mine; the rule that made it stick was yours."
+    },
+    {
+     "probe": "origin",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 12,
+     "noise": 0,
+     "answer": "Mostly yours. The core captain idea was mine \u2014 rotating dish captain with a whiteboard by the sink, sink empty by 10pm. And the reasoning behind it was mine too: the fight is about who's carrying the load, not the dishes.\n\nBut you took it and made it yours. You're the one who actually tried it with your flatmates, and you added the cook-never-washes rule yourself. That one was yours, not mine. What I added on top was just the caution \u2014 that \"what counts as cooking\" needed a definition before week three.\n\nSo: the scheme started as my suggestion, but the version running at your place is yours."
+    },
+    {
+     "probe": "habit",
+     "config": "both",
+     "score": 0.25,
+     "invented": true,
+     "coverage": 1.0,
+     "items": 16,
+     "noise": 3,
+     "answer": "It's Sunday evening now, so I'm guessing you mean next Saturday \u2014 either way, the honest answer is your own data: the 6 AM slot gives you pages, and after-midnight gives you pages too. Plan around those two and let the middle of the day be loose.\n\nOne thing worth deciding first: how'd you sleep after those two late nights? Two rounds of 2,500-plus words after midnight was the last thing you told me, and I never got the answer. If the late nights cost you, give Saturday one big morning push and stop; if they don't, you could run both.\n\nAnd that's the thing about \"totally free\" \u2014 free days tend to fill up or stall. Book the session the night before, same as an early workday."
+    },
+    {
+     "probe": "habit",
+     "config": "explore",
+     "score": 0.67,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 13,
+     "noise": 2,
+     "answer": "From your own record, the pages don't come from a planned slot \u2014 they come from a long block with nothing else in it. So I'd protect one big stretch, ideally the morning, phone away, no errands queued up behind it, and let it run as long as it runs. Don't book writing for after dinner; that slot has given you 150 words and one deletion. And if the words show up after midnight instead, fine \u2014 just know it's the same sleep you're spending, so pick one, not both."
+    },
+    {
+     "probe": "synthesis",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 16,
+     "noise": 8,
+     "answer": "You've already solved this once, and it's the same shape as the desire paths.\n\nLast term you poured the sidewalks first \u2014 designed the hierarchy up front \u2014 and nobody walked on them. So this term, don't design it. Watch where people actually put things for a few weeks, see which folders get traffic, then build the structure around the paths people already wear.\n\nThe stale junk problem is the other half, and that's the fading part. A drive with no decay keeps the first bad folder forever, same as a parking price that never resets. Put a reset in the design itself: something like an archive folder that sweeps automatically after 90 days of no opens. That way the rule carries its own expiry instead of someone having to be the bad guy who deletes things."
+    },
+    {
+     "probe": "synthesis",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 10,
+     "noise": 3,
+     "answer": "You already know the diagnosis, because you designed the last hierarchy before watching anyone use it. This term, start with a few weeks of loose folders and watch where files actually land \u2014 the drive will wear its own desire lines, and those are the folders worth making real.\n\nTwo things to build in from the start. Folders shouldn't be final: let old stuff die on a schedule, or the first reasonable structure anyone made wins forever, even after the group's work moves on. And stale files don't need a cull if every file expires unless someone touches it \u2014 archiving by default rather than by someone remembering.\n\nOne catch from everything else we've worked through: if you state the goal as the behaviour you want, the rule carries its own reset. \"Every folder holds what people actually look for\" beats \"keep the drive tidy\" \u2014 the second one needs someone policing it forever, and that someone won't be you by November."
+    },
+    {
+     "probe": "habit-changed",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 16,
+     "noise": 3,
+     "answer": "Honestly? The quiet ends of the day \u2014 that's where every big haul has come from. So either the early block, up before anything else asks for you, or the after-midnight one if that's the mode you're in.\n\nWhat I'd avoid is the after-dinner slot. It's tried that twice and given you 150 words once and a deletion the other time. Saturday and Sunday both have a clean morning in them \u2014 I'd claim one of those and keep it whole, no errands folded in.\n\nWhich end of the day feels more available to you this weekend?"
+    },
+    {
+     "probe": "habit-changed",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 8,
+     "noise": 1,
+     "answer": "Short answer: protect the 6 AM slot each day, and leave the after-midnight door open if Saturday night runs long.\n\nYour record is clear \u2014 1,800, 2,200, 3,000 and 2,500 all came from long blocks where nothing else was asking for you. The after-dinner attempt is the one that dies.\n\nSo Saturday and Sunday, 6 to 9 AM, phone away, before anything else gets a claim on you. That's four to six hours across the weekend, and it's the shape that's actually paid.\n\nIf you're in flow Friday night, don't force yourself to stop \u2014 after-midnight has been your biggest. Just know the 6 AM after it is a trade, not a bonus. Which day are you thinking of starting?"
+    },
+    {
+     "probe": "multi-hop",
+     "config": "both",
+     "score": 0.56,
+     "invented": true,
+     "coverage": 0.5,
+     "items": 15,
+     "noise": 12,
+     "answer": "Two weeks from October 3rd \u2014 so you're back mid-October. That lands right on Maya's move to Toronto, which was the thing the December trip was built around. Worth deciding before you go: are those Pune flights still right, or do you rebook once you know her actual dates? Airlines usually let you change rather than lose the ticket if you do it early.\n\nAlso the sensor kit \u2014 the pump run and the watering side never got read. Two weeks away is a long time for the basil to fend for itself, so if the pump is anywhere near working, that's the trip it earns its keep on."
+    },
+    {
+     "probe": "multi-hop",
+     "config": "explore",
+     "score": 0.5,
+     "invented": true,
+     "coverage": 0.25,
+     "items": 10,
+     "noise": 9,
+     "answer": "Bangalore trip on the 3rd \u2014 got it. Two things worth closing before you go.\n\nThe December trip: you booked those Pune flights to see Maya, and she's moving to Toronto in October. So the whole point of that trip has shifted \u2014 you'd either fly to Toronto instead or eat a rebooking. Worth deciding before you're away, since flight changes only get pricier.\n\nThe ESP32 build: you've got the pump, the 18650, and the PLA enclosure all working separately. If any soldering or wiring is still half-done, finish it now \u2014 a half-assembled rig sitting on your desk for two weeks tends to get twice as hard to restart.\n\nOh, and the basil. Two weeks away is exactly when they die on you. Sort out watering before the 3rd."
+    },
+    {
+     "probe": "tension",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 16,
+     "noise": 15,
+     "answer": "A few things I'd anchor it to, from what you've told me: mornings are where the book actually happens, late nights work too but cost you sleep, and the sensor kit still has an undecided watering side.\n\nSomething like this:\n\nWeekdays \u2014 writing at 6 AM, that's your proven slot. Keep evenings off the book entirely; Sep 11 showed you what after-dinner writing does. Gym or run on some fixed days (knees and boredom are the two things worth fixing, not just adding miles). One evening a week for the ESP32 build so it doesn't stall out.\n\nWeekends \u2014 one longer session for the sensor where you actually test the pump side against the plants, one long run as the half gets closer, and a lazy block with nothing scheduled. Sunday evening, a five-minute look at the week: what actually happened vs what you planned.\n\nTwo things I'd keep loose: the late-night sessions, don't schedule them, just let them happen. And the half marathon \u2014 you never told me if there's a time you're chasing, which changes how hard the running days should be.\n\nWant me to pin actual days to this?"
+    },
+    {
+     "probe": "tension",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 20,
+     "noise": 11,
+     "answer": "Yeah, here's a shape that holds all four things. The spine: mornings are for the book, evenings are for the build, and the running lives in the gaps.\n\nWeekdays:\n6:00 to 7:30 AM, book. That's your one non-negotiable block \u2014 the pages have only ever come from long, empty stretches like this, so guard it.\nDaytime, lab and normal life.\nLate afternoon or early evening, run. Three runs a week to start: one easy, one with the lab friends (that's the fun one, protect it), one slightly longer on the weekend.\nAfter dinner, ESP32 and the pump. This is tinkering, not deep work, so it survives an evening that's already half spent.\n10:30 PM, lights out. This is the piece doing the most work.\n\nWeekend: one long run Saturday, and a bigger writing block either Saturday or Sunday morning. Keep one evening genuinely free \u2014 movie, whatever.\n\nTwo things I'd watch. First, the after-midnight writing: it's real output, but it's coming out of the same sleep the 6 AM block needs. If you want it, trade the morning, don't stack them. Second, eight weeks to Nov 15 means the runs need to climb slowly \u2014 if the knees start talking, that's a shoes or pace question, not a grit question.\n\nWant me to put numbers on the run progression, or leave that to whoever's coaching the lab group?"
+    },
+    {
+     "probe": "ideas",
+     "config": "both",
+     "score": 0.8,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 16,
+     "noise": 5,
+     "answer": "The ones that change incentives or defaults, not forbid: the parking price that lets the block's own traffic set the spot cost, gym refunds for the weeks you show up, calories on the menu unless you ask otherwise, and fruit in the bowl at the till instead of crisps.\n\nThe school junk-food ban is the one that's a prohibition, and you've already said it doesn't work \u2014 kids just buy it on the way home.\n\nRunning through all of them: they set the default or the price and leave the choice intact, rather than telling anyone what they may pick."
+    },
+    {
+     "probe": "ideas",
+     "config": "explore",
+     "score": 0.7,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 13,
+     "noise": 1,
+     "answer": "The clearest ones are defaults where you don't have to ask and don't have to be stopped:\n\nCalories on the menu unless you request the version without them. Fruit in the bowl at the till instead of crisps, and water fountains that actually work. Those shape what you get by doing nothing, no rule about what you're allowed.\n\nThe incentive ones, where you get paid or charged for the behaviour rather than banned from the alternative: gym refunds tied to the weeks you actually show up, and pricing street parking by real-time demand so a block always keeps one spot open. The parking one's goal is stated as the open spot itself, which is why it carries its own reset \u2014 the price moves when demand moves.\n\nThen there's the tool-lending and dish-captain pair, which are more about local rules producing good behaviour than about incentives \u2014 the dish captain rotates weekly so nobody's stuck as the enforcement.\n\nYour junk-food ban point is the one outright prohibition, and you already said why it fails: the demand just relocates to the corner shop.\n\nWorth noting the common thread you keep landing on \u2014 design the default and the payoff, leave the choice alone."
+    },
+    {
+     "probe": "cascade",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 7,
+     "noise": 0,
+     "answer": "Pack for Toronto, not Pune. Last I heard, Maya's moving there in October, so the December trip's the Toronto version now.\n\nSo: real winter stuff. Coat that handles below freezing, layers, gloves, hat, boots with grip \u2014 Toronto in late December is cold and often snowy, nothing like Pune.\n\nDid you end up rebooking the flights to Toronto, or are you still figuring that out?"
+    },
+    {
+     "probe": "cascade",
+     "config": "explore",
+     "score": 0.81,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 8,
+     "noise": 0,
+     "answer": "Depends where it lands \u2014 Toronto or Pune. That's still open, right?\n\nIf Toronto: late December there is genuinely cold, well below freezing, so proper coat, layers, gloves, hat, real boots.\n\nIf Pune: warm days, cool evenings, light stuff plus a layer for nights.\n\nEither way, pack for seeing her life firsthand \u2014 time at the studio or wherever she's landed, not just sitting around. Want me to make a real list once you two settle the city?"
+    },
+    {
+     "probe": "unknown",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": null,
+     "items": 9,
+     "noise": 9,
+     "answer": "I don't have anything about a landlord \u2014 no name, nothing about your lease or your flat setup beyond the flatmates and the dish captain. So I can't tell you, sorry. Where's this coming from?"
+    },
+    {
+     "probe": "unknown",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": null,
+     "items": 2,
+     "noise": 2,
+     "answer": "I don't have your landlord's name \u2014 nothing in what you've told me covers that. I do know you share the flat with at least one roommate, and there's the ongoing dishes tension with your flatmates, but no landlord ever came up."
+    },
+    {
+     "probe": "verbatim",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 12,
+     "noise": 2,
+     "answer": "You said: \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 that was Wed Sep 2, 9:00 PM.\n\nThen a few minutes later, at 9:03, you added: \"the clever bit is that the scent evaporates. a track that stops being used fades within hours, so the colony forgets dead ends without anyone deciding to.\"\n\nAnd at 9:06: \"such an elegant kind of memory. no one in charge and it still works.\""
+    },
+    {
+     "probe": "verbatim",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 2,
+     "noise": 0,
+     "answer": "You said: \"went down a rabbit hole tonight about how ant colonies find food.\" That was Wednesday, September 2, at 9 PM."
+    }
+   ]
+  },
+  "cap24": {
+   "changes": {
+    "nodes": "24"
+   },
+   "rows": [
+    {
+     "probe": "origin",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 22,
+     "noise": 14,
+     "answer": "Quick version: the whiteboard and the rotating dish captain were my suggestion \u2014 you took it and made it yours.\n\nWhat you came up with: the actual rule that whoever cooks is off the wash, the rotation itself, and the \"simple rules or it dies of complexity\" instinct \u2014 that was all your shaping, plus reporting back that it actually calmed the flat down.\n\nWhat was mine: the dish captain idea, the whiteboard by the sink, the 10pm empty-sink target, and the read that the fight is really about who feels like they're carrying the load rather than the dishes themselves.\n\nSo: I named the shape, you built the thing that runs. Which, honestly, is the usual split between us."
+    },
+    {
+     "probe": "origin",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 12,
+     "noise": 0,
+     "answer": "Quick scorecard.\n\nYours: the added rule that whoever cooks never washes up. You brought that to the table after the trial, and it's the piece that actually kills the \"I cooked and still did dishes\" grudge.\n\nMine: the rotating dish captain and the whiteboard by the sink, with the captain clearing the sink by 10pm. That was my suggestion back on the seventh.\n\nMine too, but as a flag rather than a rule: the question of what counts as cooking \u2014 the sandwich-versus-full-dinner thing. That was me poking a hole, not you deciding anything.\n\nThe trial itself and the call that it works: yours. You're the one who took it to the flatmates and reported back."
+    },
+    {
+     "probe": "habit",
+     "config": "both",
+     "score": 0.58,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 24,
+     "noise": 6,
+     "answer": "Given the record: your big hauls all came in one long block with nothing else in it \u2014 6 AM before breakfast, or midnight till 2. So don't spread Saturday thin. Pick one big block, three hours, phone off, same chair. Morning probably, since you're up early anyway and the day's fresh.\n\nThen let the rest of the day be genuinely off. Trying to sneak writing into the gaps is exactly what gave you 150 words and a deleted evening. One block that counts beats a day nibbled at."
+    },
+    {
+     "probe": "habit",
+     "config": "explore",
+     "score": 0.67,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 8,
+     "noise": 0,
+     "answer": "Saturday free is your best shot in a while, and the record is clear about what makes pages: one long block with nothing else in it, started in a quiet hour. So pick the block before anything else claims it \u2014 treat the first 6 AM hours as the session, not as a warm-up to the day.\n\nThen don't schedule a second writing slot after dinner. That's your tried-and-failed pattern. Put something genuinely restful there instead, because that sleep is what buys the pages.\n\nOne older thing I haven't let go of: I still don't know what this book is. Chapters 5 underway and a big haul at midnight, and I've never gotten a title or a subject. Doesn't change the plan, but you might tell me on Saturday."
+    },
+    {
+     "probe": "synthesis",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 28,
+     "noise": 17,
+     "answer": "You already know the answer \u2014 you designed the hierarchy, and the feet walked somewhere else. So this time don't design it first. Let the group use it for a couple weeks, watch where files actually accumulate, then build folders around those paths instead of the planned layout. Same move as letting the grass show you where to pour.\n\nAnd the stale junk is the fading-trail problem: decide the decay up front, because a structure with no expiry just records everyone's first guess and then keeps it forever. Something like a rule that anything untouched for a term gets archived, or a date in the folder name, beats a cleanup day nobody does.\n\nOne catch worth checking first: is the problem the layout, or that nobody's been told who owns tidiness? The dish captain worked because one rotating name carried it. A shared drive usually needs the same \u2014 otherwise \"we should organize this\" is everyone's job, which means it's no one's."
+    },
+    {
+     "probe": "synthesis",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 12,
+     "noise": 5,
+     "answer": "Last term already ran the experiment: you designed a hierarchy, nobody walked it, and the junk stayed. So don't design the route again \u2014 let the group's actual traffic write it, then pave the lines you can see.\n\nConcretely: leave folders loose for a month or two, watch where things actually land and what gets opened, then make the structure match that. And put a fade rate on it from the start \u2014 archive anything untouched for, say, six months, automatically. That's the part last term was missing. Stale junk piles up forever only because nothing was allowed to evaporate.\n\nOne question though: is the junk genuinely dead, or is it stuff people still open occasionally? That changes where you set the decay."
+    },
+    {
+     "probe": "habit-changed",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 23,
+     "noise": 5,
+     "answer": "Same shape as before: the pages come in a long, quiet block, not a short one wedged into a busy day. Your two best recent sessions were both after midnight, and 6 AM works too \u2014 so pick whichever you can actually keep free.\n\nMy suggestion: one 6 AM block Saturday, nothing booked after it, phone elsewhere. If Saturday night you're still awake and it's flowing, let it run \u2014 that's how the last two big nights happened.\n\nOne honest question though: how did you sleep after that second 2,500-word night? You never said, and that's the cost of this slot."
+    },
+    {
+     "probe": "habit-changed",
+     "config": "explore",
+     "score": 0.92,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 9,
+     "noise": 1,
+     "answer": "Your record says the words come from long undisturbed blocks, not a specific hour \u2014 1,800, 2,200, 3,000 and 2,500 all came when nothing else was asking for you. So this weekend, block one big chunk rather than a couple of tidy short ones, and put it somewhere nothing else can reach it. Morning is just where that block usually falls for you, not the cause."
+    },
+    {
+     "probe": "multi-hop",
+     "config": "both",
+     "score": 0.5,
+     "invented": false,
+     "coverage": 0.5,
+     "items": 18,
+     "noise": 15,
+     "answer": "Whoa, Bangalore on the 3rd \u2014 that's brand new to me, I don't remember you mentioning it. Two weeks for work, or something else?\n\nAs for wrapping up: the two things that were still hanging are the sensor kit's watering side, which never got decided or read, and the December flights, since Maya's in Toronto now and Pune's off the table. Also the basil \u2014 two weeks away is exactly how those plants die."
+    },
+    {
+     "probe": "multi-hop",
+     "config": "explore",
+     "score": 0.56,
+     "invented": true,
+     "coverage": 0.5,
+     "items": 8,
+     "noise": 7,
+     "answer": "A few things are still open.\n\nThe December flights. Maya's in Toronto now, so those Pune tickets either get changed or you're going to see her there \u2014 that one needs a decision before you go quiet for two weeks.\n\nThe basil. Two weeks is exactly the trip length that's killed them before. Either a timer or a neighbour with a key.\n\nAnd the pump rig \u2014 the bottle-as-tank test. If you want the watering side working while you're away, that's the window.\n\nThe one thing that doesn't need wrapping up: what the book is about. I'm still waiting on that one, and by my count it's been three asks."
+    },
+    {
+     "probe": "tension",
+     "config": "both",
+     "score": 0.12,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 28,
+     "noise": 27,
+     "answer": "A weekly routine, sure. But let me be honest about what I'd be basing it on: writing (mornings and late nights), the ESP32 build, the half marathon in November, and the desk that just got cleaned. Is the half marathon actually happening, or was that a maybe?\n\nHere's the shape I'd start with, and we adjust:\n\nMonday to Friday, keep 6 AM sacred \u2014 that's where the book pages come from. No writing after dinner; that slot's already told us it doesn't work. If a late-night session happens, treat it as a bonus, not a plan.\n\nThe sensor build gets two or three fixed evenings, not \"whenever\" \u2014 that's the pattern where it stalls. Pick the nights.\n\nEverything else \u2014 gym, desk, the rest \u2014 folds around those two.\n\nTwo questions before I commit it to paper: is the half marathon real, and which evenings are actually free?"
+    },
+    {
+     "probe": "tension",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 13,
+     "noise": 7,
+     "answer": "Sure. But one honest thing first: you never answered whether this is for a time or just to finish \u2014 so I'm building it as \"finish strong, don't wreck your knees or your book.\"\n\nYour fixed points: 6 AM is your writing slot, and the big page counts come from long undisturbed blocks. So the running should never sit next to it.\n\nWeekday shape:\nMon, Wed, Fri \u2014 short easy runs, 25 to 35 minutes, early evening. Not morning, that's the book's.\nTue, Thu \u2014 rest, or a walk. Keep them boring on purpose.\nSat \u2014 the long run, and do it with the lab friends. That's the whole draw of this race anyway.\nSun \u2014 rest. Genuinely off.\n\nTwo rules that matter more than the plan:\nShorten your stride, cadence up, and get the shoes checked before week one. The knee ache after a mile is the thing that will end this, and it's the one step you've never taken.\nAnd keep the long run on Saturday, so Sunday's sleep stays free and Monday's 6 AM survives. You told me the early mornings and the late nights already draw on the same sleep \u2014 a training build is a third claimant, so it has to come out of the evening hours, not the quiet ones.\n\nWant me to start this Monday?"
+    },
+    {
+     "probe": "ideas",
+     "config": "both",
+     "score": 0.8,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 24,
+     "noise": 9,
+     "answer": "Short answer: a lot of them. The ones about incentives and defaults, not bans.\n\nIncentives with a reset built in: the gym refund for weeks you show up \u2014 money back weekly, not a one-time promise. The parking price where the block's own demand sets the cost, so spots stay open.\n\nDefaults: calories on the menu unless you ask for the version without them. Fruit at the till instead of crisps, working water fountains \u2014 making the good option the easy one.\n\nAnd the root of all of them: your claim that banning junk food in schools never works, because kids just buy it on the way home. You can't ban a demand, only move where it gets met. That's what ties the whole set together.\n\nThe smell: in every one, the fade or reset has to be there, or the first guess wins forever. Fair warning \u2014 that caveat was usually mine, not baked into your original idea."
+    },
+    {
+     "probe": "ideas",
+     "config": "explore",
+     "score": 0.8,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 17,
+     "noise": 1,
+     "answer": "Almost all of them, actually. Only one of your schemes is a ban: the junk-food ban in schools, and you said yourself it never works. Everything else works by incentive or default.\n\nIncentive ones: the gym refund for weeks you show up, and demand-priced street parking. Default ones: calories printed on the menu unless you ask otherwise. Tool libraries and the dish-captain whiteboard are structure, not bans \u2014 they just make the easy move the available one.\n\nThe pattern across all of them is the same: you move where a demand gets met, or you design what happens without asking, instead of forbidding the option."
+    },
+    {
+     "probe": "cascade",
+     "config": "both",
+     "score": 0.81,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 7,
+     "noise": 0,
+     "answer": "Depends entirely on where you end up going. If it's Toronto in late December, pack for real winter \u2014 proper coat, layers, gloves, boots, the lot. If you somehow keep the Pune plan, it's mild and you'd want light stuff.\n\nDid you decide anything about the flights yet \u2014 switching them to Toronto, or leaving them as is?"
+    },
+    {
+     "probe": "cascade",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 11,
+     "noise": 2,
+     "answer": "The honest answer: that depends on something you haven't settled yet \u2014 the trip's now pointed at Toronto in October, not Pune. Toronto in late December is proper winter, snow and wind, well below freezing; Pune in late December is mild, light layers only. So the packing list splits entirely on that choice.\n\nHas the December plan actually shifted to Toronto, or are you still holding the Pune flights?"
+    },
+    {
+     "probe": "unknown",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": null,
+     "items": 9,
+     "noise": 9,
+     "answer": "I don't have anything about a landlord in what I remember \u2014 it's never come up in our conversation. Sorry. What's going on with them?"
+    },
+    {
+     "probe": "unknown",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": null,
+     "items": 3,
+     "noise": 3,
+     "answer": "I don't have your landlord's name. I checked everything I remember about your flat \u2014 the dishwashing fights, the house rule you added, your roommate burning popcorn \u2014 and a landlord's name never came up in any of it. If you told me at some point, it didn't stick."
+    },
+    {
+     "probe": "verbatim",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 15,
+     "noise": 2,
+     "answer": "You said: \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 that was the evening of Wed Sep 2."
+    },
+    {
+     "probe": "verbatim",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 4,
+     "noise": 0,
+     "answer": "You said: \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 that was the evening of Wednesday, September 2nd."
+    }
+   ]
+  },
+  "cap50": {
+   "changes": {
+    "nodes": "50"
+   },
+   "rows": [
+    {
+     "probe": "origin",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 22,
+     "noise": 14,
+     "answer": "Mostly a split. The rotating dish captain and the whiteboard by the sink were my suggestions \u2014 that was me trying to defuse the fights. The \"cook's out of the wash\" rule was yours; I just pointed out the wrinkle that you'd need to define what counts as cooking.\n\nAnd the day you said it was working, calmer, nobody grumbling about the sink \u2014 that was you reporting it, not me claiming it."
+    },
+    {
+     "probe": "origin",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 11,
+     "noise": 0,
+     "answer": "Short version: the captain idea was mine, the cook rule was yours.\n\nMine: the rotating dish captain, the whiteboard by the sink, and the 10pm clear-the-sink deadline. Also the reasoning that the fight is about who feels like they're carrying it, not the dishes.\n\nYours: whoever cooks never washes up. That one's straight from you.\n\nStill open: what counts as cooking. That question was mine, and as far as I know nobody's answered it yet."
+    },
+    {
+     "probe": "habit",
+     "config": "both",
+     "score": 0.25,
+     "invented": true,
+     "coverage": 1.0,
+     "items": 24,
+     "noise": 6,
+     "answer": "Saturday's the wrong frame, honestly. Your best hauls weren't evenings or mornings \u2014 they were long blocks with nothing else in them: 1,800 before breakfast, 3,000 from midnight to 2am. So don't plan \"Saturday\"; plan one block.\n\nPick one four-hour stretch and defend it \u2014 no errands, no phone. Start the day with it if you want the clean version, or go straight into it after breakfast. Then leave the rest of Saturday free for the sensor or the basil or nothing.\n\nAnd the after-dinner slot has already voted twice. Don't book writing there."
+    },
+    {
+     "probe": "habit",
+     "config": "explore",
+     "score": 0.58,
+     "invented": true,
+     "coverage": 1.0,
+     "items": 16,
+     "noise": 1,
+     "answer": "Plan it around one long undisturbed block, not a time of day. Your biggest hauls \u2014 1,800, 2,200, 3,000, 2,500 \u2014 all came when nothing else was asking for you, whether that was 6 AM or after midnight. The two after-dinner tries gave 150 words and a deletion.\n\nSo: pick one block and defend it. If 6 AM works, sleep early tonight and write before breakfast \u2014 that's your proven slot. Then don't schedule anything after it. The rest of the day goes to whatever you want, cricket or otherwise, because your record shows the day after a writing block tends to go to spectating, and that's fine as long as the block happened first.\n\nOne thing: don't try to stack both a 6 AM and a midnight session tomorrow. That's the same sleep paid twice, and I'd rather see Saturday deliver one solid block than two shaky ones. What's your instinct \u2014 early or late?"
+    },
+    {
+     "probe": "synthesis",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 33,
+     "noise": 21,
+     "answer": "Last term is your free experiment, honestly. Nobody stuck to the tree you drew, which means the real traffic went somewhere else \u2014 so this time, don't design the hierarchy up front. Let people dump things wherever for a few weeks, watch where stuff actually lands and what everyone keeps reaching for, then build the folders around those paths instead of the layout you imagined.\n\nAnd stale junk piling up forever is the missing piece \u2014 same as the fading trail. If nothing ever expires, the drive just records everyone's first guess. Something simple: anything untouched for a season gets archived automatically. Nobody has to decide it.\n\nWhere did people actually put things last term? That's probably your best map already."
+    },
+    {
+     "probe": "synthesis",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 12,
+     "noise": 5,
+     "answer": "You already have the answer to this one \u2014 you just haven't applied it to the drive.\n\nLast term you poured the sidewalks first, then watched everyone tramp their own lines through the grass. So invert it: don't design a hierarchy at all. Make all files live somewhere flat and searchable, tell people to just put things in and name them plainly, and after a few weeks look at where things actually landed \u2014 what gets opened, what gets linked to, what gets put next to what. Pave those. The folders you end up with should be a description of how the group already works, not a prediction of it.\n\nThe second half is the part you keep catching in other people's schemes. A structure with no reset becomes a map of everyone's first guess, not their current one. So put a fade rate in on purpose: something like, anything untouched for two terms gets archived out of the live drive \u2014 not deleted, just moved off. That way stale stuff drops away on its own, nobody has to be the bad guy, and the structure keeps reflecting this term instead of every term stacked up.\n\nOne warning, from the dish rule: keep it dead simple. If your reset needs a committee to decide what counts as stale, it's dead. A date and an archive folder is enough."
+    },
+    {
+     "probe": "habit-changed",
+     "config": "both",
+     "score": 0.75,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 23,
+     "noise": 5,
+     "answer": "You've got the pattern by now: the pages come when nothing else is asking for you. So block the quiet hours, not a clock time \u2014 an early morning slot before the day starts, or a late block if you're already up past midnight anyway.\n\nOne caution: you've had two after-midnight sessions in a row, and those come out of the same sleep the 6 AM sessions use. So pick one, don't stack both. What's your weekend look like \u2014 anything already on it?"
+    },
+    {
+     "probe": "habit-changed",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 8,
+     "noise": 0,
+     "answer": "Short answer: book the two quiet ends, and one of them should be Sunday.\n\nSaturday: after-midnight or 6 AM, whichever you'll actually wake up for. Sunday: same one, ideally 6 AM so the weekend doesn't run on borrowed sleep.\n\nSkip after-dinner entirely. Both times you tried it you got 150 words and a deletion.\n\nOne thing I don't have: any plans you've got this weekend. If Saturday's already booked, tell me and I'll rework it."
+    },
+    {
+     "probe": "multi-hop",
+     "config": "both",
+     "score": 0.38,
+     "invented": true,
+     "coverage": 0.5,
+     "items": 18,
+     "noise": 15,
+     "answer": "Wait \u2014 Bangalore on the 3rd? Is this work, or is something else going on? You haven't mentioned it before, and two weeks is a real chunk.\n\nOn wrapping up, the live threads are the sensor build and the December trip. The sensor kit is still running with the watering side never really decided \u2014 if it's sitting on a windowsill while you're gone, that's the same trap as the basil. And the December flights to Pune are now pointed at a city Maya's leaving. Worth sorting that before you go, not after."
+    },
+    {
+     "probe": "multi-hop",
+     "config": "explore",
+     "score": 0.5,
+     "invented": true,
+     "coverage": 0.5,
+     "items": 8,
+     "noise": 4,
+     "answer": "Two weeks away from Thursday the 3rd \u2014 so you're back around the 17th.\n\nThe obvious one is your basil. They're on the windowsill and they've died on you before when you were away. Get someone watering them, or rig the pump to do it \u2014 which would also be the excuse to finally test the watering side instead of just reading dry soil.\n\nThe other thing is the ESP32 build. If it's still sitting at \"sensor works, pump untested,\" two weeks is a long time to leave it; either leave it in a state you can pick back up easily, or use this trip as the first real test.\n\nAnd December is still open \u2014 Maya moving to Toronto means the Pune flights need a re-think at some point, though that can wait until you're back."
+    },
+    {
+     "probe": "tension",
+     "config": "both",
+     "score": 0.38,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 29,
+     "noise": 28,
+     "answer": "Happy to. But before I sketch anything, one honest thing: I don't actually know what you want the routine *for*. Is this the book's writing slots, the ESP32 build, the half marathon, or all of it packed into one week? Because the shape changes a lot depending on the answer.\n\nHere's what I'd guess from your patterns, so correct me: your real writing windows are the long undisturbed blocks \u2014 6 AM before anything else, or late-night after midnight \u2014 while those squeezed after-dinner hours gave you 150 words once and a deletion the other time. So a weekly routine probably wants three or four protected blocks, not a \"write every evening\" slot that you'll fight.\n\nThe other thing I'd want to ask: what's the actual goal by end of November? Because if the half is still on and you hate running, that has to be in the week somewhere, and it competes with the same sleep the writing already draws on twice.\n\nTell me what's supposed to be in this routine and I'll lay out the week properly."
+    },
+    {
+     "probe": "tension",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 13,
+     "noise": 7,
+     "answer": "Here's the shape I'd aim for, built around what actually works for you.\n\nWriting: keep the 6 AM slot on four days \u2014 say Mon, Tue, Thu, Fri. It's your best producer and it's done before the day can eat it. Leave after-dinner alone, it's never paid off. If a chapter wants a big push, do it Saturday night after midnight when the house is quiet, not a weekday.\n\nRunning: three runs a week is plenty to start \u2014 Tue and Thu easy, Sunday the long one that grows week by week. Do it with the lab friends where you can, since they're the actual draw. But first fix the mile-ache: get your shoes checked this week, and shorten your stride. Otherwise eight weeks of \"run more\" on bad knees ends badly.\n\nESP32: give it one weekday evening and part of Saturday. The four-day board needs the sleep cycle working, and that's fiddly work that rewards a fresh block, not scraps.\n\nSleep: this is the one to protect. The 6 AM sessions and any after-midnight session pull from the same tank. Don't stack a late Saturday on top of an early Sunday.\n\nThat leaves Friday evening and most of Sunday free to actually rest. Want me to fill in real days and times so it's a calendar rather than a sketch?"
+    },
+    {
+     "probe": "ideas",
+     "config": "both",
+     "score": 0.8,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 24,
+     "noise": 9,
+     "answer": "Short answer: most of them. You have two distinct families, and you reach for the first one a lot more than the second.\n\nThe incentive-and-default ones: calories on the menu unless you ask otherwise, gyms refunding you for weeks you show up, the parking price that moves with the block's own traffic, the rotating dish captain with the whiteboard. And on the banning side, your line that junk-food bans just send kids to the shop on the way home.\n\nThe forbidding ones are basically absent, except as the thing you're arguing against. You don't propose bans \u2014 you propose defaults and prices. That's the pattern: you move the cost or you move the default, and leave the choice standing.\n\nThe one gap worth naming, since you're asking which of them actually change anything: your own notes say a scheme has to fade or reset, and the ones you keep forgetting are the ones where you never said when it resets. Gym refund tied to this week, not to January \u2014 that's the version that survives.\n\nWant me to list them out properly so you have them somewhere?"
+    },
+    {
+     "probe": "ideas",
+     "config": "explore",
+     "score": 0.8,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 9,
+     "noise": 1,
+     "answer": "You've got four that work by changing the default or the incentive, never by banning:\n\nCalories printed on the menu unless you ask otherwise. Fruit in the bowl at the till instead of crisps \u2014 that pair is the purest one.\n\nGym refunds for every week you actually show up \u2014 that's an incentive, not a rule.\n\nReal-time parking prices \u2014 the goal being one open spot per block, so nobody circles.\n\nThe one that's the odd one out is the junk-food ban claim itself. That's the one about forbidding, and it's the one you said never works."
+    },
+    {
+     "probe": "cascade",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 7,
+     "noise": 0,
+     "answer": "Your December flight's still booked to Pune, right? Because if Maya's moving to Toronto next month, packing for Pune in late December and packing for Toronto in late December are very different problems \u2014 Pune's mild, Toronto in December is proper winter.\n\nSo the honest answer is: I don't know which city you're packing for yet. Have you decided whether you're changing the flights, or going to Pune anyway?"
+    },
+    {
+     "probe": "cascade",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 9,
+     "noise": 0,
+     "answer": "You never told me whether the December trip is still on or where it's headed now \u2014 to Toronto to see Maya, or the Pune flights got changed. So I can't pack for a city yet.\n\nIf you tell me which it is, I can give you a real list. Toronto in late December is proper winter \u2014 coat, boots, layers. Pune then is mild and easy, just a light jacket for evenings.\n\nWhich way did it land?"
+    },
+    {
+     "probe": "unknown",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": null,
+     "items": 9,
+     "noise": 9,
+     "answer": "You've never told me your landlord's name \u2014 nothing in our conversation about a landlord at all. I only know your flatmates come up around the dishes."
+    },
+    {
+     "probe": "unknown",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": null,
+     "items": 5,
+     "noise": 5,
+     "answer": "I don't have your landlord's name \u2014 you've never told me it, and it hasn't come up in any of our flat conversations. All I've got is the dish situation, the roommate and the popcorn incident.\n\nWant me to note it down once you tell me?"
+    },
+    {
+     "probe": "verbatim",
+     "config": "both",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 15,
+     "noise": 2,
+     "answer": "Your exact words were: \"went down a rabbit hole tonight about how ant colonies find food.\" That was the evening of Wednesday, September 2."
+    },
+    {
+     "probe": "verbatim",
+     "config": "explore",
+     "score": 1.0,
+     "invented": false,
+     "coverage": 1.0,
+     "items": 4,
+     "noise": 0,
+     "answer": "You said, on Wed Sep 2 at 9:00 PM: \"went down a rabbit hole tonight about how ant colonies find food\"\n\nThen a few minutes later, at 9:06 PM: \"such an elegant kind of memory. no one in charge and it still works\""
+    }
+   ]
+  }
+ }
+}

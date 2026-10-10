@@ -159,6 +159,9 @@ model never just claims it.
 
 An inference or a suggestion can be **upgraded**: when Shreyas confirms it, it gets a new version with
 his words as evidence, and it becomes something he said. The history still shows who said it first.
+It never goes the other way: only his words can change what he said. When Avy corrects or adds to
+something of his, that's her own node, connected to his. Her questions aren't knowledge at all; his
+answers are.
 
 **Ideas are first-class.** His ideas, Avy's ideas, inferred ideas and possibilities all become nodes,
 so a conversation about something interesting leaves the concepts themselves in memory, not a note
@@ -180,7 +183,9 @@ that it happened.
 - **Hubs emerge.** There's no hub type. Creating a node for something that has an identity (even
   something never named, like "the plant-watering gadget he's building") is natural, and things that
   many nodes belong to become hubs on their own. Hubs aren't rewarded either: stepping out of a big hub
-  counts for less in search, so no single hub swallows everything.
+  counts for less in search, so no single hub swallows everything. When a hub comes up, it shows what
+  belongs to it, newest first, like a wiki page's contents: so "the plant gadget" arrives with where it
+  stands (what's fixed, what's still open), not just its name.
 - **A small world.** Related things cluster densely and a few long connections bridge distant areas.
   So anything is a few steps from anything else, and distance means relatedness.
 - **Self-explaining.** Start anywhere and keep following connections, and you'll eventually read all

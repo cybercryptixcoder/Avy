@@ -187,6 +187,17 @@ for i in range(15):
     c = mem.apply({"op": "add_node", "shape": "information", "title": f"Course {i}", "text": f"A course, number {i}.", "evidence": [(1, 0, 3, 1)]})["chain"]
     mem.apply({"op": "connect", "a": c, "b": hub, "kind": "part_of", "reason": f"course {i} is at Penn State", "support": {"kind": "inferred"}})
 ok("a node follows at most its 12 strongest connections", len(mem.links(hub)) == 12 and len(mem.links(hub, live_only=False)) == 15)
+parts = mem.parts(hub)
+ok("a thing's parts: all of them, newest first, not capped at 12", len(parts) == 15 and parts[0]["title"] == "Course 14", [p["title"] for p in parts[:3]])
+block, _ = mem.node_block(hub)
+ok("...and a thing's block lists its newest parts like a page's contents",
+   "what belongs to it, newest first (15)" in block and "Course 14" in block and "Course 6" not in block and "7 older" in block, block)
+ok("...but a part's own block doesn't", "what belongs to it" not in mem.node_block(parts[0]["chain"])[0])
+prompt = explore.make_prompt(explore.Library([mem]), mem, "anything I'm forgetting?", "", [], {}, [], {"task": "", "questions": []},
+                             [], {}, 1, 2)
+ok("Avy's search always sees the map of big things, with handles to open them",
+   "The big things in his world" in prompt and f"k{hub} Penn State" in prompt and "15 parts" in prompt, prompt[:400])
+ok("the always-on hub list leaves out what was only inferred", all(n["origin"] != "inferred" for n, _ in mem.hubs(said_only=True)))
 
 # --- 5. episodes: where one stretch ends ---------------------------------------------------------------
 m = memory.Memory(folder / "stretches.db")
@@ -296,6 +307,34 @@ res = worker.write_due(w, connect=False)
 ok("the correction is a new version; the old one is history", w.current(quiz)["version"] == 2 and len(w.versions(quiz)) == 2, res)
 ok("its connections carry over to the new version", any(l["other"] for l in w.links(quiz)))
 
+ok("a quote sits in a question when its sentence ends with '?'",
+   writer.in_question("Nice! Anything planned?", 6, 22) and writer.in_question("Did the smoke clear, or does it still smell?", 4, 19)
+   and not writer.in_question("Nice! Anything planned?", 0, 4) and not writer.in_question("Good luck with it.", 0, 9))
+asked = {"headline": "x", "nodes": [{"ref": "n1", "replaces": None, "shape": "idea", "label": "question", "title": "Avy asks about plans",
+         "text": "Avy asked whether anything is planned.", "when": None, "evidence": [{"message": 4, "quote": "Anything planned"}]}],
+         "edges": [{"from": "n1", "to": f"k{priya}", "kind": "related", "reason": "a question about Priya's visit", "said": None}]}
+plan = writer.Write(w, 1, 5).check(asked)
+said = "\n".join(plan.problems)
+ok("problem: a node that only quotes a question Avy asked (her questions aren't knowledge)",
+   "question Avy asked" in said and not any(o["op"] == "add_node" for o in plan.ops), said)
+ok("...and its edges are left out without a second complaint", "isn't a node" not in said and not any(o["op"] == "connect" for o in plan.ops))
+overwrite = {"headline": "x", "nodes": [{"ref": "n1", "replaces": f"k{quiz}", "shape": "information", "label": "quiz", "title": "STAT 318 quiz",
+             "text": "On Monday the 5th.", "when": "2026-10-05", "evidence": [{"message": 7, "quote": "Noted, Monday the 5th"}]}], "edges": []}
+plan = writer.Write(w, 6, 7).check(overwrite)
+ok("problem: a new version of what Shreyas said, quoting only Avy", "using only Avy's words" in "\n".join(plan.problems)
+   and not any(o["op"] == "add_node" for o in plan.ops), plan.problems)
+res = w.apply({"op": "add_node", "shape": "information", "title": "STAT 318 quiz", "text": "On Monday the 5th.",
+               "evidence": [(7, 0, 21, 1)], "replaces": quiz})
+ok("...and the one door refuses it too: only his words change what he said", not res["applied"] and "his own words can change" in (res["why"] or ""), res)
+avy_note = w.apply({"op": "add_node", "shape": "idea", "title": "Avy's note on the quiz", "text": "Avy noted Monday the 5th.",
+                    "evidence": [(7, 0, 21, 1)]})["chain"]
+res = w.apply({"op": "add_node", "shape": "idea", "title": "Avy's note on the quiz", "text": "Avy noted it again.",
+               "evidence": [(7, 0, 5, 1)], "replaces": avy_note})
+ok("Avy's words can still revise Avy's own node", res["applied"] and w.current(avy_note)["origin"] == "avy", res)
+res = w.apply({"op": "add_node", "shape": "idea", "title": "Avy's note on the quiz", "text": "Shreyas confirmed it.",
+               "evidence": [(6, 0, 6, 1)], "replaces": avy_note})
+ok("...and his words can take over hers (now his)", res["applied"] and w.current(avy_note)["origin"] == "user", res)
+
 def unreachable(payload):
     raise OSError("network is down")
 for role, t in [("user", "one more thing"), ("assistant", "sure")]:
@@ -358,6 +397,19 @@ said = "\n".join(plan.problems)
 ok("Think: a trait about who he is is sent back", "not who he is" in said, said)
 ok("Think: a new thing with fewer than two parts is sent back", "at least two of its parts" in said, said)
 ok("Think: an inference that repeats an existing one is sent back", "already says this" in said or "already exists" in said, said)
+hike = next(n["chain"] for n in w.current_nodes() if n["title"] == "Hiking Mount Nittany with Priya")
+old_rag = next(n["chain"] for n in w.current_nodes() if n["title"] == "Old Rag hike")
+w.apply({"op": "connect", "a": old_rag, "b": priya, "kind": "part_of", "reason": "a trip he took with Priya", "support": {"kind": "inferred"}})
+beside = {"inferences": [{"ref": "n1", "replaces": None, "shape": "thing", "label": "trips", "title": "Family hiking trips",
+                          "text": "The hikes he takes with family.", "certainty": "likely", "basis": [f"k{c}" for c in said_nodes]}],
+          "edges": [{"from": f"k{hike}", "to": "n1", "kind": "part_of", "reason": "a hike with family"},
+                    {"from": f"k{old_rag}", "to": "n1", "kind": "part_of", "reason": "an earlier hike with family"}]}
+plan = think.check(beside)
+ok("Think: a new thing gathering what an existing thing already gathers, beside it, is sent back",
+   any("already gathers" in p and f"k{priya}" in p for p in plan.problems), plan.problems)
+beside["edges"].append({"from": "n1", "to": f"k{priya}", "kind": "part_of", "reason": "the hikes are part of time with Priya"})
+plan = think.check(beside)
+ok("...but nested under it (a piece of it), it's fine", not any("already gathers" in p for p in plan.problems), plan.problems)
 plan = think.check({"inferences": [{"ref": f"n{i}", "replaces": None, "shape": "idea", "label": "x", "title": t, "text": t + ".",
                                     "certainty": "likely", "basis": [f"k{c}" for c in said_nodes]}
                                    for i, t in enumerate(["Quiz weeks are tight", "Visits cluster in autumn", "Hiking with family"], 1)],
@@ -446,6 +498,15 @@ ok("the main memory never sees them", not w.value("SELECT COUNT(*) FROM words WH
 both = memory.combine(w, w.recall("tell me about my sister"), inc, inc.recall("surprise party"))
 ok("an incognito recall reads both, marked by where they came from",
    "(from the main conversation; read-only here)" in both["briefing"] and "[x" in both["briefing"], both["briefing"][:300])
+say(w, "user", "my cat is called Miso, she's a grey tabby")         # in the main log, not yet written into knowledge
+queue.append(("explore_memory", explore_answer(keep=[{"item": inc.handle(r["chain"]), "why": "this conversation"}], done=True)))
+t = explore.explore(explore.Library([w, inc]), inc, "what's my cat called?", learn=False)
+ok("Avy searching in incognito also brings the main memory's older messages that match (read-only)",
+   "Miso" in t["briefing"] and "(from the main conversation; read-only here)" in t["briefing"], t["briefing"][:500])
+queue += [("x", unreachable), ("x", unreachable)]
+t = explore.explore(explore.Library([w, inc]), inc, "what's my cat called?", learn=False)
+ok("...and if DeepSeek can't be reached, the fallback reads both memories too",
+   t["explore"].get("fell_back") and "Miso" in t["briefing"] and "read-only here" in t["briefing"], t["briefing"][:500])
 inc.close(delete=True)
 ok("ending incognito deletes its file", not list((folder / "incognito").glob("x.db*")))
 
