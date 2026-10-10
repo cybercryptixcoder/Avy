@@ -1,11 +1,19 @@
 # Avy
 
-A personal agent built from scratch, one small piece at a time, so every line is understood.
+A personal agent built from scratch, one small piece at a time, so every line is understood. Her heart is
+a memory that never forgets and never summarizes anything away: one endless conversation, turned into a
+living network of knowledge that she thinks about when it's quiet.
+
+- **[CONCEPT.md](CONCEPT.md)**: what Avy is and why, in plain words. Start here.
+- **[MEMORY.md](MEMORY.md)**: how memory is built: storage, rules, the mind's jobs, the algorithms.
+- **[VERSIONS.md](VERSIONS.md)**: the versions kept side by side, and how to go back or fork.
+- **[LATER.md](LATER.md)**: what's decided but not built yet.
+- **[tests/bench/RESULTS.md](tests/bench/RESULTS.md)**: how well it works, measured.
 
 ## Rules
 
 - **One brain:** DeepSeek. No other model does the thinking.
-- **Small steps:** each change is something you can try right away (does it talk, does it remember, does it do things).
+- **Small steps:** each change is something you can try right away.
 - **Keys stay local:** API keys are entered in the app and saved to a local `.env`, which is never committed.
 
 ## Running it
@@ -19,6 +27,10 @@ git pull && python3 -m pip install -q -r requirements-voice.txt && python3 app.p
 Your browser opens http://localhost:8000. Paste your DeepSeek key in the Keys panel once; it's saved to `.env`.
 Needs Python 3.10–3.13 (Kokoro doesn't support 3.14 yet).
 
+The first time version 2 runs, it copies your conversation (the log) from version 1's `data/memory.db`
+into its own `data/memory-v2.db`, and rebuilds memory from it in the background over a few minutes. The
+old file is left exactly as it was.
+
 ## Using it
 
 - **Type** at the prompt, Enter to send.
@@ -28,42 +40,42 @@ Needs Python 3.10–3.13 (Kokoro doesn't support 3.14 yet).
 - **Live conversation:** `/live: on`. Then Space talks to Avy and she answers out loud; tap Space while she
   talks to cut her off. Only what you heard is saved.
 - **One endless conversation.** There's no new chat: every message gets its own memory, fetched fresh.
-  Reloading brings the conversation back; `[ load earlier ]` goes further back.
-- **How much context Avy gets**, two dials:
+  Reloading brings the conversation back; `[ load earlier ]` goes further back. Each sitting is marked
+  with when it was and, once memory has written it, what it was about (click that to see what was kept).
+- **Footnotes.** Where a reply uses memory there's a small number: hover it to see what memory said and
+  whose words it was, click it to open it.
+- **How much context Avy gets:**
   - `/window:` how many recent messages she reads word for word: 0, 5, 10, 20 (default), 40, 80, or all.
-    At 0 everything comes from memory; at all it's an ordinary chat.
-  - `/recall:` how far memory search reaches: off, light, normal (default), deep, max.
+  - `/recall:` how far memory reaches: off, light, normal (default), deep, max.
+  - `/words:` and `/meaning:` switch the two halves of memory search; both off means no memory at all.
+  - `/explore:` on (the default) lets Avy search her memory herself, step by step: a few seconds slower,
+    and much better at finding what a message really needs. You'll see what she's looking at while she
+    does. Off searches by rules, instantly.
 - **Incognito:** `/incognito` starts a separate conversation. Avy can still use her memory, but nothing
-  said there is kept: it has its own temporary memory, deleted when you end it (`/incognito` again, or
-  `[ end incognito ]`), or when app.py stops.
-- **Under the hood:** a dim `↳ recalled 3 entries` under a reply shows what memory brought for it. Click it to
-  see each entry, how it was reached, and the exact note DeepSeek got. Click any entry to read it like a wiki
-  page (where it was said, its links, what links to it, earlier versions); click any `#41` to see that exact
-  spot in the log with the words highlighted. `[ back ]` retraces your steps.
-- **Commands:** type `/` and a panel opens on the right. Keep typing to narrow it, Tab to complete, ↑↓ to pick,
-  Enter to run. `/memory` (or `/memory: words` to search it), `/index`, `/incognito`, `/window:`, `/recall:`,
-  `/live:`, `/model:`, `/thinking:`, `/voice:`, `/speed:`, `/whisper:`, `/clear` (the screen only; memory keeps
-  everything), `/keys`, `/where`, `/retry`, `/help`.
-- **System card** (left): the same settings, as dropdowns, plus memory numbers.
+  said there is kept: it has its own temporary memory, deleted when you end it.
+- **Memory's own work:** it writes each sitting into knowledge when the sitting ends, and reflects when
+  it's quiet (finding connections, patterns, and things that changed), within a small daily budget.
+  `/index` writes now; `/reflect` reflects now. The system card's "mind" line shows what it's doing.
+- **Under the hood:** `/memory` opens the inspector:
+  - every node like a wiki page: where it was said, what it rests on, its connections, its versions
+  - every connection with why it exists and how strong it is
+  - every conversation, and every run of the mind with exactly what DeepSeek was shown and answered
+  - the journal of every change, and the network's health
 
-## How memory works
-
-Two layers, described properly in [MEMORY.md](MEMORY.md):
-
-- **The log:** every message, word for word, numbered. Never edited or deleted.
-- **The index:** pages (one per ~20 messages) of entries: people, facts, plans, decisions. Every entry points
-  at the exact words it came from, and links to the entries it's about or builds on, so it grows into a
-  network. A correction is a new version that replaces the old one; the history stays walkable.
-
-DeepSeek writes the index in the background and code checks every pointer before anything is saved.
-On each message, Avy searches the index and the log, follows links outward, and takes what's relevant.
+  `↳ recalled 3 nodes` under a reply shows what memory brought for it, and how.
+- **The graph:** the little network in the corner is Avy's memory. Click it (or `/graph`) to open it
+  full page: drag to turn it, scroll to zoom, hover or click a node.
+- **Commands:** type `/` and the panel opens on the right, each command with a few words saying what it
+  does. Keep typing to narrow it, Tab to complete, ↑↓ to pick, Enter to run.
+- **System card** (left): the main settings as dropdowns, and memory's numbers.
 
 ## Where things live
 
 Everything stays in this folder:
 
 - `.env`: your keys.
-- `data/memory.db`: everything ever said, and the index into it.
+- `data/memory-v2.db`: everything ever said, and the knowledge and network built from it.
+- `data/memory.db`: version 1's memory, if you used it (left as it was).
 - `data/settings.json`: your choices from the system card or `/` commands.
 - `data/models/`: the speech models (about 0.7 GB) and the meaning-search model (about 65 MB), downloaded on the first run.
 - `data/recordings/`: a backup of everything you say, written as you talk, with its transcript next to it.
@@ -74,14 +86,14 @@ Everything stays in this folder:
 
 ## What's here
 
-- `app.py`: the server. The page, keys, settings, and every exchange with DeepSeek (typed or spoken).
-- `memory.py`: the log, the index, search, and what each message brings back.
-- `indexer.py`: writes the index with DeepSeek, and checks everything it writes.
+- `app.py`: the server: the page, keys, settings, and every exchange with DeepSeek (typed or spoken).
+- `memory/`: the log, knowledge, the network, the rules, search, recall. Never calls the model.
+- `mind/`: where DeepSeek works on memory: writing, connecting, thinking, re-checking, and searching.
 - `voice.py`: push-to-talk. faster-whisper writes down what you said; in live mode Kokoro speaks the
   answer sentence by sentence. Started by app.py when the voice packages are installed.
 - `index.html`: the page.
+- `tools/copy_log.py`: carry the log from one memory file to another (see VERSIONS.md).
 - `tests/test_memory.py`: memory checks that run offline (`python3 tests/test_memory.py`).
-- `tests/live_memory.py`: a week of conversation replayed against the real DeepSeek, then questions
-  about it (`python3 tests/live_memory.py`; a few cents; uses a throwaway memory, never yours).
+- `tests/bench/`: the benchmark: a month of conversation replayed through the real Avy, questions that need
+  memory, a judge. `python3 tests/bench/run.py` (about half an hour and 40 cents; a throwaway memory, never yours).
 - `requirements.txt` / `requirements-voice.txt`: packages. Add new ones here and the run command installs them.
-- `MEMORY.md`: how memory works. `LATER.md`: ideas we've decided to build, but not yet.

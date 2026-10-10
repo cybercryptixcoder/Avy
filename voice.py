@@ -221,6 +221,7 @@ def take_sentences(buffer, first):
 def speakable(text):
     """What Kokoro should actually say: no code, no markdown symbols."""
     text = re.sub(r"```.*?```", " (code on screen) ", text, flags=re.S)
+    text = re.sub(r"\[[kx]\d+\]", "", text)                       # memory footnotes are for the eyes only
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
     text = re.sub(r"^\s*[-•*]\s+", "", text, flags=re.M)
     text = re.sub(r"[*_`#>]+", "", text)
