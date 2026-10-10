@@ -31,14 +31,15 @@ from .search import top_score
 #   near         ...and how close to the best match (a strong match makes weak ones noise)
 #   keep         nodes reached by walking are kept down to this fraction of the best match
 #   log          older messages recalled directly, as a safety net
+#   nodes        at most this many nodes, strongest first
 #   tokens       how much memory one message can bring in
 #   rounds       when Avy searches for herself: how many rounds of looking she gets
 DEPTHS = {
     "off":    None,
-    "light":  {"seeds": 4,  "hops": 1, "fanout": 4,  "found": 0.60, "words_found": 0.40, "near": 0.10, "keep": 0.45, "log": 2,  "tokens": 2_500,  "rounds": 1},
-    "normal": {"seeds": 8,  "hops": 2, "fanout": 6,  "found": 0.58, "words_found": 0.30, "near": 0.15, "keep": 0.30, "log": 4,  "tokens": 7_000,  "rounds": 2},
-    "deep":   {"seeds": 12, "hops": 3, "fanout": 8,  "found": 0.56, "words_found": 0.25, "near": 0.20, "keep": 0.20, "log": 8,  "tokens": 16_000, "rounds": 3},
-    "max":    {"seeds": 24, "hops": 4, "fanout": 12, "found": 0.54, "words_found": 0.20, "near": 0.30, "keep": 0.10, "log": 12, "tokens": 40_000, "rounds": 4},
+    "light":  {"seeds": 4,  "hops": 1, "fanout": 4,  "found": 0.60, "words_found": 0.40, "near": 0.10, "keep": 0.45, "log": 2,  "nodes": 5,  "tokens": 2_500,  "rounds": 1},
+    "normal": {"seeds": 8,  "hops": 2, "fanout": 6,  "found": 0.58, "words_found": 0.30, "near": 0.15, "keep": 0.30, "log": 4,  "nodes": 12, "tokens": 7_000,  "rounds": 2},
+    "deep":   {"seeds": 12, "hops": 3, "fanout": 8,  "found": 0.56, "words_found": 0.25, "near": 0.20, "keep": 0.20, "log": 8,  "nodes": 24, "tokens": 16_000, "rounds": 3},
+    "max":    {"seeds": 24, "hops": 4, "fanout": 12, "found": 0.54, "words_found": 0.20, "near": 0.30, "keep": 0.10, "log": 12, "nodes": 50, "tokens": 40_000, "rounds": 4},
 }
 
 # How strongly one step carries relevance, by kind of connection and direction.
@@ -130,6 +131,9 @@ class Recall:
         ranked = [c for c in sorted(reached, key=lambda c: -reached[c]["score"]) if reached[c]["score"] >= level["keep"] * best]
         picked, used, skipped, cited = [], 0, 0, set()
         for i, c in enumerate(ranked):
+            if len(picked) >= level["nodes"]:
+                skipped += 1
+                continue
             block, msgs = self.node_block(c, full=i < 3, shown_from=shown_from)
             if used + tokens(block) > level["tokens"]:
                 skipped += 1

@@ -25,9 +25,11 @@ def markdown(r):
 
     out += ["## Scores", "", "Judge score (share of the points a good answer makes), and in brackets how much of what the "
             "question needed memory actually brought.", ""]
-    out.append("| question | " + " | ".join(configs[n]["label"] for n in names) + " |")
-    out.append("|---|" + "---|" * len(names))
+    v1 = r.get("v1") or {}
+    out.append("| question | " + " | ".join(configs[n]["label"] for n in names) + (" | version 1 |" if v1 else " |"))
+    out.append("|---|" + "---|" * (len(names) + (1 if v1 else 0)))
     sums = {n: [] for n in names}
+    v1_sum = []
     for p in r["probes"]:
         cells = []
         for n in names:
@@ -41,8 +43,19 @@ def markdown(r):
                 sums[n].append(s)
             flag = " ⚠" if (a.get("grade") or {}).get("invented") else ""
             cells.append(f"{pct(s)}" + (f" ({pct(cov)})" if cov is not None and n != "none" else "") + flag)
+        if v1:
+            a = v1.get(p["id"]) or {}
+            s, cov = (a.get("grade") or {}).get("score"), (a.get("retrieval") or {}).get("coverage")
+            if s is not None:
+                v1_sum.append(s)
+            cells.append(f"{pct(s)}" + (f" ({pct(cov)})" if cov is not None else "") + (" ⚠" if (a.get("grade") or {}).get("invented") else ""))
         out.append(f"| {p['id']} | " + " | ".join(cells) + " |")
-    out.append("| **average** | " + " | ".join(f"**{pct(sum(v) / len(v))}**" if v else "" for v in sums.values()) + " |")
+    out.append("| **average** | " + " | ".join(f"**{pct(sum(v) / len(v))}**" if v else "" for v in sums.values())
+               + (f" | **{pct(sum(v1_sum) / len(v1_sum))}**" if v1_sum else "") + " |")
+    if v1:
+        out += ["", "Version 1 is the fork point (the memory-v1 branch, its code unchanged): an index of entries with links, "
+                "recall by meaning and words together, on the same log, asked at the same moments. "
+                + (f"It wrote {r['v1_stats']['entries']} entries and {r['v1_stats']['links']} links for ${r['v1_stats']['cost']:.3f}." if r.get("v1_stats") else "")]
     out += ["", "⚠ = the judge found something stated as fact that the conversations don't support.", ""]
 
     out += ["## The network", ""]
@@ -77,11 +90,15 @@ def markdown(r):
         out += [f"### {p['id']} (day {p['day']})", "", f"> {p['ask']}", "",
                 "Needs: " + (", ".join(p["needs"]) or "nothing (never said)") + ". A good answer: " +
                 " · ".join(f"({i}) {x}" for i, x in enumerate(p["points"], 1)), ""]
-        for a in p["answers"]:
+        answers = list(p["answers"])
+        if v1.get(p["id"]):
+            answers.append({**v1[p["id"]], "config": "v1"})
+        for a in answers:
             g = a.get("grade") or {}
             marks = " ".join({"met": "●", "partly": "◐", "missed": "○"}.get(m["verdict"], "?") for m in g.get("marks", []))
             ret = a.get("retrieval") or {}
-            out.append(f"**{configs[a['config']]['label']}**: {pct(g.get('score'))} {marks}"
+            label = "version 1" if a["config"] == "v1" else configs[a["config"]]["label"]
+            out.append(f"**{label}**: {pct(g.get('score'))} {marks}"
                        + (f" · brought {ret.get('items')} items, covered {', '.join(ret.get('covered') or []) or 'nothing it needed'}"
                           f", {ret.get('noise')} unrelated" if a["config"] != "none" else "")
                        + (f" · searched for: *{a['task']}*" if a.get("task") else ""))

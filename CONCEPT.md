@@ -61,7 +61,7 @@ context window that ever fills up.
   - Keyword matching can "cheat" by finding things that merely share words; turning it off shows what
     meaning and structure alone can do.
   - With both off, Avy gets no memory at all.
-- **`/explore:`** lets Avy search her memory herself, step by step (below).
+- **`/explore:`** (on by default) lets Avy search her memory herself, step by step (below).
 - **`/footnotes:`** marks what came from memory in her replies.
 
 ### Incognito
@@ -205,8 +205,12 @@ Memory isn't only written down; it's thought about, at quiet times, the closest 
   - ideas several of his interests share
   - conclusions, like a plan that clashes with something he said
 
-  Every inference rests on what it came from, drawn from at least two different conversations, at
-  most three steps from words actually said.
+  The bar is deliberately high:
+  - every inference rests on things he said in at least two different conversations (Avy's own
+    suggestions never count)
+  - at most three steps from words actually said
+  - a near-repeat of an existing inference has to become a new version of it
+  - it describes what happens, never who he is
 - **Check.** When something an inference rests on changes, or a connection's ends get new versions,
   DeepSeek re-examines it: still holds, revise, or let go.
 
@@ -243,8 +247,8 @@ Completeness can't be guaranteed, but three properties can be built and measured
     less.
   - Keep what's strongest within a budget.
   - Add a safety net of raw log matches.
-- **Avy searching for herself** (`/explore: on`). This is search the way AlphaEvolve is evolution: the
-  same loop, but with a model deciding each step instead of fixed rules.
+- **Avy searching for herself** (`/explore:`, on by default). This is search the way AlphaEvolve is
+  evolution: the same loop, but with a model deciding each step instead of fixed rules.
   - The query is only a proxy for the task, so first she works out what the task actually needs.
   - Then, round by round, she can **explore** (look at a node's neighbors), **dig** (read a node in
     full: its exact words and every connection), or **re-land** (search again in her own words, for

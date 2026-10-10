@@ -276,9 +276,10 @@ Look for:
 - patterns across several things he said, stated as what happens, concretely, not as who he is
   ("slept 8, then 7, then 8 hours" gives "Sleep usually around 8 hours"; "wrote well at 6am twice and
   badly at night twice" gives "Writing goes well early in the morning, badly at night")
-- a thing that several nodes are clearly about but which has no node of its own: an unnamed project, an
-  ongoing effort, a recurring theme. Create it (shape thing, named descriptively) and connect its parts
-  to it (part_of, from each part to it).
+- a thing that several nodes are clearly about but which has no node of its own: an unnamed project or
+  an ongoing effort he's actually engaged in. Create it (shape thing, named descriptively, its text one
+  short sentence saying what it is) and connect its parts to it (part_of, from each part to it). A
+  pattern, a principle or a theme is never a thing.
 - an idea that several of his own interests or concerns plainly share: a principle, a value, the same
   shape of problem in different places. Only when it's plainly there (he'd say "yes, that's the same
   thing"), never a clever stretch: if explaining the likeness takes more than a sentence, it isn't one.
@@ -450,6 +451,8 @@ class Think(Job):
             if re.match(rf"(he|{NAME.lower()})\b", op["title"].strip().lower()):
                 plan.problems.append(f"{name}: say what happens, not who he is. Write the pattern itself (\"Writing goes well "
                                      "early in the morning\"), not a trait (\"He works best in the morning\"), or leave it out.")
+            if op["shape"] == "thing" and len(str(op.get("text") or "")) > 160:
+                plan.problems.append(f"{name}: a thing's text says only what it is, in one short sentence.")
             twin = self.twin(op)
             if twin:
                 plan.problems.append(f"{name}: {mem.handle(twin['chain'])} \"{twin['title']}\" already says this or nearly. "
