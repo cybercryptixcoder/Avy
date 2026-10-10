@@ -662,6 +662,7 @@ function countUsage(usage, model) {
    =================================================================== */
 async function loadStatus() {
   const status = await (await fetch("/api/status")).json();
+  if (pageIsStale(status.page)) return;
   showStatus(status);
   // Open Keys if there's no DeepSeek key yet. Only focus the prompt otherwise:
   // focusing it first makes Chrome drop your typing after the panel closes.
@@ -1558,6 +1559,29 @@ async function reflectNow() {
   }
 }
 
+// After an update, a tab left open would keep running the old page against the new server, and
+// views break in odd ways. The server says which page it started with (on load, and each time the event
+// stream reconnects, which it does by itself after app.py restarts). If it isn't this one, reload: at
+// once if nothing's been typed, otherwise say so. At most once per version, so a stale copy can't loop.
+const PAGE_VERSION = document.querySelector('meta[name="avy-page"]')?.content || "";
+let staleNoted = false;
+function pageIsStale(server) {
+  if (!server || server === PAGE_VERSION) return false;
+  let tried = null;
+  try { tried = sessionStorage.getItem("avy.reloadedFor"); } catch {}
+  const idle = !input.value.trim() && !$("chat").classList.contains("busy") && ptt.state === "idle";
+  if (idle && tried !== server) {
+    try { sessionStorage.setItem("avy.reloadedFor", server); } catch {}
+    location.reload();
+    return true;
+  }
+  if (!staleNoted) {
+    staleNoted = true;
+    addLine("error", "Avy was updated while this page was open. Reload the page (Cmd+R) to get the new version.");
+  }
+  return false;
+}
+
 // What the mind is doing in the background, live: the "mind" line on the system card.
 let mindNow = "";
 function listenToMind() {
@@ -1565,7 +1589,9 @@ function listenToMind() {
   try { source = new EventSource("/api/events"); } catch { return; }
   const words = { write: "writing", connect: "connecting", think: "thinking", check: "re-checking" };
   source.onmessage = (e) => {
-    const m = JSON.parse(e.data).mind;
+    const data = JSON.parse(e.data);
+    if (data.hello) return void pageIsStale(data.page);
+    const m = data.mind;
     if (!m) return;
     mindNow = m.state === "start" ? `${words[m.job] || m.job}${m.job === "write" ? " " + m.focus.replace("-", " on") : m.job === "think" ? ": " + m.focus.toLowerCase() : ""}…` : "";
     if (m.state !== "start") refreshMemory();
