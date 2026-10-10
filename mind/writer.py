@@ -50,7 +50,9 @@ What deserves a node: the people, places and things in {NAME}'s life; facts abou
 plans, dates, decisions; preferences; problems he's working on and how they turned out; and the ideas
 and concepts he talks about, his own most of all. A conversation about an interesting concept should
 leave nodes for the concepts themselves (what they are, how they work), not a note that it happened.
-Avy's suggestions deserve a node when he takes them up, or when they're ideas in their own right.
+What Avy says becomes a node only when it's a concrete suggestion for his situation, or when he takes
+it up, answers it or pushes back. Her tips, asides and explanations of general facts (how to tame chili
+heat, how sensors work, what a word means) aren't memory about him: skip them.
 Skip greetings and small talk, passing moments that show nothing lasting, his questions about things
 memory already holds and Avy's answers to them (her recalling or repeating something isn't new knowledge),
 Avy's generic advice, and anything only implied. Never write a node saying something is unknown,

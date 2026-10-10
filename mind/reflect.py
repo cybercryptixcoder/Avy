@@ -14,6 +14,7 @@ DeepSeek proposes; the one door (memory/ops.py) decides. Every run is recorded.
 """
 
 import random
+import re
 from datetime import datetime
 
 from memory import NAME, SHAPES, KINDS, node_ref, edge_ref, when, day
@@ -26,6 +27,8 @@ PAIRS_PER_NODE = 8      # candidate partners judged for each new node
 PAIRS_PER_RUN = 36      # pairs per Connect call
 THINK_VIEW = 36         # nodes in view for one Think
 MIN_CANDIDATE = 0.55    # how close (meaning) a candidate must be, at least
+NEW_PER_NODE = 3        # new connections one node can gain in one Connect run
+MAX_INFERENCES = 2      # inferences one Think run can make
 
 
 def brief(mem, n):
@@ -35,7 +38,7 @@ def brief(mem, n):
     out += f"] \"{n['title']}\": {n['text']}"
     said = mem.evidence_of(n["id"])
     if said:
-        out += f"  ({day(said[0]['at'])})"
+        out += f"  ({day(said[0]['at'])}" + (f", conversation ep{n['episode']}" if n["episode"] else "") + ")"
     return out
 
 
@@ -43,15 +46,32 @@ def brief(mem, n):
 # Connect
 # ---------------------------------------------------------------------------
 
+def nearby(mem, chain, steps=2):
+    """Every node within `steps` of this one: along live edges, inferences and what they rest on,
+    and things said in the same message or conversation."""
+    seen, frontier = {chain}, [chain]
+    for _ in range(steps):
+        nxt = []
+        for c in frontier:
+            for other in [l["other"] for l in mem.links(c)] + [o for o, _ in mem.implicit(c)]:
+                if other not in seen:
+                    seen.add(other)
+                    nxt.append(other)
+        frontier = nxt
+    return seen
+
+
 def candidates(mem, chains, per_node=PAIRS_PER_NODE):
-    """Pairs worth asking about: for each node, partners from anywhere in memory that it isn't
-    connected to yet. Returns [(a, b, why)] with a < b, most promising first."""
+    """Pairs worth asking about: for each node, partners from anywhere in memory that are at least
+    three steps away from it now (or not connected at all). Connect's job is to build bridges between
+    distant parts of memory; what's close is already reachable, and the writer connects what was said
+    together. Returns [(a, b, why)] with a < b, most promising first."""
     pairs = {}
     for c in chains:
         n = mem.current(c)
         if not n:
             continue
-        linked = {l["other"] for l in mem.links(c, live_only=False)} | {o for o, how in mem.implicit(c) if how != "same episode"}
+        linked = nearby(mem, c) | {l["other"] for l in mem.links(c, live_only=False)}
         scores, why = {}, {}
 
         def offer(other, score, reason):
@@ -95,10 +115,13 @@ would connect them in their mind, and if so how:
               analogy. These are the most valuable connections, especially across very different topics.
   against     they're in tension: one contradicts, undermines or is an alternative to the other
   related     connected some other way that would be worth following
-Don't connect things just because they share a word, a date or a broad area ("both are about work",
-"both are things he told you"). Most pairs shown are not connected: they were picked because they look a
-little alike, and that's usually all it is. Connect only when following the connection would genuinely
-help someone thinking about one to recall the other. When unsure, don't connect.
+These pairs are from different parts of memory: nothing connects them yet within two steps. A good
+connection here is a bridge: thinking about one, it would genuinely help to be reminded of the other
+(the same principle in two different areas, one thing that explains or affects the other, a plan that
+clashes with something said elsewhere). Don't connect things just because they share a word, a date,
+a person or a broad area ("both are about work", "both are things he told you", "both happened in
+September"). Most pairs shown are not connected: they were picked because they look a little alike, and
+that's usually all it is. When unsure, don't connect.
 For part_of and builds_on, say which node the connection goes "from": the part, or the one that builds on
 the other. Every connection needs a reason: one short sentence that says what the connection is, specific
 enough that someone who sees only the two titles understands it.
@@ -136,7 +159,7 @@ class Connect(Job):
         if verdicts is None:
             plan.problems.append("The answer must have a list of verdicts, one per pair.")
             return plan
-        seen = set()
+        seen, gained = set(), {}
         for v in verdicts:
             v = v if isinstance(v, dict) else {}
             p = self.pair_name(v.get("pair"))
@@ -163,6 +186,10 @@ class Connect(Job):
                     a, b = b, a
                 elif start != a:
                     plan.notes.append(f"{p}: no clear 'from' for {kind}; took the pair's first node.")
+            gained[a], gained[b] = gained.get(a, 0) + 1, gained.get(b, 0) + 1
+            if gained[a] > NEW_PER_NODE or gained[b] > NEW_PER_NODE:
+                plan.notes.append(f"{p}: more than {NEW_PER_NODE} new connections for one node in one run; kept the first.")
+                continue
             plan.ops.append({"op": "connect", "a": a, "b": b, "kind": kind, "reason": reason, "support": {"kind": "inferred"}})
         missing = len(self.pairs) - len(seen)
         if missing:
@@ -217,7 +244,8 @@ def think_focus(mem, rng=None):
     for e in mem.live_edges():
         degree[e["a"]] = degree.get(e["a"], 0) + 1
         degree[e["b"]] = degree.get(e["b"], 0) + 1
-    grown = [(degree.get(n["chain"], 0) - int(mem.mark(f"think.hub.{n['chain']}", 0)), n) for n in mem.things()]
+    grown = [(degree.get(n["chain"], 0) - int(mem.mark(f"think.hub.{n['chain']}", 0)), n) for n in mem.things()
+             if n["origin"] != "inferred"]
     grown = [(g, n) for g, n in grown if g >= 3]
     if grown:
         g, hub = max(grown, key=lambda x: x[0])
@@ -245,31 +273,46 @@ out what isn't said anywhere but follows from what is. You write inferences: new
 nodes they come from.
 
 Look for:
-- patterns across several things he said: habits, tendencies, what usually happens ("slept 8, then 7,
-  then 8 hours" gives "usually sleeps about 8 hours")
+- patterns across several things he said, stated as what happens, concretely, not as who he is
+  ("slept 8, then 7, then 8 hours" gives "Sleep usually around 8 hours"; "wrote well at 6am twice and
+  badly at night twice" gives "Writing goes well early in the morning, badly at night")
 - a thing that several nodes are clearly about but which has no node of its own: an unnamed project, an
   ongoing effort, a recurring theme. Create it (shape thing, named descriptively) and connect its parts
   to it (part_of, from each part to it).
-- an idea several specific nodes share: a principle, a value, the same shape of problem in different
-  places. Create it (shape idea) and connect the specific nodes to it.
+- an idea that several of his own interests or concerns plainly share: a principle, a value, the same
+  shape of problem in different places. Only when it's plainly there (he'd say "yes, that's the same
+  thing"), never a clever stretch: if explaining the likeness takes more than a sentence, it isn't one.
+  Create it (shape idea) and connect the specific nodes to it.
 - conclusions that follow from putting nodes together (a plan that clashes with something he said; a
   deadline that now can't be met)
 - possibilities worth keeping in mind, marked possible
 
+The bar is high. An inference earns its place only if, weeks from now, it would change what Avy says or
+notices. Most of the time the right answer is nothing new, or one inference. Never:
+- read meaning into coincidences (two things happening the same week)
+- describe who he is: his personality, his style, how he works, thinks, talks or decides ("he likes
+  long unbroken stretches", "he sets things running and leaves them"). Patterns are about what happens.
+- narrate how a project has been going: that's already in the nodes
+- say anything about Avy herself, predict what he'll say next, or forecast costs and outcomes
+- build on Avy's own asides or general advice: infer from what he said and did
+- split a thing that already has a node into stages, parts or aspects, or name it again in other words
+- restate a single node, or summarize
+- infer health conditions or diagnoses, or speculate about other people's private lives
+
 Rules:
-1. Every inference rests on the nodes it comes from (basis: their handles). At least one of them must be
-   something actually said (not inferred). "likely" needs at least two.
-2. Don't restate a single node, and don't summarize. Don't infer health conditions, diagnoses or
-   personality traits, and don't speculate about other people's private lives.
+1. Every inference rests on the nodes it comes from (basis: their handles), and must rest on things he
+   said in at least two different conversations: within one conversation, what was said is already
+   written down, and Avy's own suggestions can't be the ground. "likely" needs at least two nodes.
+2. Look at Avy's existing inferences in view first. If one already says this, or nearly, write a new
+   version of it (replaces) only if what's in view changes it; otherwise leave it.
+2. At most {MAX_INFERENCES} inferences.
 3. If an existing inference (marked inferred) should change because of what's in view, write a new
    version of it (replaces: its handle) instead of a second one. An inference can't replace something
    that was said.
 4. Edges: connect your inferences to related nodes beyond their basis when it helps, each with a kind
    (part_of, builds_on, like, against, related) and a reason: one short sentence.
-5. It's fine to infer nothing. A few inferences that would really help Avy understand him are worth more
-   than many obvious ones.
 
-Answer only by calling write_inferences."""
+Answer only by calling write_inferences.""".replace("{MAX_INFERENCES}", str(MAX_INFERENCES))
 
 THINK_TOOL = llm.tool("write_inferences", "Save what follows from this part of memory.", {
     "inferences": {"type": "array", "items": llm.obj({
@@ -301,6 +344,10 @@ class Think(Job):
         mem = self.mem
         nodes = [mem.current(c) for c in self.view if mem.current(c)]
         chains = {n["chain"] for n in nodes}
+        for c in self.related_inferences(nodes):                  # so it revises instead of repeating
+            if c not in chains:
+                chains.add(c)
+                nodes.append(mem.current(c))
         lines = [brief(mem, n) + (self.rests(n) if n["origin"] == "inferred" else "") for n in nodes]
         conns, seen = [], set()
         for n in nodes:
@@ -312,6 +359,34 @@ class Think(Job):
         if conns:
             body.append("Connections among them:\n" + "\n".join(conns))
         return [{"role": "system", "content": THINK_INSTRUCTIONS}, {"role": "user", "content": "\n\n".join(body)}]
+
+    def related_inferences(self, nodes, k=8):
+        """Existing inferences closest in meaning to what's in view."""
+        mem = self.mem
+        inferred = {n["chain"]: n for n in mem.current_nodes() if n["origin"] == "inferred"}
+        score = {}
+        for n in nodes:
+            vec = mem.vector(f"v{n['id']}")
+            if vec is None:
+                continue
+            for c, i in inferred.items():
+                score[c] = max(score.get(c, 0), mem.closeness(f"v{i['id']}", vec))
+        return [c for c in sorted(score, key=lambda c: -score[c]) if score[c] >= 0.6][:k]
+
+    def twin(self, op):
+        """An existing current node this proposed inference nearly repeats (by title, or by meaning), or None."""
+        from memory import embedder, same_title
+        vec = embedder.query(f"{op['title']}: {op.get('text') or ''}") if embedder.ready else None
+        for n in self.mem.current_nodes():
+            if op.get("replaces") == n["chain"]:
+                continue
+            if same_title(n["title"], op["title"]):
+                return n
+            if vec is not None and n["origin"] == "inferred" and self.mem.closeness(f"v{n['id']}", vec) >= 0.84:
+                return n
+            if vec is not None and n["shape"] == "thing" and op["shape"] == "thing" and self.mem.closeness(f"v{n['id']}", vec) >= 0.8:
+                return n
+        return None
 
     def rests(self, n):
         return "  (rests on " + ", ".join(self.mem.handle(b["chain"]) for b in self.mem.basis_of(n["id"])) + ")"
@@ -367,10 +442,25 @@ class Think(Job):
                 continue
             plan.ops.append({"op": "connect", "a": ends[0], "b": ends[1], "kind": e["kind"],
                              "reason": " ".join(str(e["reason"]).split()), "support": {"kind": "inferred"}})
+        made = [op for op in plan.ops if op["op"] == "add_node"]
+        if len(made) > MAX_INFERENCES:
+            plan.problems.append(f"That's {len(made)} inferences; keep the {MAX_INFERENCES} that would matter most.")
+        for op in made:
+            name = f"{op['ref']} \"{op['title']}\""
+            if re.match(rf"(he|{NAME.lower()})\b", op["title"].strip().lower()):
+                plan.problems.append(f"{name}: say what happens, not who he is. Write the pattern itself (\"Writing goes well "
+                                     "early in the morning\"), not a trait (\"He works best in the morning\"), or leave it out.")
+            twin = self.twin(op)
+            if twin:
+                plan.problems.append(f"{name}: {mem.handle(twin['chain'])} \"{twin['title']}\" already says this or nearly. "
+                                     f"If what's in view changes it, write a new version of it (replaces: {mem.handle(twin['chain'])}); "
+                                     "otherwise leave it out.")
         things = {op["ref"] for op in plan.ops if op["op"] == "add_node" and op["shape"] == "thing" and not op["replaces"]}
         for t in things:
-            if not any(op["op"] == "connect" and t in (op["a"], op["b"]) for op in plan.ops):
-                plan.problems.append(f"{t}: a new thing needs its parts connected to it (part_of, from each part to {t}).")
+            parts = sum(1 for op in plan.ops if op["op"] == "connect" and op["kind"] == "part_of" and op["b"] == t)
+            if parts < 2:
+                plan.problems.append(f"{t}: a new thing needs at least two of its parts connected to it (part_of, from each part to {t}); "
+                                     "if fewer than two belong to it, it isn't a thing.")
         return plan
 
     def after(self, run_id, plan, results, refs):
