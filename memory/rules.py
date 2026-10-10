@@ -6,8 +6,8 @@ again at the moment of writing, so nothing gets in around them.
 
     1. The log is permanent.                        (the database itself refuses edits and deletes)
     2. What was said has evidence: exact words in a real message, copied by code.
-    3. What was inferred has a basis: real, current nodes, at least one of them said by someone,
-       no more than 3 steps from words actually said.
+    3. What was inferred has a basis: real, current nodes, resting on things Shreyas said in at least two
+       different conversations, no more than 3 steps from words actually said.
     4. An inference can't overwrite what was said. Only Shreyas's own words can.
     5. Versions never fork: a new version follows the newest one.
     6. Shreyas himself is never a node: he's the one all of it is about.
@@ -97,6 +97,10 @@ def check_node(mem, op):
                     "that was actually said, so it can always be traced back to real words.", None)
         if op["certainty"] == "likely" and len(heads) < 2:
             return "a 'likely' inference needs at least two nodes to rest on; with one, it's 'possible'.", None
+        if len(conversations(mem, heads)) < 2:
+            return (f"rests on what {NAME} said in fewer than two conversations. Inferences connect what he said across time "
+                    "(within one conversation, what was said is already written down as it is), and Avy's own suggestions "
+                    "can't be the ground for one.", None)
         depth = 1 + max(h["depth"] for h in heads)
         if depth > MAX_DEPTH:
             return f"is {depth} steps from anything actually said; the limit is {MAX_DEPTH}.", None
@@ -111,6 +115,19 @@ def check_node(mem, op):
                     f"new version (replaces: {mem.handle(c['chain'])}); if it's something else, give it a different title.", None)
     derived.update(title=title, text=text)
     return None, derived
+
+
+def conversations(mem, heads, depth=0):
+    """The conversations (episodes) in which Shreyas said the things under these nodes. Avy's own
+    suggestions don't count: an inference must rest on what he said."""
+    found = set()
+    for h in heads:
+        if h["origin"] == "user":
+            if h["episode"]:
+                found.add(h["episode"])
+        elif depth < 3:
+            found |= conversations(mem, [b["now"] for b in mem.basis_of(h["id"]) if b["now"]], depth + 1)
+    return found
 
 
 def check_retract(mem, op):

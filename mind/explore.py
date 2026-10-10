@@ -218,7 +218,8 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
             step["search"].append(q)
         rec["rounds"].append(step)
         if progress:
-            progress({"round": rnd, "open": step["open"], "follow": step["follow"], "search": step["search"],
+            named = lambda hs: [{"h": h, "t": (lambda m, c: m.current(c)["title"] if m else h)(*library.node(h))} for h in hs]
+            progress({"round": rnd, "open": named(step["open"]), "follow": named(step["follow"]), "search": step["search"],
                       "questions": notes["questions"]})
         frontier = frontier[-60:]
 

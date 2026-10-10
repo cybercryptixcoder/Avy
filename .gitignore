@@ -8,3 +8,7 @@ __pycache__/
 
 # everything Avy saves: settings, speech models, recordings
 data/
+
+# benchmark runs: keep the reports, not the throwaway memories or logs
+tests/bench/results/*.memory/
+tests/bench/results/*.log

@@ -123,8 +123,17 @@ refused({"op": "add_node", "shape": "information", "title": "Hunch", "text": "x"
         "a 'likely' inference resting on one node")
 refused({"op": "add_node", "shape": "information", "title": "Rohan's birthday", "text": "x", "basis": [bday, rohan],
          "certainty": "likely", "replaces": bday}, "an inference overwriting something said")
+refused({"op": "add_node", "shape": "information", "title": "Rohan likes gadgets", "text": "Probably.", "basis": [gift, rohan],
+         "certainty": "likely"}, "an inference resting on one conversation only")
+m3 = say(mem, "user", "Rohan has been really into building keyboards lately", minutes=60 * 24)
+r, refs2 = mem.apply_all([{"op": "add_episode", "first": 3, "last": 3, "headline": "Rohan's hobby"},
+                          {"op": "add_node", "ref": "n1", "shape": "information", "label": "hobby", "title": "Rohan builds keyboards",
+                           "text": "Rohan has been into building keyboards.", "evidence": [(3, 0, 51, 1)], "episode": "@episode"}])
+hobby = refs2["n1"]
+refused({"op": "add_node", "shape": "information", "title": "Rohan likes gadgets", "text": "Probably.", "basis": [gift, hobby],
+         "certainty": "likely"}, "an inference resting on Avy's suggestion for one of its two conversations")
 r = mem.apply({"op": "add_node", "shape": "information", "label": "pattern", "title": "Rohan likes gadgets", "text": "Probably.",
-               "basis": [gift, rohan], "certainty": "likely"})
+               "basis": [rohan, hobby], "certainty": "likely"})
 hunch = r["chain"]
 ok("an inference resting on said nodes is accepted, marked inferred, depth 1",
    r["applied"] and mem.current(hunch)["origin"] == "inferred" and mem.current(hunch)["depth"] == 1, r)
@@ -132,7 +141,7 @@ refused({"op": "add_node", "shape": "information", "title": "Rohan likes tech", 
         "an inference resting only on other inferences")
 deep = hunch
 for i in range(3):
-    r = mem.apply({"op": "add_node", "shape": "idea", "title": f"Step {i}", "text": "x", "basis": [deep, rohan], "certainty": "possible"})
+    r = mem.apply({"op": "add_node", "shape": "idea", "title": f"Step {i}", "text": "x", "basis": [deep, hobby], "certainty": "possible"})
     deep = r.get("chain", deep)
 ok("inferences stop 3 steps away from what was said", not r["applied"] and "limit is 3" in (r["why"] or ""), r)
 head_row = mem.current(bday)["id"]
@@ -336,6 +345,24 @@ res = worker.run(w, reflect.Think(w, *focus))
 busy = res["new_chains"][0] if res.get("new_chains") else None
 ok("an inference with a broken basis is sent back; the fixed one is saved", res["status"] == "repaired" and busy, res)
 ok("...as inferred, resting on what was said", busy and w.current(busy)["origin"] == "inferred" and len(w.basis_of(w.current(busy)["id"])) == 3)
+think = reflect.Think(w, *reflect.think_focus(w) or ("episode", said_nodes, "test", {}))
+plan = think.check({"inferences": [
+    {"ref": "n1", "replaces": None, "shape": "idea", "label": "trait", "title": "He likes busy months", "text": "A trait.",
+     "certainty": "likely", "basis": [f"k{c}" for c in said_nodes]},
+    {"ref": "n2", "replaces": None, "shape": "thing", "label": "project", "title": "The autumn plan", "text": "A thing with one part.",
+     "certainty": "likely", "basis": [f"k{c}" for c in said_nodes]},
+    {"ref": "n3", "replaces": None, "shape": "idea", "label": "theme", "title": "Busy autumn", "text": "His October is packed.",
+     "certainty": "likely", "basis": [f"k{c}" for c in said_nodes]}],
+    "edges": [{"from": f"k{said_nodes[0]}", "to": "n2", "kind": "part_of", "reason": "one part of the autumn plan"}]})
+said = "\n".join(plan.problems)
+ok("Think: a trait about who he is is sent back", "not who he is" in said, said)
+ok("Think: a new thing with fewer than two parts is sent back", "at least two of its parts" in said, said)
+ok("Think: an inference that repeats an existing one is sent back", "already says this" in said or "already exists" in said, said)
+plan = think.check({"inferences": [{"ref": f"n{i}", "replaces": None, "shape": "idea", "label": "x", "title": t, "text": t + ".",
+                                    "certainty": "likely", "basis": [f"k{c}" for c in said_nodes]}
+                                   for i, t in enumerate(["Quiz weeks are tight", "Visits cluster in autumn", "Hiking with family"], 1)],
+                    "edges": []})
+ok("Think: more inferences than allowed are sent back", any("keep the 2" in p for p in plan.problems), plan.problems)
 target = said_nodes[0]
 w.apply({"op": "add_node", "shape": w.current(target)["shape"], "title": w.current(target)["title"], "text": "Changed.",
          "evidence": [(6, 0, 6, 1)], "replaces": target})

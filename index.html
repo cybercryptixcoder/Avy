@@ -208,6 +208,25 @@ button { cursor: pointer; background: none; border: 0; }
 .earlier { margin-bottom: 6px; font-size: 13px; font-weight: 700; opacity: .55; }
 .earlier:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
 .chat.busy .prompt { display: none; }   /* like a terminal: no prompt while it's running */
+
+/* Footnotes: where a reply leans on memory, a small raised number. Hover: what memory said. Click: open it. */
+.line .fn { font-size: 10px; font-weight: 700; vertical-align: super; line-height: 0; padding: 1px .3ch; margin-left: 1px;
+            border-radius: 3px; cursor: pointer; opacity: .5; user-select: none; }
+.line .fn:hover, .line .fn:focus-visible, .line .fn.lit { opacity: 1; background: var(--ink); color: var(--card); outline: none; }
+.fn-card { position: fixed; z-index: 45; width: min(46ch, calc(100vw - 32px)); background: var(--card); color: var(--ink);
+           border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 8px 11px 9px;
+           font: 12.5px/1.5 var(--mono); pointer-events: none; }
+.fn-card .h { opacity: .55; font-size: 11.5px; }
+.fn-card .t { font-weight: 700; margin-top: 1px; }
+.fn-card .q { margin-top: 5px; padding-left: 9px; border-left: 1.5px solid var(--ink); opacity: .85; }
+
+/* Chapters: the endless conversation, marked where each sitting begins (with what it was about, once written) */
+.chapter { margin: 34px 0 -12px; font-size: 12px; opacity: .5; display: flex; gap: 1ch; align-items: baseline; white-space: nowrap; }
+.chapter .when { flex: none; }
+.chapter button { font: inherit; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.chapter button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.chapter::after { content: ""; flex: 1 0 3ch; border-bottom: 1px dashed currentColor; opacity: .7; transform: translateY(-.3em); }
+.log > .chapter:first-of-type { margin-top: 10px; }
 .line a.save { font-weight: 700; color: inherit; }
 
 /* Markdown in Avy's replies, terminal style: one size, no colors. */
@@ -243,21 +262,28 @@ button { cursor: pointer; background: none; border: 0; }
   background: transparent; color: inherit; box-shadow: inset 0 0 0 1.5px var(--ink); animation: none;
 }
 
-/* The command panel: a thin column that opens to the right when you type / */
+/* The command panel: a column that opens to the right when you type /.
+   Each command is a row: its name and current value, a few words under it saying what it is,
+   and a hairline between rows. Picking an option is a plain list. */
 .cmds {
   width: 0; overflow: hidden; flex: none; font-size: 13px; line-height: 1.55;
   transition: width .16s ease-out;
 }
-.cmds.open { width: 36ch; border-left: 1.5px solid var(--ink); }
-.cmds-inner { width: 36ch; height: 100%; display: flex; flex-direction: column; padding: 18px 0 12px; }
+.cmds.open { width: 40ch; border-left: 1.5px solid var(--ink); }
+.cmds-inner { width: 40ch; height: 100%; display: flex; flex-direction: column; padding: 18px 0 12px; }
 .cmds-head { padding: 0 14px 8px; opacity: .55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmds-list { list-style: none; overflow-y: auto; flex: 1; scrollbar-width: thin; }
-.cmds-list li { padding: 0 14px; display: flex; gap: 1ch; white-space: nowrap; cursor: pointer; }
+.cmds-list li { padding: 5px 14px 6px; cursor: pointer; border-bottom: 1px solid color-mix(in srgb, currentColor 13%, transparent); }
+.cmds-list li:first-child { border-top: 1px solid color-mix(in srgb, currentColor 13%, transparent); }
+.cmds-list li .top { display: flex; gap: 1ch; white-space: nowrap; }
 .cmds-list li .name { font-weight: 700; }
-.cmds-list li .detail { opacity: .55; overflow: hidden; text-overflow: ellipsis; }
-.cmds-list li.active { background: var(--ink); color: var(--card); }
-.cmds-list li.active .detail { opacity: .75; }
-.cmds-list .empty { opacity: .55; cursor: default; }
+.cmds-list li .value { margin-left: auto; opacity: .55; overflow: hidden; text-overflow: ellipsis; }
+.cmds-list li .short { font-size: 11.5px; line-height: 1.4; opacity: .55; }
+.cmds-list li.option { padding: 1px 14px; border: 0; display: flex; gap: 1ch; white-space: nowrap; }
+.cmds-list li.option .value { margin-left: auto; }
+.cmds-list li.active { background: var(--ink); color: var(--card); border-color: transparent; }
+.cmds-list li.active .short, .cmds-list li.active .value { opacity: .75; }
+.cmds-list .empty { opacity: .55; cursor: default; border: 0; }
 .cmds-foot { padding: 8px 14px 0; opacity: .45; font-size: 11.5px; line-height: 1.5; }
 
 /* The memory inspector: opens on the right like the command panel, wider.
@@ -296,6 +322,13 @@ button { cursor: pointer; background: none; border: 0; }
 .insp input.find { width: 100%; margin: 10px 0 2px; padding: 3px 8px; border: 1.5px solid var(--ink); background: none; font: inherit; outline: none; }
 .insp input.find:focus { box-shadow: inset 0 0 0 1px var(--ink); }
 .insp .problems { margin: 2px 0 0 2ch; }
+.insp .row .s { flex: none; letter-spacing: -.1em; }
+.insp .row.dormant { opacity: .45; }
+.insp .tag { display: inline-block; padding: 0 .6ch; border: 1px solid currentColor; border-radius: 3px; font-size: 11.5px; margin-right: .6ch; }
+.insp .round { margin: 8px 0 2px; padding-left: 10px; border-left: 1.5px solid var(--ink); }
+.insp table.nums { border-collapse: collapse; margin: 6px 0; font-size: 12px; }
+.insp table.nums td, .insp table.nums th { padding: 1px 1.2ch 1px 0; text-align: left; font-weight: 400; }
+.insp table.nums th { opacity: .55; }
 
 .status { display: flex; align-items: center; gap: 18px; padding: 9px 2px 0; font-size: 13px; }
 .status .how { opacity: .55; margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
@@ -305,14 +338,44 @@ button { cursor: pointer; background: none; border: 0; }
 .status button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .status button.off { opacity: .4; }
 
-/* The little ASCII field in the corner: drifts while idle, churns while Avy works */
+/* The little ASCII field in the corner: drifts while idle, churns while Avy works.
+   Once memory has a network, a tiny view of the real network takes its place (click it to open). */
 .scope {
   position: absolute; top: 24px; right: 16px; margin: 0;
   font: 700 12px/1.1 var(--mono); white-space: pre;
   opacity: .62; pointer-events: none; user-select: none;
 }
-.chat.commanding .scope, .chat.inspecting .scope { display: none; }
-@media (max-width: 1399px) { .scope { display: none; } }
+.mini { position: absolute; top: 18px; right: 10px; width: 168px; height: 104px; cursor: pointer; opacity: .8; }
+.mini:hover { opacity: 1; }
+.mini[hidden], .scope[hidden] { display: none; }
+.chat.commanding .scope, .chat.inspecting .scope, .chat.commanding .mini, .chat.inspecting .mini { display: none; }
+@media (max-width: 1399px) { .scope, .mini { display: none; } }
+
+/* The living graph: the whole memory network, full page, in 3D. Same paper, same ink, same grain. */
+.graph { position: fixed; inset: 18px; z-index: 30; background: var(--card); border: var(--thick); border-radius: 30px; overflow: hidden; }
+.graph[hidden] { display: none; }
+.graph canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.graph canvas.dragging { cursor: grabbing; }
+.graph-head { position: absolute; top: 16px; left: 24px; right: 24px; display: flex; gap: 2ch; align-items: baseline;
+              font: 13px/1.5 var(--mono); pointer-events: none; }
+.graph-head .t { font-weight: 700; }
+.graph-head .n { opacity: .55; margin-right: auto; }
+.graph-head button { pointer-events: auto; font: inherit; font-weight: 700; }
+.graph-head button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.graph-foot { position: absolute; bottom: 14px; left: 24px; right: 24px; font: 12px/1.5 var(--mono); opacity: .5; pointer-events: none;
+              display: flex; justify-content: space-between; gap: 2ch; flex-wrap: wrap; }
+.graph-card { position: absolute; left: 24px; bottom: 46px; width: min(54ch, calc(100% - 48px)); background: var(--card);
+              border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 9px 12px 10px; font: 12.5px/1.5 var(--mono); }
+.graph-card[hidden] { display: none; }
+.graph-card .h { opacity: .55; font-size: 11.5px; }
+.graph-card .t { font-weight: 700; }
+.graph-card .c { margin-top: 5px; opacity: .8; font-size: 12px; }
+.graph-card button { font: inherit; font-weight: 700; margin-top: 6px; }
+.graph-card button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.graph-tip { position: absolute; pointer-events: none; font: 12px/1.45 var(--mono); background: var(--card); border: 1.5px solid var(--ink);
+             padding: 5px 9px 6px; max-width: 44ch; }
+.graph-tip[hidden] { display: none; }
+.graph-tip .h { opacity: .55; font-size: 11px; }
 
 /* ===================================================================
    5. The keys panel
@@ -469,6 +532,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
     <section class="chat" id="chat" aria-label="Conversation">
       <div class="rule top"></div>
       <pre class="scope" id="scope" aria-hidden="true"></pre>
+      <canvas class="mini" id="mini" hidden title="Avy's memory as a network (click to open, or /graph)"></canvas>
       <div class="chat-body">
         <div class="log" id="log">
           <p class="meta" id="meta"></p>
@@ -514,6 +578,17 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
 </div>
 
 <ul class="menu" id="menu" role="listbox" hidden></ul>
+
+<!-- ---------- the living graph (/graph) ---------- -->
+<div class="graph" id="graph" hidden aria-label="Memory as a network">
+  <canvas id="graphCanvas"></canvas>
+  <div class="graph-head"><span class="t">── memory, as a network</span><span class="n" id="graphStats"></span>
+    <button id="graphClose" type="button">[ close ]</button></div>
+  <div class="graph-tip" id="graphTip" hidden></div>
+  <div class="graph-card" id="graphCard" hidden></div>
+  <div class="graph-foot"><span>● thing · information ○ idea ◌ inferred &nbsp; line weight: how strong</span>
+    <span>drag to turn · scroll to zoom · click a node · esc to close</span></div>
+</div>
 
 <!-- ---------- keys panel ---------- -->
 <dialog id="keys">
@@ -674,7 +749,8 @@ async function changeSetting(name, value) {
 function renderSystem() {
   const v = settings.values;
   if (!v.model) return;
-  $("sysRows").replaceChildren(...Object.keys(settings.schema).map((name) => {
+  // the card keeps the important settings; every setting is also a / command
+  $("sysRows").replaceChildren(...Object.keys(settings.schema).filter((name) => settings.schema[name].card).map((name) => {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "sys-row";
@@ -691,12 +767,14 @@ function renderSystem() {
 
   const price = settings.prices[v.model] || {};
   const f = settings.files, m = settings.memory || {};
+  const halves = [v.words === "on" && "words", v.meaning === "on" && (m.meaning === "on" || !m.meaning ? "meaning" : "meaning (loading)")].filter(Boolean);
   const info = [
     ["mic", voiceInfo.available ? (liveMode() ? "live: space talks to avy" : "space dictates into the box") : (voiceInfo.problem || "voice off")],
     ["price", `$${price.cache_miss} in, $${price.output} out /1M${isPeak() ? " ×2 now" : ""}`],
-    ["memory", `${m.messages ?? 0} msgs · ${m.pages ?? 0} pages · ${m.entries ?? 0} entries`],
-    ["index", `up to #${m.indexed_to ?? 0}${m.waiting ? `, ${m.waiting} waiting` : ""}${m.failed_runs ? `, ${m.failed_runs} failed` : ""}`],
-    ["search", m.meaning === "on" ? "words + meaning" : `words only (${m.meaning || "starting"})`],
+    ["memory", `${m.messages ?? 0} msgs · ${m.nodes ?? 0} nodes · ${m.connections ?? 0} links`],
+    ["knows", `${m.ideas ?? 0} ideas · ${m.inferred ?? 0} inferred · ${m.episodes ?? 0} convos`],
+    ["mind", mindNow || `written to #${m.written_to ?? 0}${m.waiting ? `, ${m.waiting} waiting` : ""}${m.failed_runs ? `, ${m.failed_runs} failed` : ""}`],
+    ["search", halves.length ? halves.join(" + ") + (v.explore === "on" ? ", avy steers" : "") : "off: no memory"],
     ["files", f.data],
     ["models", `${f.models_mb} MB`],
     ["recs", `${f.recordings} kept, ${f.recordings_mb} MB`],
@@ -713,7 +791,7 @@ function renderSystem() {
   $("navModel").textContent = v.model;
   $("meta").innerHTML = "";
   $("meta").append(
-    `avy 0.2: ${v.model}, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
+    `avy 0.3: ${v.model}, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
     document.createElement("br"),
     incognito ? "incognito: a separate conversation. avy can use her memory, but nothing said here is kept. /incognito ends it."
               : `one endless conversation: avy remembers it all. hold space to ${liveMode() ? "talk" : "dictate"}, / for commands.`,
@@ -791,16 +869,19 @@ async function send() {
 
   const model = settings.values.model;
   const yourLine = addLine("you", text);
+  yourLine.dataset.at = new Date().toISOString();
+  drawChapters();
 
   // Avy's line starts as just a blinking block; words appear in front of it
   const avyLine = addLine("avy", "");
+  avyLine.dataset.at = new Date().toISOString();
   const words = document.createElement("span");
   const block = makeCursor();
   avyLine.append(words, block);
   setBusy(true);
 
   // Only your message goes to the server: it builds the rest from memory.
-  let reply = "", usage = null, failed = null, thought = null, turn = null, trace = null, stopped = false;
+  let reply = "", usage = null, failed = null, thought = null, turn = null, trace = null, stopped = false, searching = null;
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -813,8 +894,13 @@ async function send() {
       throw new Error(err.error || `Avy's server answered ${res.status}.`);
     }
     await readStream(res, (chunk) => {
-      if (chunk.avy) {                        // from Avy's server: what memory brought, and that it's saved
-        if (chunk.avy.turn) { turn = chunk.avy.turn; trace = addTrace(avyLine, turn); }
+      if (chunk.avy) {                        // from Avy's server: her search, what memory brought, that it's saved
+        if (chunk.avy.searching) {
+          (searching ||= searchingLine(avyLine)).update(chunk.avy.searching);
+          lightUp([...(chunk.avy.searching.open || []), ...(chunk.avy.searching.follow || []), ...(chunk.avy.searching.keep || [])]);
+        }
+        if (chunk.avy.error) failed = chunk.avy.error;
+        if (chunk.avy.turn) { searching?.done(); turn = chunk.avy.turn; trace = addTrace(avyLine, turn); lightUp(turn.kept); }
         return;
       }
       const delta = chunk.choices?.[0]?.delta || {};
@@ -822,7 +908,7 @@ async function send() {
       if (delta.content) {
         thought?.finish();
         reply += delta.content;
-        words.innerHTML = renderMarkdown(reply);
+        words.innerHTML = renderMarkdown(reply, true);
         scrollDown();
       }
       if (chunk.usage) usage = chunk.usage;
@@ -833,9 +919,11 @@ async function send() {
   }
 
   thought?.finish();
+  searching?.done();
   block.remove();
   setBusy(false);
   countUsage(usage, model);
+  if (reply) words.innerHTML = renderMarkdown(reply);
 
   if (reply && stopped) avyLine.classList.add("cut");     // saved as cut off, too
   if (!reply) {
@@ -846,6 +934,7 @@ async function send() {
     }
   }
   if (failed) addLine("error", failed);
+  drawChapters();
   refreshMemory();
   scrollDown();
   input.focus();
@@ -869,6 +958,30 @@ async function readStream(res, onChunk) {
       onChunk(JSON.parse(data));
     }
   }
+}
+
+// While Avy searches her memory herself (/explore: on): a dim line saying what she's looking at.
+function searchingLine(before) {
+  const line = document.createElement("div");
+  line.className = "line note";
+  log.insertBefore(line, before);
+  const started = performance.now();
+  let what = "remembering…";
+  const tick = () => (line.textContent = `${what}  ${((performance.now() - started) / 1000).toFixed(1)}s`);
+  tick();
+  const timer = setInterval(tick, 100);
+  return {
+    update(e) {
+      const bits = [];
+      if (e.open?.length) bits.push("reading " + e.open.map((x) => x.t || x).join(", "));
+      if (e.search?.length) bits.push("looking for " + e.search.map((q) => `"${q}"`).join(", "));
+      if (e.follow?.length) bits.push("following " + e.follow.map((x) => x.t || x).join(", "));
+      if (e.done) bits.push(`keeping ${e.keep?.length || 0}`);
+      what = `remembering, round ${e.round}: ` + (bits.join(" · ") || "deciding");
+      tick();
+    },
+    done() { clearInterval(timer); line.remove(); this.done = () => {}; },
+  };
 }
 
 // While DeepSeek thinks (only when thinking isn't off): a dim line with a running timer.
@@ -902,7 +1015,22 @@ function escapeHtml(text) {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 }
 
-function renderMarkdown(text) {
+// Footnotes: Avy writes [k12] right after what came from memory (x12 in an incognito conversation).
+// They're numbered in the order they first appear; the same node keeps its number.
+function footnotes(html) {
+  const order = [];
+  return html.replace(/\[([kx]\d+)\]/g, (_, h) => {
+    if (!order.includes(h)) order.push(h);
+    return `<sup class="fn" tabindex="0" data-h="${h}">${order.indexOf(h) + 1}</sup>`;
+  });
+}
+
+function renderMarkdown(text, streaming = false) {
+  if (streaming) text = text.replace(/\[[kx]?\d*$/, "");   // a footnote still arriving: wait for all of it
+  return footnotes(renderParts(text));
+}
+
+function renderParts(text) {
   const parts = text.split("```");                 // odd pieces are code (an unclosed one still streaming too)
   return parts.map((part, i) => {
     if (i % 2 === 1) {
@@ -952,12 +1080,13 @@ function addLine(kind, text, before = prompt) {
 
 // The dim line under a reply: what memory brought for it. Click to look under the hood.
 function addTrace(after, recalled) {
-  const n = recalled?.entries || 0, m = recalled?.log || 0;
-  if (!n && !m) return null;
+  const n = recalled?.nodes || 0, m = recalled?.log || 0;
+  if (!n && !m && !recalled?.explored) return null;
   const line = document.createElement("div");
   line.className = "line trace";
   line.tabIndex = 0;
-  line.textContent = "↳ recalled " + [n && `${n} entr${n === 1 ? "y" : "ies"}`, m && `${m} log line${m === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
+  const found = [n && plural(n, "node"), m && plural(m, "log line")].filter(Boolean).join(" · ") || "nothing that helps";
+  line.textContent = (recalled.explored ? "↳ searched memory, kept " : "↳ recalled ") + found;
   const open = (e) => { e.stopPropagation(); inspect("recall", recalled.recall ?? recalled.id, null, recalled.memory); };
   line.onclick = open;
   line.onkeydown = (e) => { if (e.key === "Enter") open(e); };
@@ -967,13 +1096,93 @@ function addTrace(after, recalled) {
 
 // A message from the log, drawn the same way it was the first time.
 function showMessage(m, before) {
-  if (m.role === "user") return addLine("you", m.text, before);
-  const line = addLine("avy", "", before);
-  line.innerHTML = renderMarkdown(m.text);
-  if (m.meta.cut) line.classList.add("cut");
-  if (m.recalled) addTrace(line, m.recalled);
+  let line;
+  if (m.role === "user") line = addLine("you", m.text, before);
+  else {
+    line = addLine("avy", "", before);
+    line.innerHTML = renderMarkdown(m.text);
+    if (m.meta.cut) line.classList.add("cut");
+    if (m.recalled) addTrace(line, m.recalled);
+  }
+  line.dataset.at = m.at;
+  if (m.episode) { line.dataset.episode = m.episode; line.dataset.headline = m.headline || ""; }
   return line;
 }
+
+// Chapters: a quiet marker where each sitting begins (30 minutes of quiet before it), with the day,
+// the time, and what that conversation was about once the mind has written it. Redrawn whenever the
+// conversation on screen changes.
+function drawChapters() {
+  log.querySelectorAll(".chapter").forEach((c) => c.remove());
+  let previous = null;
+  for (const line of log.querySelectorAll(".line.you, .line.avy")) {
+    const at = line.dataset.at ? new Date(line.dataset.at) : null;
+    if (!at) continue;
+    if (!previous || at - previous > 30 * 60 * 1000) {
+      const marker = el("div", "chapter", el("span", "when", chapterTime(at)));
+      const headline = line.dataset.headline;
+      if (headline) {
+        const b = el("button", "", "· " + headline.toLowerCase());
+        b.type = "button";
+        b.title = "What memory wrote from this conversation";
+        b.onclick = (e) => { e.stopPropagation(); inspect("episode", Number(line.dataset.episode)); };
+        marker.append(b);
+      }
+      line.before(marker);
+    }
+    previous = at;
+  }
+}
+function chapterTime(d) {
+  const today = new Date(), sameYear = d.getFullYear() === today.getFullYear();
+  const dayText = d.toDateString() === today.toDateString() ? "today"
+    : d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
+  const hour = d.getHours(), part = hour < 5 ? "late night" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
+  return `${dayText} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · ${part}`.toLowerCase();
+}
+
+// Hovering a footnote shows what memory said; clicking opens it in the inspector.
+const fnCache = {};
+let fnCard = null;
+async function showFootnote(sup) {
+  const h = sup.dataset.h, mem = h[0] === "x" ? "incognito" : (incognito ? "main" : null);
+  hideFootnote();
+  fnCard = el("div", "fn-card", el("div", "h", `${h} · looking…`));
+  document.body.append(fnCard);
+  placeCard(sup);
+  try {
+    const r = fnCache[h] ||= await getJSON(api(`/api/node?id=${h.slice(1)}`, mem));
+    if (!fnCard) return;
+    const n = r.node, said = r.versions[0].evidence[0], rests = r.versions[0].basis;
+    fnCard.replaceChildren(
+      el("div", "h", `${h} · ${n.shape}${n.label ? ", " + n.label : ""} · ${n.standing}${said ? " · " + day(said.at) : ""}`),
+      el("div", "t", n.title),
+      el("div", "", n.text),
+      said ? el("div", "q", `"${said.quote}"`) : rests.length ? el("div", "q", "rests on: " + rests.map((b) => b.title).join("; ")) : null);
+    placeCard(sup);
+  } catch {
+    fnCard?.replaceChildren(el("div", "h", `${h} · not in memory any more`));
+  }
+}
+function placeCard(sup) {
+  if (!fnCard) return;
+  const r = sup.getBoundingClientRect(), w = fnCard.offsetWidth, h = fnCard.offsetHeight;
+  fnCard.style.left = `${Math.max(12, Math.min(innerWidth - w - 12, r.left - 20))}px`;
+  fnCard.style.top = `${r.top - h - 10 > 8 ? r.top - h - 10 : r.bottom + 10}px`;
+}
+function hideFootnote() { fnCard?.remove(); fnCard = null; }
+log.addEventListener("mouseover", (e) => { const s = e.target.closest(".fn"); if (s) showFootnote(s); });
+log.addEventListener("mouseout", (e) => { if (e.target.closest(".fn")) hideFootnote(); });
+log.addEventListener("focusin", (e) => { const s = e.target.closest(".fn"); if (s) showFootnote(s); });
+log.addEventListener("focusout", (e) => { if (e.target.closest(".fn")) hideFootnote(); });
+log.addEventListener("click", (e) => {
+  const s = e.target.closest(".fn");
+  if (!s) return;
+  e.stopPropagation();
+  hideFootnote();
+  const h = s.dataset.h;
+  inspect("node", Number(h.slice(1)), null, h[0] === "x" ? "incognito" : "main");
+}, true);
 
 // The conversation comes back on reload: there's no new chat, just one long one.
 function clearedAt() {
@@ -987,6 +1196,7 @@ async function loadHistory() {
     shown.forEach((m) => showMessage(m, prompt));
     oldestShown = shown.length ? shown[0].id : last + 1;
     drawEarlier();
+    drawChapters();
     scrollDown();
   } catch (e) {
     addLine("error", `Couldn't load the conversation (${e.message}).`);
@@ -1010,6 +1220,7 @@ async function loadEarlier(e) {
   const first = log.querySelector(".earlier").nextSibling;
   const height = log.scrollHeight;
   messages.forEach((m) => showMessage(m, first));
+  drawChapters();
   log.scrollTop += log.scrollHeight - height;          // keep your place
   oldestShown = messages.length ? messages[0].id : 1;
   drawEarlier();
@@ -1096,7 +1307,7 @@ function updateRate() {
 async function clearScreen() {
   if (controller) controller.abort();
   interruptAvy();
-  log.querySelectorAll(".line").forEach((line) => line.remove());
+  log.querySelectorAll(".line, .chapter").forEach((line) => line.remove());
   const stats = await refreshMemory();
   oldestShown = (stats?.messages || 0) + 1;
   if (!incognito) try { localStorage.setItem("avy.clearedAt", String(oldestShown - 1)); } catch {}
@@ -1128,10 +1339,11 @@ async function showIncognito(on) {
   historyShown = true;
   $("chat").classList.toggle("incognito", on);
   $("endIncognito").hidden = !on;
-  log.querySelectorAll(".line, .earlier").forEach((line) => line.remove());
+  log.querySelectorAll(".line, .earlier, .chapter").forEach((line) => line.remove());
   renderSystem();
   await loadHistory();
   refreshMemory();
+  graph.nodes = []; graph.born.clear(); loadGraph();
 }
 $("endIncognito").onclick = () => incognito && toggleIncognito();
 
@@ -1155,20 +1367,23 @@ $("openMemory").onclick = () => (insp.stack.length ? closeInspector() : inspect(
       Settings become commands by themselves; add actions to ACTIONS.
    =================================================================== */
 const ACTIONS = {
-  memory: { about: "look inside memory (/memory: words searches it)", run: (words) => words ? inspect("search", words) : inspect("memory") },
-  index: { about: "index what's waiting now, not after ~20 messages", run: indexNow },
-  incognito: { about: "a separate conversation nothing is kept from (again to end it)", run: toggleIncognito },
-  clear: { about: "clear the screen (memory keeps everything)", run: clearScreen },
-  keys:  { about: "open the keys panel", run: openKeys },
-  where: { about: "where Avy keeps its files", run: showWhere },
-  retry: { about: "transcribe your newest recording again", run: retryRecording },
-  help:  { about: "list every command", run: showHelp },
+  memory:    { short: "look inside memory", about: "look inside memory (/memory: words searches it)",
+               run: (words) => words ? inspect("search", words) : inspect("memory") },
+  graph:     { short: "memory as a living network", about: "see memory as a network, in 3D (Esc closes)", run: () => openGraph() },
+  index:     { short: "write what's waiting now", about: "turn the messages waiting into knowledge now, instead of at the end of the sitting", run: indexNow },
+  reflect:   { short: "let Avy think now", about: "reflect now: re-check, infer, connect (normally done when it's quiet)", run: reflectNow },
+  incognito: { short: "a conversation nothing keeps", about: "a separate conversation nothing is kept from (again to end it)", run: toggleIncognito },
+  clear:     { short: "clear the screen", about: "clear the screen (memory keeps everything)", run: clearScreen },
+  keys:      { short: "your API keys", about: "open the keys panel", run: openKeys },
+  where:     { short: "where files live", about: "where Avy keeps its files", run: showWhere },
+  retry:     { short: "re-transcribe last recording", about: "transcribe your newest recording again", run: retryRecording },
+  help:      { short: "list every command", about: "list every command", run: showHelp },
 };
 
 function commands() {
   const fromSettings = Object.entries(settings.schema).map(([name, s]) =>
-    ({ name, about: s.about, options: s.options, value: settings.values[name] }));
-  const actions = Object.entries(ACTIONS).map(([name, a]) => ({ name, about: a.about, run: a.run }));
+    ({ name, about: s.about, short: s.short, options: s.options, value: settings.values[name] }));
+  const actions = Object.entries(ACTIONS).map(([name, a]) => ({ name, about: a.about, short: a.short, run: a.run }));
   return [...fromSettings, ...actions];
 }
 
@@ -1194,7 +1409,7 @@ function updateCommands() {
   if (typed.stage === "name") {
     const matches = all.filter((c) => c.name.startsWith(typed.name));
     panel = { ...panel, stage: "name", command: null,
-      items: matches.map((c) => ({ value: c.name, label: `/${c.name}${c.options ? ":" : ""}`, detail: c.options ? c.value : c.about })) };
+      items: matches.map((c) => ({ value: c.name, label: `/${c.name}${c.options ? ":" : ""}`, now: c.options ? c.value : "", short: c.short })) };
     $("cmdsHead").textContent = "── commands";
   } else {
     const command = all.find((c) => c.name === typed.name);
@@ -1203,12 +1418,12 @@ function updateCommands() {
       panel.items = [];
       $("cmdsHead").textContent = `── no command /${typed.name}`;
     } else if (!command.options) {
-      panel.items = [{ value: "", label: `/${command.name}`, detail: command.about }];
+      panel.items = [{ value: "", label: `/${command.name}`, now: "", short: command.about }];
       $("cmdsHead").textContent = `── /${command.name}`;
     } else {
       const arg = typed.arg.toLowerCase();
       panel.items = command.options.filter((o) => o.toLowerCase().startsWith(arg))
-        .map((o) => ({ value: o, label: o, detail: o === command.value ? "● now" : "" }));
+        .map((o) => ({ value: o, label: o, now: o === command.value ? "● now" : "", option: true }));
       $("cmdsHead").textContent = `── /${command.name}: ${command.about}`;
     }
   }
@@ -1227,10 +1442,10 @@ function drawCommands() {
   list.replaceChildren(...panel.items.map((item, i) => {
     const li = document.createElement("li");
     li.setAttribute("role", "option");
-    li.className = i === panel.selected ? "active" : "";
-    li.innerHTML = `<span class="name"></span><span class="detail"></span>`;
-    li.firstChild.textContent = item.label;
-    li.lastChild.textContent = item.detail || "";
+    li.className = (item.option ? "option" : "") + (i === panel.selected ? " active" : "");
+    const name = el("span", "name", item.label), now = el("span", "value", item.now || "");
+    if (item.option) li.append(name, now);
+    else li.append(el("div", "top", name, now), item.short ? el("div", "short", item.short) : null);
     li.onmousedown = (e) => { e.preventDefault(); panel.selected = i; completeCommand(true); };
     return li;
   }));
@@ -1300,7 +1515,8 @@ async function showWhere() {
   const f = settings.files, m = settings.memory;
   addLine("note", [
     `everything Avy saves is in ${f.data}`,
-    `  memory.db       every message, and the index into them, ${m.mb} MB`,
+    `  memory-v2.db    every message, and the knowledge and network built from them, ${m.mb} MB`,
+    `  memory.db       version 1's memory, if you used it (left exactly as it was)`,
     `  settings.json   your choices (system card and / commands)`,
     `  models/         speech and meaning-search models, ${f.models_mb} MB`,
     `  recordings/     your last ${f.recordings} recordings with their transcripts, ${f.recordings_mb} MB`,
@@ -1309,23 +1525,57 @@ async function showWhere() {
   ].join("\n"));
 }
 
+// What a run of the mind did, in one line.
+function runLine(r) {
+  if (r.status === "error" || r.status === "failed") return `${r.job}: couldn't (${r.problem || r.status})`;
+  const how = r.status === "ok" ? "" : ` (${r.status}, ${plural(r.attempts, "try").replace("trys", "tries")})`;
+  if (r.job === "write") return `wrote ep${r.episode} from #${r.first}-#${r.last}: ${plural(r.nodes || 0, "node")}${how} · ${r.headline || ""}`;
+  if (r.job === "connect") return `connected ${r.connected || 0} of ${plural(r.pairs || 0, "pair")} judged${how}`;
+  if (r.job === "think") return `thought about ${r.focus}: ${plural(r.inferred || 0, "new inference")}${how}`;
+  if (r.job === "check") return `re-checked ${plural(r.items || 0, "item")}: ${r.retracted || 0} let go${how}`;
+  return `${r.job} ${r.status}`;
+}
+
 async function indexNow() {
-  const note = addLine("note", "indexing what's waiting…");
+  const note = addLine("note", "writing what's waiting into memory…");
   try {
     const { runs, stats } = await getJSON("/api/index", { method: "POST" });
-    note.textContent = runs.length ? runs.map((r) => r.status === "error"
-      ? `couldn't index #${r.first}-#${r.last}: ${(r.problems.at(-1) || [])[0] || "unknown problem"}`
-      : `indexed #${r.first}-#${r.last} as page p${r.page}: ${r.entries} entr${r.entries === 1 ? "y" : "ies"}` +
-        (r.status === "ok" ? "" : ` (${r.status}, ${r.attempts} tries)`)).join("\n") + "\n/memory to look"
-      : "nothing waiting to index.";
+    note.textContent = runs.length ? runs.map(runLine).join("\n") + "\n/memory to look" : "nothing waiting to write.";
     settings.memory = stats; renderSystem(); updateTiles();
   } catch (e) {
-    note.textContent = `couldn't index (${e.message})`;
+    note.textContent = `couldn't write (${e.message})`;
   }
 }
 
+async function reflectNow() {
+  const note = addLine("note", "reflecting: re-checking, thinking, connecting… (this can take a minute)");
+  try {
+    const { runs, stats } = await getJSON("/api/reflect", { method: "POST" });
+    note.textContent = runs.length ? runs.map(runLine).join("\n") + "\n/memory to look" : "nothing new to think about.";
+    settings.memory = stats; renderSystem(); updateTiles();
+  } catch (e) {
+    note.textContent = `couldn't reflect (${e.message})`;
+  }
+}
+
+// What the mind is doing in the background, live: the "mind" line on the system card.
+let mindNow = "";
+function listenToMind() {
+  let source;
+  try { source = new EventSource("/api/events"); } catch { return; }
+  const words = { write: "writing", connect: "connecting", think: "thinking", check: "re-checking" };
+  source.onmessage = (e) => {
+    const m = JSON.parse(e.data).mind;
+    if (!m) return;
+    mindNow = m.state === "start" ? `${words[m.job] || m.job}${m.job === "write" ? " " + m.focus.replace("-", " on") : m.job === "think" ? ": " + m.focus.toLowerCase() : ""}…` : "";
+    if (m.state !== "start") refreshMemory();
+    renderSystem();
+    window.graphHears?.(m);
+  };
+}
+
 function showHelp() {
-  addLine("note", commands().map((c) => `/${c.name}${c.options ? ":" : ""}`.padEnd(12) + c.about).join("\n"));
+  addLine("note", commands().map((c) => `/${c.name}${c.options ? ":" : ""}`.padEnd(12) + c.short).join("\n"));
 }
 
 
@@ -1615,6 +1865,7 @@ function onVoiceMessage(m) {
     case "recall":           // what memory brought for this reply
       if (!reply) return;
       reply.recalled = m;
+      lightUp(m.kept);
       if (reply.line) reply.trace = addTrace(reply.line, m);
       return;
     case "thinking":
@@ -1861,6 +2112,7 @@ function tick(now) {
   drawBars(now);
   $("clock").textContent = new Date().toLocaleTimeString([], { hour12: false });
 }
+requestAnimationFrame(function graphLoop(now) { requestAnimationFrame(graphLoop); graphFrame(now); });
 
 function drawScope() {
   let frame = "";
@@ -1977,17 +2229,30 @@ function day(iso) {
   const d = new Date(iso), thisYear = d.getFullYear() === new Date().getFullYear();
   return d.toLocaleString([], { month: "short", day: "numeric", year: thisYear ? undefined : "numeric", hour: "numeric", minute: "2-digit" });
 }
-function withMentions(text, titles) {           // "[e3]'s place" -> a link titled Rohan
-  return text.split(/\[e(\d+)\]/).map((part, i) => (i % 2 ? go(titles[part] || `e${part}`, "entry", Number(part)) : part));
-}
-function pointer(v) {                           // evidence: #388 Oct 2 · you  "the exact words"
+function pointer(v, mem) {                      // evidence: #388 Oct 2 · you  "the exact words"
   return row([["n", `#${v.message}`], ["k", `${day(v.at)} · ${who(v.role)}`],
               ["g", v.exact ? `"${v.quote}"` : "(the whole message)"]],
-             () => inspect("log", v.message, v.exact ? { start: v.start, end: v.end } : null));
+             () => inspect("log", v.message, v.exact ? { start: v.start, end: v.end } : null, mem));
 }
-function entryRow(e, extra = "") {
-  return row([["k", e.kind.padEnd(10)], ["g", e.title + (e.version > 1 ? `  v${e.version}` : "")], ["n", `${extra}e${e.id}`]],
-             () => inspect("entry", e.id), e.current === false ? "old" : "");
+const ORIGIN = { user: "you said", avy: "avy said", inferred: "inferred" };
+function standing(n) { return n.origin === "inferred" ? `inferred, ${n.certainty || "possible"}` : ORIGIN[n.origin]; }
+function nodeRow(n, extra = "", mem) {           // a node: [shape] [title] [handle]
+  return row([["k", n.shape.padEnd(12)], ["g", n.title + (n.version > 1 ? `  v${n.version}` : "")],
+              ["n", `${extra}${standing(n)} · ${n.handle}`]],
+             () => inspect("node", n.chain, null, mem), n.current === false || n.state === "retracted" ? "old" : "");
+}
+function dots(strength) {                         // connection strength as ●●●○ (3 = something you said)
+  const full = Math.max(0, Math.min(4, Math.round(strength)));
+  return "●".repeat(full) + "○".repeat(4 - full);
+}
+const ARROW = { part_of: ["part of", "has part"], builds_on: ["builds on", "built on by"], like: ["like", "like"],
+                against: ["in tension with", "in tension with"], related: ["related to", "related to"] };
+function linkRow(l, mem) {
+  const words = ARROW[l.kind][l.direction === "in" ? 1 : 0];
+  return el("div", "",
+    row([["s", dots(l.strength)], ["k", words.padEnd(16)], ["g", l.other.title], ["n", `${l.stated ? "said · " : ""}${l.other.handle}`]],
+        () => inspect("node", l.other.chain, null, mem), l.live ? "" : "dormant"),
+    el("div", "dim", "      ", l.reason, " · ", go(`c${l.edge}`, "edge", l.edge, null, mem)));
 }
 function searchBox(words) {
   const box = el("input", "find");
@@ -2002,149 +2267,517 @@ function searchBox(words) {
   };
   return box;
 }
+function button(label, onclick) {
+  const b = el("button", "more", `[ ${label} ]`);
+  b.type = "button";
+  b.onclick = onclick;
+  return b;
+}
+function runBlock(run, mem) {                     // how a job went: status, problems per try, what it changed
+  const nodes = [el("div", "dim", `${run.job} · ${run.status} · ${plural(run.attempts, "try").replace("trys", "tries")} · ${run.model || ""} · ` +
+                    `${run.seconds ?? "?"}s · ${run.tokens_in ?? 0}+${run.tokens_out ?? 0} tokens · $${(run.cost || 0).toFixed(4)}`)];
+  (run.problems || []).forEach((list, i) => list.length &&
+    nodes.push(el("div", "", `try ${i + 1}: ${plural(list.length, "problem")}`), el("div", "problems dim", list.map((t) => el("div", "", "· " + t)))));
+  if (run.journal?.length) {
+    nodes.push(sec(`what it changed (${run.journal.filter((j) => j.result === "applied").length} applied, ` +
+                   `${run.journal.filter((j) => j.result !== "applied").length} refused)`));
+    nodes.push(run.journal.map((j) => journalRow(j, mem)));
+  }
+  const shown = (run.prompt || []).map((m) => `[${m.role}]\n${m.content}`).join("\n\n");
+  const said = (run.replies || []).map((r, i) => {
+    const call = r.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    try { return `try ${i + 1}:\n` + JSON.stringify(JSON.parse(call), null, 1); } catch { return `try ${i + 1}:\n` + (call || JSON.stringify(r).slice(0, 2000)); }
+  }).join("\n\n");
+  nodes.push(...toggle("what DeepSeek was shown", shown), ...toggle("what it answered", said));
+  return nodes;
+}
+function journalRow(j, mem) {                     // one proposed change: applied, or refused and why
+  const a = j.args || {};
+  const what = j.op === "add_node" ? `${a.replaces ? "new version" : "new " + (a.shape || "node")}: ${a.title || ""}`
+    : j.op === "connect" ? `${a.support?.kind || ""} ${a.kind || ""}: ${a.reason || ""}`
+    : j.op === "add_episode" ? `episode: ${a.headline || ""}` : j.op === "retract_node" ? `retract: ${a.why || ""}`
+    : j.op === "oppose" ? `doubt: ${a.support?.note || ""}` : j.op === "revise_edge" ? `revise: ${a.reason || ""}` : j.op;
+  const target = j.target || "";
+  const open = target.startsWith("c") ? () => inspect("edge", Number(target.slice(1)), null, mem)
+    : /^[kx]\d/.test(target) ? () => inspect("node", Number(target.slice(1)), null, mem)
+    : target.startsWith("ep") ? () => inspect("episode", Number(target.slice(2)), null, mem) : () => {};
+  return el("div", j.result === "applied" ? "" : "dim",
+    row([["n", j.result === "applied" ? "✓" : "✗"], ["g", what], ["n", target]], open),
+    j.why ? el("div", "dim", "      refused: " + j.why) : null);
+}
 
 const VIEWS = {
-  // Everything at a glance: the numbers, and every page newest first.
+  // Everything at a glance: the numbers, the network's health, conversations, recent reflection.
   async memory(arg, extra, mem) {
-    const { stats: s, pages } = await getJSON(api("/api/memory", mem));
+    const { stats: s, episodes, reflections, health: h } = await getJSON(api("/api/memory", mem));
     const current = (incognito ? "incognito" : "main") === s.memory;
     if (current) settings.memory = s;
-    const index = el("button", "more", s.waiting ? `[ index the ${s.waiting} waiting now ]` : "[ index now ]");
-    index.type = "button";
-    index.onclick = async () => { index.textContent = "indexing…"; await getJSON("/api/index", { method: "POST" }).catch(() => {}); inspectInstead("memory"); refreshMemory(); };
+    const write = button(s.waiting ? `write the ${s.waiting} waiting now` : "write now", async () => {
+      write.textContent = "writing…"; await getJSON("/api/index", { method: "POST" }).catch(() => {}); inspectInstead("memory"); refreshMemory();
+    });
+    const think = button("reflect now", async () => {
+      think.textContent = "reflecting… (a minute)"; await getJSON("/api/reflect", { method: "POST" }).catch(() => {}); inspectInstead("memory"); refreshMemory();
+    });
     return [s.memory === "incognito" ? "incognito memory" : "memory", [
       incognito && current ? el("div", "dim", "this incognito conversation's own memory (deleted when it ends) · ",
                                 go("the main memory", "memory", null, null, "main")) : null,
-      el("div", "", `${s.messages} messages · ${plural(s.pages, "page")} · ${plural(s.entries, "entry").replace("entrys", "entries")} · ${plural(s.links, "link")}`),
-      el("div", "dim", `indexed up to #${s.indexed_to}${s.waiting ? ` · ${s.waiting} waiting (a page is written every ~20)` : ""}` +
-                       `${s.failed_runs ? ` · ${s.failed_runs} failed runs` : ""}`),
-      el("div", "dim", `search by meaning: ${s.meaning} · ${s.mb} MB in memory.db`),
-      s.waiting && current ? index : null,
+      el("div", "", `${s.messages} messages · ${plural(s.episodes, "conversation")} · ${plural(s.nodes, "node")} · ${plural(s.connections, "connection")}`),
+      el("div", "dim", `${s.ideas} ideas · ${s.inferred} inferred · ${s.versions} versions in all · written up to #${s.written_to}` +
+                       `${s.waiting ? ` · ${s.waiting} waiting` : ""}${s.failed_runs ? ` · ${s.failed_runs} failed runs lately` : ""}`),
+      h ? el("div", "dim", `network: ${plural(h.islands ?? 0, "island")} · clustering ${h.clustering} (random ${h.random_clustering}) · ` +
+                           `${h.average_path} steps apart on average · `, go("health", "health")) : null,
+      el("div", "dim", `search by meaning: ${s.meaning} · ${s.mb} MB · `, go("journal", "journal"), " · ", go("graph", "graph")),
+      el("div", "", current ? write : null, " ", current && s.memory === "main" ? think : null),
       searchBox(""),
-      sec("pages, newest first"),
-      pages.length ? pages.map((p) => row([["n", `p${p.id}`.padEnd(5)], ["k", `#${p.first}-${p.last}`.padEnd(10)], ["g", p.headline],
-                                          ["n", `${p.n}${p.status && p.status !== "ok" ? " " + p.status : ""}`]], () => inspect("page", p.id)))
-                   : el("div", "dim", "nothing yet. a page is written for every ~20 messages, or now with /index."),
+      sec("conversations, newest first"),
+      episodes.length ? episodes.map((p) => row([["n", `ep${p.id}`.padEnd(6)], ["k", `#${p.first}-${p.last}`.padEnd(10)], ["g", p.headline],
+                                                ["n", `${p.n}${p.status && p.status !== "ok" ? " " + p.status : ""}`]], () => inspect("episode", p.id)))
+                      : el("div", "dim", "nothing yet. a conversation is written when a sitting ends (or every ~20 messages), or now with /index."),
+      reflections.length ? [sec("reflection, newest first"),
+        reflections.map((r) => row([["n", r.job.padEnd(6)], ["g", r.focus || ""], ["n", r.status]], () => inspect("run", r.id)))] : null,
     ]];
   },
 
-  // One page: its headline, its entries, and how it was written (the run).
-  async page(id, extra, mem) {
-    const { page: p, entries, run } = await getJSON(api(`/api/page?id=${id}`, mem));
-    const nodes = [
+  // One conversation: its headline, the knowledge written from it, and how it was written.
+  async episode(id, extra, mem) {
+    const { episode: p, nodes, run } = await getJSON(api(`/api/episode?id=${id}`, mem));
+    return [`conversation ep${p.id}`, [
       el("div", "big", p.headline),
-      el("div", "dim", `p${p.id} · written ${day(p.at)} · from messages `, go(`#${p.first}-#${p.last}`, "log", p.first)),
-      sec(`entries (${entries.length})`),
-      entries.length ? entries.map((e) => entryRow(e)) : el("div", "dim", "nothing here worth remembering, or the run couldn't save any"),
-    ];
-    if (run) {
-      nodes.push(sec("how it was written"),
-        el("div", "dim", `${run.status} · ${plural(run.attempts, "try").replace("trys", "tries")} · ${run.model} · ${run.seconds}s · ` +
-                         `${run.tokens_in}+${run.tokens_out} tokens · $${(run.cost || 0).toFixed(4)}`));
-      (run.problems || []).forEach((list, i) => list.length &&
-        nodes.push(el("div", "", `try ${i + 1}: ${plural(list.length, "problem")}`), el("div", "problems dim", list.map((t) => el("div", "", "· " + t)))));
-      const shown = (run.prompt || []).map((m) => `[${m.role}]\n${m.content}`).join("\n\n");
-      const said = (run.replies || []).map((r, i) => {
-        const call = r.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-        try { return `try ${i + 1}:\n` + JSON.stringify(JSON.parse(call), null, 1); } catch { return `try ${i + 1}:\n` + (call || JSON.stringify(r).slice(0, 2000)); }
-      }).join("\n\n");
-      nodes.push(...toggle("what DeepSeek was shown", shown), ...toggle("what it answered", said));
-    }
-    return [`page p${p.id}`, nodes];
+      el("div", "dim", `ep${p.id} · written ${day(p.at)} · from messages `, go(`#${p.first}-#${p.last}`, "log", p.first, null, mem)),
+      sec(`knowledge written from it (${nodes.length})`),
+      nodes.length ? nodes.map((n) => nodeRow(n, "", mem)) : el("div", "dim", "nothing here worth remembering, or the run couldn't save any"),
+      run ? [sec("how it was written"), runBlock(run, mem)] : null,
+    ]];
   },
 
-  // One entry, like a wiki article: text, evidence, links both ways, every version.
-  async entry(id, extra, mem) {
-    const a = await getJSON(api(`/api/entry?id=${id}`, mem));
-    const e = a.entry;
+  // One node, like a wiki page: what it says, where it came from, what it connects to, every version.
+  async node(chain, version, mem) {
+    const r = await getJSON(api(`/api/node?id=${chain}${version ? `&version=${version}` : ""}`, mem));
+    const n = r.node, latest = r.versions[0];
     const nodes = [];
-    if (a.current !== e.id) nodes.push(el("div", "banner", "an older version. what's true now: ", go(`e${a.current}`, "entry", a.current)));
-    nodes.push(el("div", "big", e.title),
-      el("div", "dim", `${e.kind} · e${e.id} · version ${e.version} of ${a.versions.length} · ${day(e.at)}`),
-      el("div", "para", withMentions(e.text, a.mentions)),
-      sec("said in"), a.evidence.map(pointer));
-    if (a.links.length) {
-      nodes.push(sec("links"), a.links.map((l) => row([["k", l.kind.replace("_", " ").padEnd(10)], ["g", l.title],
-        ["n", `${l.by === "system" ? "auto " : ""}${l.moved_on ? "updated since " : ""}e${l.to}`]], () => inspect("entry", l.to))));
-    }
-    nodes.push(sec(`linked from (${a.backlinks.length})`), a.backlinks.length
-      ? a.backlinks.map((l) => row([["k", l.kind.replace("_", " ").padEnd(10)], ["g", l.title], ["n", `${l.by === "system" ? "auto " : ""}e${l.from}`]],
-                                   () => inspect("entry", l.from)))
-      : el("div", "dim", "nothing yet"));
-    nodes.push(sec("versions, newest first"), a.versions.map((v) => el("div", v.id === e.id ? "" : "dim",
-      row([["k", `v${v.version}`], ["g", v.readable], ["n", v.replaced_by ? `until ${day(v.replaced_at)}` : "now"]], () => inspect("entry", v.id), v.replaced_by ? "old" : ""),
-      v.evidence.map(pointer))));
-    nodes.push(el("div", "dim", "\nwritten in ", go(`page p${a.page.id}`, "page", a.page.id), ` (#${a.page.first}-#${a.page.last})`));
-    return [`e${e.id} ${e.kind}`, nodes];
+    if (n.state === "retracted") nodes.push(el("div", "banner", `let go: ${n.why || "no longer believed"}. kept here as history.`));
+    else if (n.id !== r.head) nodes.push(el("div", "banner", "an older version. what's true now: ", go(`version ${latest.version}`, "node", chain, null, mem)));
+    nodes.push(el("div", "big", n.title),
+      el("div", "dim", `${n.shape}${n.label ? " · " + n.label : ""} · ${n.standing} · ${n.handle} · version ${n.version} of ${r.versions.length} · ${day(n.at)}`),
+      el("div", "para", n.text));
+    const shown = r.versions.find((v) => v.id === n.id);
+    if (shown.evidence.length) nodes.push(sec("said in"), shown.evidence.map((v) => pointer(v, mem)));
+    if (shown.basis.length) nodes.push(sec("rests on"), shown.basis.map((b) =>
+      row([["k", b.standing.padEnd(16)], ["g", b.title], ["n", `${b.stale ? "changed since · " : ""}${b.handle}`]], () => inspect("node", b.chain, null, mem))));
+    const origins = [...new Set(r.versions.map((v) => v.origin).reverse())];
+    if (origins.length > 1) nodes.push(el("div", "dim", "\nwho said it: " + origins.map((o) => ORIGIN[o]).join(", then ")));
+    const live = r.links.filter((l) => l.live), dormant = r.links.filter((l) => !l.live);
+    nodes.push(sec(`connections (${live.length})`), live.length ? live.map((l) => linkRow(l, mem)) : el("div", "dim", "none yet"));
+    if (dormant.length) nodes.push(sec(`dormant (${dormant.length}): too weak to follow, kept as history`), dormant.map((l) => linkRow(l, mem)));
+    if (r.inferred_from_this.length) nodes.push(sec("what avy inferred from this"), r.inferred_from_this.map((x) => nodeRow(x, "", mem)));
+    nodes.push(sec("versions, newest first"), r.versions.map((v) => el("div", v.id === n.id ? "" : "dim",
+      row([["k", `v${v.version}`], ["g", (v.state === "retracted" ? "(let go) " : "") + v.text], ["n", ORIGIN[v.origin]]],
+          () => inspect("node", chain, v.version, mem), v.id !== r.head ? "old" : ""),
+      v.evidence.map((x) => pointer(x, mem)))));
+    if (r.journal.length) nodes.push(sec("history"), r.journal.map((j) => journalRow(j, mem)));
+    if (r.episode) nodes.push(el("div", "dim", "\nwritten from ", go(`conversation ep${r.episode.id}`, "episode", r.episode.id, null, mem), ` · ${r.episode.headline}`));
+    return [`${n.handle} ${n.shape}`, nodes];
+  },
+
+  // One connection: why it exists, and how its strength came to be what it is.
+  async edge(id, extra, mem) {
+    const r = await getJSON(api(`/api/edge?id=${id}`, mem));
+    const e = r.edge;
+    return [`connection c${e.id}`, [
+      el("div", "", go(r.a.title, "node", r.a.chain, null, mem), `  ${ARROW[e.kind][0]}  `, go(r.b.title, "node", r.b.chain, null, mem)),
+      el("div", "para", e.reason),
+      el("div", "dim", `${e.kind} · strength ${e.strength} ${dots(e.strength)} · ${e.strength >= r.live_at ? "followed in search" : "dormant: too weak to follow"} · since ${day(e.at)}`),
+      sec(`its supports (${r.supports.length}), oldest first`),
+      r.supports.map((s) => el("div", "", row([["n", s.sign > 0 ? "+" : "−"], ["k", s.kind.padEnd(10)], ["g", s.note || s.source || ""],
+                                               ["n", `${day(s.at)} → ${s.strength_after}`]], () => {}))),
+      el("div", "dim", "\nstated and confirmed count 3 and never fade; the model's judgment counts 1; coming up together or being used in a search .5. " +
+                       "for 'like' and 'related', the weaker ones halve every 90 days."),
+      r.journal.length ? [sec("history"), r.journal.map((j) => journalRow(j, mem))] : null,
+    ]];
+  },
+
+  // One run of the mind: what it was asked, what it answered, what the checks found, what it changed.
+  async run(id, extra, mem) {
+    const run = await getJSON(api(`/api/run?id=${id}`, mem));
+    return [`${run.job} run ${run.id}`, [el("div", "big", run.focus || run.job), el("div", "dim", day(run.at)), runBlock(run, mem)]];
+  },
+
+  // Every proposed change, newest first.
+  async journal(arg, extra, mem) {
+    const { journal } = await getJSON(api("/api/journal?limit=300", mem));
+    return ["journal", [el("div", "dim", "every change anyone proposed to memory, and what happened to it, newest first"),
+                        journal.map((j) => [journalRow(j, mem), el("div", "dim", `      ${day(j.at)}${j.run ? " · " : ""}`, j.run ? go(`run ${j.run}`, "run", j.run, null, mem) : null)])]];
+  },
+
+  // The network's shape, now and over time.
+  async health(arg, extra, mem) {
+    const { now: h, history } = await getJSON(api("/api/health", mem));
+    const rows = [["nodes", h.nodes], ["connections", h.connections], ["islands", `${h.islands} (largest holds ${Math.round((h.largest_share || 0) * 100)}%)`],
+                  ["clustering", `${h.clustering} (wired at random: ${h.random_clustering})`], ["average path", `${h.average_path} steps (random: ${h.random_path})`],
+                  ["one connection", `${Math.round((h.fragile || 0) * 100)}% of nodes`], ["top 5 hubs", `${Math.round((h.hub_share || 0) * 100)}% of connection ends`],
+                  ["said by you", h.said_by_you], ["said by avy", h.said_by_avy], ["inferred", h.inferred],
+                  ["things · info · ideas", `${h.things} · ${h.information} · ${h.ideas}`], ["waiting a re-check", h.stale]];
+    return ["health", [
+      el("div", "dim", "a healthy memory is a small world: related things cluster (clustering well above random), and anything is a few steps from anything else."),
+      el("table", "nums", rows.map(([k, v]) => el("tr", "", el("th", "", k), el("td", "", String(v ?? "–"))))),
+      history.length ? [sec("after each reflection"), el("table", "nums",
+        el("tr", "", ["when", "nodes", "links", "islands", "clustering", "path"].map((t) => el("th", "", t))),
+        history.slice(-20).map((x) => el("tr", "", [day(x.at), x.nodes, x.connections, x.islands, x.clustering, x.average_path].map((t) => el("td", "", String(t ?? "–"))))))] : null,
+    ]];
   },
 
   // The log itself, around one message, with the quoted words highlighted.
   async log(id, quote, mem) {
     const { messages, last } = await getJSON(api(`/api/log?after=${Math.max(0, id - 7)}&limit=13`, mem));
     const nodes = [];
-    if (messages.length && messages[0].id > 1) {
-      const up = el("button", "more", "[ earlier ]");
-      up.onclick = () => inspectInstead("log", Math.max(1, messages[0].id - 6));
-      nodes.push(up);
-    }
+    if (messages.length && messages[0].id > 1) nodes.push(button("earlier", () => inspectInstead("log", Math.max(1, messages[0].id - 6))));
     for (const m of messages) {
       let text = [m.text];
       if (m.id === id && quote) text = [m.text.slice(0, quote.start), el("mark", "", m.text.slice(quote.start, quote.end)), m.text.slice(quote.end)];
       nodes.push(el("div", "msg" + (m.id === id ? " here" : ""),
         el("div", "dim", `#${m.id} · ${day(m.at)} · ${who(m.role)}${m.via === "voice" ? " (spoken)" : ""}${m.meta.cut ? " (cut off)" : ""}`,
-           m.page ? [" · ", go(`p${m.page}`, "page", m.page)] : " · not indexed yet",
-           m.cited_by.length ? [" · cited by ", m.cited_by.map((c, i) => [i ? " " : "", go(`e${c}`, "entry", c)])] : null,
-           m.recalled ? [" · ", go("recall", "recall", m.recalled.id)] : null),
+           m.episode ? [" · ", go(`ep${m.episode}`, "episode", m.episode, null, mem)] : " · not written yet",
+           m.cited_by.length ? [" · cited by ", m.cited_by.map((c, i) => [i ? " " : "", go(c, "node", Number(c.slice(1)), null, c[0] === "x" ? "incognito" : mem)])] : null,
+           m.recalled ? [" · ", go("recall", "recall", m.recalled.id, null, mem)] : null),
         el("div", "text", text)));
     }
-    if (messages.length && messages[messages.length - 1].id < last) {
-      const down = el("button", "more", "[ later ]");
-      down.onclick = () => inspectInstead("log", messages[messages.length - 1].id + 7);
-      nodes.push(down);
-    }
+    if (messages.length && messages[messages.length - 1].id < last) nodes.push(button("later", () => inspectInstead("log", messages[messages.length - 1].id + 7)));
     return [`log #${id}`, nodes];
   },
 
-  // What memory brought for one reply, and how each thing was reached.
+  // What memory brought for one reply, how each thing was reached, and (if Avy searched) her rounds.
   async recall(id, extra, mem) {
     const r = await getJSON(api(`/api/recall?id=${id}`, mem));
-    const t = r.trace;
-    const titles = Object.fromEntries(t.entries.map((x) => [x.entry, x.title]));
-    const how = (x) => x.how === "link"
-      ? `via ${titles[x.via] || "e" + x.via} (${x.link}${x.direction === "in" ? ", backlink" : ""})`
-      : x.how === "page" ? "its page matched" : `found by ${x.how === "both" ? "words + meaning" : x.how}`;
+    const t = r.trace, x = t.explore;
+    const titles = Object.fromEntries(t.nodes.map((n) => [n.node, n.title]));
+    const how = (n) => n.how === "link" ? `via ${titles[n.via] || "k" + n.via} (${(n.kind || "").replace("_", " ")}${n.direction === "in" ? ", backwards" : ""})`
+      : n.how === "explored" ? `kept by avy${n.why ? ": " + n.why : ""}` : n.how === "episode" ? "its conversation matched"
+      : `found by ${n.how === "both" ? "words + meaning" : n.how}`;
+    const memOf = (n) => n.memory || mem;
+    const mode = t.depth === "off" ? "recall off" : `${t.depth} · ${[t.words && "words", t.meaning && "meaning"].filter(Boolean).join(" + ") || "no search"}` +
+                 (x ? " · avy searched" : "");
     return [`recall for #${r.message}`, [
       el("div", "", `"${t.query}"`),
-      el("div", "dim", `searched ${t.searched.entries} entries and ${t.searched.log} older messages · followed links to ${t.walked} more · ` +
-                       `~${t.tokens} tokens · ${t.seconds}s · meaning search ${t.meaning === "on" ? "on" : "off"}`),
-      sec(`entries it brought (${t.entries.length})`),
-      t.entries.length ? t.entries.map((x) => el("div", "",
-        row([["n", x.score.toFixed(2)], ["k", x.kind.padEnd(10)], ["g", x.title + (x.version > 1 ? `  v${x.version}` : "")],
-             ["n", `${x.memory === "main" && incognito ? "main " : ""}e${x.entry}`]], () => inspect("entry", x.entry, null, x.memory || mem)),
-        el("div", "dim", "      ", how(x), x.matched ? ` · matched older version e${x.matched}` : "", " · ",
-           x.messages.map((m, i) => [i ? " " : "", go(`#${m}`, "log", m, null, x.memory || mem)])))) : el("div", "dim", "none"),
+      el("div", "dim", `${mode} · looked at ${t.searched.nodes} nodes and ${t.searched.log} older messages · ~${t.tokens} tokens · ${t.seconds}s`),
+      x ? [sec(`avy's search: ${plural(x.rounds.length, "round")}${x.fell_back ? " (couldn't reach deepseek; fell back to rules)" : ""}`),
+           x.task ? el("div", "para", `she took this to need: ${x.task}`) : null,
+           el("div", "dim", `landed on: ${(x.landing || []).join(" ")}`),
+           x.rounds.map((s) => el("div", "round",
+             el("div", "", `round ${s.round}` + (s.done ? " · done" : "")),
+             s.questions?.length ? el("div", "dim", "asking: " + s.questions.join("; ")) : null,
+             s.open?.length ? el("div", "dim", "read: " + s.open.join(" ")) : null,
+             s.follow?.length ? el("div", "dim", "followed: " + s.follow.join(" ")) : null,
+             s.search?.length ? el("div", "dim", "searched: " + s.search.map((q) => `"${q}"`).join(", ")) : null,
+             s.keep?.length ? el("div", "dim", "keeping: " + s.keep.join(" ")) : null))] : null,
+      sec(`nodes it brought (${t.nodes.length})`),
+      t.nodes.length ? t.nodes.map((n) => el("div", "",
+        row([["n", n.score.toFixed(2)], ["k", n.shape.padEnd(12)], ["g", n.title + (n.version > 1 ? `  v${n.version}` : "")],
+             ["n", `${standing(n)} · ${n.memory === "main" && incognito ? "main " : ""}${n.handle}`]], () => inspect("node", n.node, null, memOf(n))),
+        el("div", "dim", "      ", how(n), n.matched ? ` · matched version ${n.matched}` : "", " · ",
+           n.messages.map((m, i) => [i ? " " : "", go(`#${m}`, "log", m, null, memOf(n))])))) : el("div", "dim", "none"),
+      t.connections?.length ? [sec("how they connect"), t.connections.map((c) => row([["s", dots(c.strength)], ["k", c.kind.replace("_", " ").padEnd(10)], ["g", c.reason], ["n", `c${c.edge}`]],
+                                                                                     () => inspect("edge", c.edge)))] : null,
       sec(`older messages it brought (${t.log.length})`),
-      t.log.length ? t.log.map((x) => row([["n", `#${x.message}`], ["g", `found by ${x.how === "both" ? "words + meaning" : x.how}${x.memory === "main" && incognito ? " (main)" : ""}`]],
-                                           () => inspect("log", x.message, null, x.memory || mem)))
-                   : el("div", "dim", "none"),
+      t.log.length ? t.log.map((l) => row([["n", `#${l.message}`], ["g", l.why || `found by ${l.how === "both" ? "words + meaning" : l.how}`]],
+                                           () => inspect("log", l.message, null, memOf(l)))) : el("div", "dim", "none"),
       t.skipped ? el("div", "dim", `${t.skipped} more matched but didn't fit`) : null,
       ...toggle("the exact memory note DeepSeek got", r.briefing),
     ]];
   },
 
-  // Search entries and the log.
+  // Search nodes and the log.
   async search(words, extra, mem) {
     const r = await getJSON(api(`/api/search?q=${encodeURIComponent(words)}`, mem));
     return [`search: ${words}`, [
       searchBox(words),
-      sec(`entries (${r.entries.length})`),
-      r.entries.length ? r.entries.map((e) => entryRow(e)) : el("div", "dim", "none"),
+      sec(`nodes (${r.nodes.length})`),
+      r.nodes.length ? r.nodes.map((n) => nodeRow(n, "", mem)) : el("div", "dim", "none"),
       sec(`messages (${r.messages.length})`),
-      r.messages.length ? r.messages.map((m) => row([["n", `#${m.id}`], ["k", who(m.role)], ["g", m.text]], () => inspect("log", m.id)))
+      r.messages.length ? r.messages.map((m) => row([["n", `#${m.id}`], ["k", who(m.role)], ["g", m.text]], () => inspect("log", m.id, null, mem)))
                         : el("div", "dim", "none"),
     ]];
   },
+
+  async graph() { openGraph(); return ["graph", [el("div", "dim", "opened the graph view.")]]; },
 };
+
+
+/* ===================================================================
+   13. The living graph: memory as a network.
+       A small force layout in 3D: connections pull, everything gently pushes everything else away, so
+       related things settle near each other and hubs end up where many things meet. In the corner it's
+       a tiny view, turning slowly and breathing; /graph opens it full page. Whatever Avy looks at while
+       searching lights up in her teal; new knowledge fades in as the mind writes it.
+   =================================================================== */
+const TEAL = "#4FA596";
+const graph = {
+  data: null, nodes: [], edges: [], byChain: new Map(), adj: new Map(),
+  yaw: 0.6, pitch: -0.35, zoom: 1, panX: 0, panY: 0, open: false,
+  hover: null, selected: null, lit: new Map(), born: new Map(), settle: 0, loadedAt: 0, mem: null,
+};
+
+async function loadGraph() {
+  try {
+    const d = await getJSON(api("/api/graph", incognito ? "incognito" : "main"));
+    const known = new Map(graph.nodes.map((n) => [n.chain, n]));
+    const now = performance.now();
+    graph.mem = d.memory;
+    graph.nodes = d.nodes.map((n) => {
+      const old = known.get(n.chain);
+      if (old) return Object.assign(old, n);
+      if (graph.nodes.length) graph.born.set(n.chain, now);           // new since we last looked: fade it in
+      const r = 40 + Math.random() * 60, a = Math.random() * 6.283, b = Math.acos(2 * Math.random() - 1);
+      return { ...n, x: r * Math.sin(b) * Math.cos(a), y: r * Math.cos(b), z: r * Math.sin(b) * Math.sin(a),
+               vx: 0, vy: 0, vz: 0, phase: Math.random() * 6.283 };
+    });
+    graph.byChain = new Map(graph.nodes.map((n) => [n.chain, n]));
+    graph.edges = [...d.edges.map((e) => ({ ...e, rests: false })), ...d.rests.map((r) => ({ a: r.a, b: r.b, kind: "rests", strength: 1, rests: true }))]
+      .filter((e) => graph.byChain.has(e.a) && graph.byChain.has(e.b));
+    graph.adj = new Map(graph.nodes.map((n) => [n.chain, []]));
+    for (const e of graph.edges) { graph.adj.get(e.a).push(e); graph.adj.get(e.b).push(e); }
+    for (const n of graph.nodes) {                   // a newcomer starts next to something it's connected to
+      const e = graph.born.has(n.chain) && graph.adj.get(n.chain)[0];
+      const m = e && graph.byChain.get(e.a === n.chain ? e.b : e.a);
+      if (m && !known.has(n.chain)) { n.x = m.x + 8 - Math.random() * 16; n.y = m.y + 8 - Math.random() * 16; n.z = m.z + 8 - Math.random() * 16; }
+    }
+    graph.settle = Math.max(graph.settle, known.size ? 120 : 400);
+    graph.loadedAt = Date.now();
+    $("mini").hidden = graph.nodes.length < 3;
+    $("scope").hidden = graph.nodes.length >= 3;
+    $("graphStats").textContent = `${plural(graph.nodes.length, "node")} · ${plural(d.edges.length, "connection")} · ${d.memory === "incognito" ? "incognito" : "main memory"}`;
+  } catch { /* the graph is a nicety; the conversation never waits for it */ }
+}
+
+// One step of the layout. Repulsion between all pairs (fine for a few hundred nodes), springs along
+// connections (stronger ones shorter and tighter), and a gentle pull to the middle.
+function layoutStep(heat) {
+  const ns = graph.nodes, n = ns.length;
+  for (let i = 0; i < n; i++) {
+    const a = ns[i];
+    for (let j = i + 1; j < n; j++) {
+      const b = ns[j];
+      let dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+      const d2 = dx * dx + dy * dy + dz * dz + 0.01;
+      if (d2 > 90000) continue;
+      const f = 900 / d2;
+      dx *= f; dy *= f; dz *= f;
+      a.vx += dx; a.vy += dy; a.vz += dz; b.vx -= dx; b.vy -= dy; b.vz -= dz;
+    }
+  }
+  for (const e of graph.edges) {
+    const a = graph.byChain.get(e.a), b = graph.byChain.get(e.b);
+    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    const d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
+    const strength = Math.min(3, e.strength);
+    const rest = e.rests ? 34 : 46 - strength * 6, k = (e.rests ? 0.012 : 0.01 + strength * 0.006) * (d - rest) / d;
+    a.vx += dx * k; a.vy += dy * k; a.vz += dz * k; b.vx -= dx * k; b.vy -= dy * k; b.vz -= dz * k;
+  }
+  for (const p of ns) {
+    p.vx -= p.x * 0.004; p.vy -= p.y * 0.004; p.vz -= p.z * 0.004;
+    const cap = 6 * heat + 0.05;
+    p.x += Math.max(-cap, Math.min(cap, p.vx)); p.y += Math.max(-cap, Math.min(cap, p.vy)); p.z += Math.max(-cap, Math.min(cap, p.vz));
+    p.vx *= 0.6; p.vy *= 0.6; p.vz *= 0.6;
+  }
+}
+
+// From layout space to the screen: turn, tilt, then perspective. Each node breathes a little.
+function project(p, w, h, scale, t) {
+  const breathe = Math.sin(t * 0.0007 + p.phase) * 2.2;
+  const cy = Math.cos(graph.yaw), sy = Math.sin(graph.yaw), cp = Math.cos(graph.pitch), sp = Math.sin(graph.pitch);
+  const x1 = p.x * cy - p.z * sy, z1 = p.x * sy + p.z * cy;
+  const y1 = (p.y + breathe) * cp - z1 * sp, z2 = (p.y + breathe) * sp + z1 * cp;
+  const persp = 420 / (420 + z2);
+  return { x: w / 2 + graph.panX + x1 * persp * scale, y: h / 2 + graph.panY + y1 * persp * scale, z: z2, s: persp };
+}
+
+function fitScale(w, h) {
+  let r = 1;
+  for (const p of graph.nodes) r = Math.max(r, Math.abs(p.x), Math.abs(p.y), Math.abs(p.z));
+  return Math.min(w, h) / (2.9 * r);
+}
+
+function isLit(chain, now) {
+  const t = graph.lit.get(chain);
+  return t && now - t < 9000 ? 1 - (now - t) / 9000 : 0;
+}
+
+// Light up nodes Avy is looking at (handles like k12), so you can watch her search.
+function lightUp(handles) {
+  const now = performance.now();
+  for (const h of handles || []) {
+    const chain = Number(String(h.h || h).slice(1));
+    if (graph.byChain.has(chain)) graph.lit.set(chain, now);
+  }
+}
+
+function drawGraph(canvas, full, now) {
+  const dpr = devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return [];
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const ink = getComputedStyle(canvas).color || "#1C1A17";
+  const scale = fitScale(w, h) * (full ? graph.zoom : 1.1);
+  const shown = graph.nodes.map((p) => ({ p, q: project(p, w, h, scale, now) }));
+  const at = new Map(shown.map((s) => [s.p.chain, s.q]));
+  const focus = full && (graph.hover || graph.selected);
+  const near = new Set(focus ? [focus, ...graph.adj.get(focus).map((e) => (e.a === focus ? e.b : e.a))] : []);
+  const fade = (z) => Math.max(0.18, Math.min(1, 1 - z / 260));
+
+  // connections first, faint; the ones around what you're pointing at, darker
+  ctx.lineCap = "round";
+  for (const e of graph.edges) {
+    const a = at.get(e.a), b = at.get(e.b);
+    const around = focus && (e.a === focus || e.b === focus);
+    const lit = Math.min(isLit(e.a, now), isLit(e.b, now));
+    let alpha = (e.rests ? 0.08 : 0.08 + 0.16 * Math.min(1, e.strength / 3)) * fade((a.z + b.z) / 2) * (full ? 1 : 0.8);
+    if (focus) alpha = around ? 0.75 : alpha * 0.45;
+    ctx.globalAlpha = Math.max(alpha, lit * 0.8);
+    ctx.strokeStyle = lit > 0.05 ? TEAL : ink;
+    ctx.lineWidth = (full ? 0.6 + Math.min(3, e.strength) * 0.35 : 0.5) * (around || lit ? 1.6 : 1);
+    ctx.setLineDash(e.rests ? [2, 3] : []);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // nodes, far to near. Things and information are filled; ideas are rings; inferences are dashed rings.
+  shown.sort((u, v) => v.q.z - u.q.z);
+  for (const { p, q } of shown) {
+    const born = graph.born.get(p.chain), grow = born ? Math.min(1, (now - born) / 2500) : 1;
+    const lit = isLit(p.chain, now);
+    let r = ((p.shape === "thing" ? 2.6 : 1.9) + Math.min(5, Math.sqrt(p.degree) * 0.9)) * q.s * (full ? 1.25 : 0.62) * grow;
+    let alpha = fade(q.z) * grow;
+    if (focus) alpha *= near.has(p.chain) ? 1 : 0.35;
+    ctx.globalAlpha = alpha;
+    if (lit > 0.02) {                                   // Avy is looking here: a soft teal halo
+      ctx.globalAlpha = lit * 0.35;
+      ctx.fillStyle = TEAL;
+      ctx.beginPath(); ctx.arc(q.x, q.y, r + 6 * lit + 2, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = Math.max(alpha, lit);
+    }
+    ctx.strokeStyle = ctx.fillStyle = lit > 0.3 ? TEAL : ink;
+    ctx.lineWidth = full ? 1.2 : 0.8;
+    ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.6, r), 0, 6.283);
+    if (p.origin === "inferred") { ctx.setLineDash([1.6, 1.6]); ctx.stroke(); ctx.setLineDash([]); }
+    else if (p.shape === "idea") ctx.stroke();
+    else ctx.fill();
+    q.r = r;
+  }
+
+  // light labels: the biggest hubs, plus whatever you're pointing at and what it connects to
+  if (full) {
+    const hubs = new Set(graph.nodes.filter((n) => n.degree >= 3).sort((a, b) => b.degree - a.degree).slice(0, 16).map((n) => n.chain));
+    ctx.font = "11px 'Space Mono', monospace";
+    ctx.textBaseline = "middle";
+    for (const { p, q } of shown) {
+      const show = focus ? near.has(p.chain) : hubs.has(p.chain) || isLit(p.chain, now) > 0.2;
+      if (!show) continue;
+      ctx.globalAlpha = (focus ? (p.chain === focus ? 1 : 0.75) : 0.6) * fade(q.z);
+      ctx.fillStyle = ink;
+      const label = p.title.length > 34 ? p.title.slice(0, 33) + "…" : p.title;
+      ctx.fillText(label.toLowerCase(), q.x + (q.r || 2) + 5, q.y);
+    }
+  }
+  ctx.globalAlpha = 1;
+  return shown;
+}
+
+let graphShown = [];
+function graphFrame(now) {
+  if (!graph.nodes.length) return;
+  if (graph.settle > 0) { const steps = graph.open ? 3 : 2; for (let i = 0; i < steps; i++) layoutStep(Math.min(1, graph.settle / 200)); graph.settle -= steps; }
+  else if (Math.random() < 0.3) layoutStep(0.02);
+  if (!graph.dragging && !still) graph.yaw += graph.open ? 0.0011 : 0.0016;
+  if (graph.open) graphShown = drawGraph($("graphCanvas"), true, now);
+  else if (!$("mini").hidden && $("mini").offsetParent) drawGraph($("mini"), false, now);
+}
+
+function openGraph() {
+  closeInspector();
+  graph.open = true;
+  $("graph").hidden = false;
+  loadGraph();
+}
+function closeGraph() {
+  graph.open = false; graph.selected = graph.hover = null;
+  $("graph").hidden = true; $("graphCard").hidden = true; $("graphTip").hidden = true;
+  input.focus();
+}
+$("mini").onclick = openGraph;
+$("graphClose").onclick = closeGraph;
+document.addEventListener("keydown", (e) => { if (graph.open && e.key === "Escape") { e.stopPropagation(); closeGraph(); } }, true);
+
+function nodeAt(x, y) {
+  let best = null, dist = 12;
+  for (const { p, q } of graphShown) {
+    const d = Math.hypot(q.x - x, q.y - y) - (q.r || 2);
+    if (d < dist) { dist = d; best = { p, q }; }
+  }
+  return best;
+}
+
+(function graphControls() {
+  const c = $("graphCanvas");
+  let down = null;
+  c.addEventListener("pointerdown", (e) => { down = { x: e.clientX, y: e.clientY, yaw: graph.yaw, pitch: graph.pitch, moved: false }; c.setPointerCapture(e.pointerId); });
+  c.addEventListener("pointermove", (e) => {
+    const box = c.getBoundingClientRect();
+    if (down) {
+      const dx = e.clientX - down.x, dy = e.clientY - down.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) { down.moved = true; graph.dragging = true; c.classList.add("dragging"); }
+      graph.yaw = down.yaw + dx * 0.006;
+      graph.pitch = Math.max(-1.4, Math.min(1.4, down.pitch + dy * 0.006));
+      return;
+    }
+    const hit = nodeAt(e.clientX - box.left, e.clientY - box.top);
+    graph.hover = hit ? hit.p.chain : null;
+    const tip = $("graphTip");
+    if (!hit) { tip.hidden = true; return; }
+    const p = hit.p, links = graph.adj.get(p.chain).filter((x) => !x.rests).sort((a, b) => b.strength - a.strength).slice(0, 3);
+    tip.replaceChildren(el("div", "h", `${graph.mem === "incognito" ? "x" : "k"}${p.chain} · ${p.shape}${p.label ? ", " + p.label : ""} · ${standing(p)} · ${plural(p.degree, "connection")}`),
+                        el("div", "", p.title), links.length ? el("div", "h", links.map((l) => l.reason).join(" · ")) : null);
+    tip.hidden = false;
+    tip.style.left = `${Math.min(box.width - tip.offsetWidth - 12, e.clientX - box.left + 14)}px`;
+    tip.style.top = `${Math.min(box.height - tip.offsetHeight - 12, e.clientY - box.top + 14)}px`;
+  });
+  c.addEventListener("pointerup", (e) => {
+    const box = c.getBoundingClientRect();
+    if (down && !down.moved) {
+      const hit = nodeAt(e.clientX - box.left, e.clientY - box.top);
+      graph.selected = hit ? hit.p.chain : null;
+      showGraphCard(hit && hit.p);
+    }
+    down = null; graph.dragging = false; c.classList.remove("dragging");
+  });
+  c.addEventListener("pointerleave", () => { graph.hover = null; $("graphTip").hidden = true; });
+  c.addEventListener("wheel", (e) => { e.preventDefault(); graph.zoom = Math.max(0.4, Math.min(6, graph.zoom * Math.exp(-e.deltaY * 0.0012))); }, { passive: false });
+})();
+
+async function showGraphCard(p) {
+  const card = $("graphCard");
+  if (!p) { card.hidden = true; return; }
+  const mem = graph.mem === "incognito" ? "incognito" : "main";
+  card.hidden = false;
+  card.replaceChildren(el("div", "h", "…"));
+  try {
+    const r = await getJSON(api(`/api/node?id=${p.chain}`, mem));
+    const n = r.node, said = r.versions[0].evidence[0];
+    const links = r.links.filter((l) => l.live).slice(0, 4);
+    const open = el("button", "", "[ open in the inspector ]");
+    open.type = "button";
+    open.onclick = () => { closeGraph(); inspect("node", p.chain, null, mem); };
+    card.replaceChildren(
+      el("div", "h", `${n.handle} · ${n.shape}${n.label ? ", " + n.label : ""} · ${n.standing} · ${day(n.at)}`),
+      el("div", "t", n.title), el("div", "", n.text),
+      said ? el("div", "c", `"${said.quote}"`) : null,
+      links.length ? el("div", "c", links.map((l) => `${ARROW[l.kind][l.direction === "in" ? 1 : 0]} ${l.other.title}`).join(" · ")) : null,
+      open);
+  } catch { card.hidden = true; }
+}
+
+// The mind tells the page what it's doing; new knowledge appears in the graph as it's written.
+window.graphHears = (m) => { if (m.state === "done" && m.new_chains?.length) loadGraph(); };
 
 
 /* ===================================================================
@@ -2157,6 +2790,8 @@ if (still) { drawScope(); drawBars(0); } else requestAnimationFrame(tick);
 loadSettings().then(() => { updateRate(); setInterval(updateRate, 60_000); refreshMemory(); });
 setInterval(() => { if (!document.hidden) refreshMemory(); }, 20_000);   // the indexer works in the background
 loadStatus();          // then the conversation: the main one, or an incognito one still going
+listenToMind();
+setTimeout(loadGraph, 600);
 drawCursor();
 </script>
 </body>

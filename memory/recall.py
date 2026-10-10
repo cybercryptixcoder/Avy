@@ -283,7 +283,15 @@ class Recall:
                 if b["now"]:
                     rests.append(f"[{self.handle(b['chain'])}] {b['now']['title']} ({self.standing(b['now'])})")
             lines.append("   rests on: " + "; ".join(rests))
-        for old in self.versions(chain)[1:4]:
+        versions = self.versions(chain)
+        origins = [v["origin"] for v in reversed(versions)]
+        if len(set(origins)) > 1:              # it changed hands: say who said it first
+            first = versions[-1]
+            said = self.evidence_of(first["id"])
+            lines.append(f"   first {self.standing(first).replace('you said', 'said by Shreyas')}"
+                         + (f" (#{said[0]['message']}, {when(said[0]['at'])})" if said else "")
+                         + f"; now {self.standing(n).replace('you said', 'confirmed by Shreyas')}")
+        for old in versions[1:4]:
             quotes = " ".join(f"#{v['message']}" for v in self.evidence_of(old["id"]))
             lines.append(f"   earlier, version {old['version']}: {old['text']}" + (f" ({quotes})" if quotes else ""))
         return "\n".join(lines), msgs
@@ -298,7 +306,7 @@ class Recall:
         for e in self.live_edges():
             degree[e["a"]] = degree.get(e["a"], 0) + 1
             degree[e["b"]] = degree.get(e["b"], 0) + 1
-        hubs = [n for n in self.things() if degree.get(n["chain"], 0) >= 3]
+        hubs = [n for n in self.things() if degree.get(n["chain"], 0) >= 3 and n["origin"] != "inferred"]   # identity, not conclusions
         hubs.sort(key=lambda n: (-degree[n["chain"]], n["chain"]))
         if not hubs:
             return ""
