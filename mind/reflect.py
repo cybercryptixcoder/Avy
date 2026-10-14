@@ -1,16 +1,16 @@
 """Reflection: Avy going back over what she knows, at quiet times. Three jobs:
 
   Connect   For new knowledge, code finds candidate partners anywhere in memory (close in meaning,
-            sharing neighbors, or whose connections have similar reasons) and DeepSeek judges each
+            sharing neighbors, or whose connections have similar reasons) and the model judges each
             pair: connect or not, what kind, and why. This is what lets week 1 meet week 10.
   Think     Code picks a focus (the newest episode with the older material closest to it, a hub that
-            has grown, or a quiet corner to wander through) and DeepSeek works out what isn't said
+            has grown, or a quiet corner to wander through) and the model works out what isn't said
             but follows: patterns, unnamed things several nodes are about, shared ideas, conclusions.
             Every inference rests on the nodes it comes from.
   Check     Something an inference rests on changed, or a connection's ends have new versions:
-            DeepSeek says whether each still holds, needs revising, or should go.
+            The model says whether each still holds, needs revising, or should go.
 
-DeepSeek proposes; the one door (memory/ops.py) decides. Every run is recorded.
+The model proposes; the one door (memory/ops.py) decides. Every run is recorded.
 """
 
 import random

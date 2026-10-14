@@ -5,16 +5,28 @@ core idea is **memory**: one endless conversation that never forgets, never summ
 and turns what it hears into a living network of knowledge, the way a mind does. This document is
 the idea in plain words: what she is, why each part exists, how the parts fit, what's built, and
 what's next. [MEMORY.md](MEMORY.md) is the technical spec; [README.md](README.md) is how to run and use
-her; [VERSIONS.md](VERSIONS.md) is the history and how to go back; [LATER.md](LATER.md) is what's
-decided but not built yet.
+her; [VERSIONS.md](VERSIONS.md) is how to go back; [LATER.md](LATER.md) is what's decided but not built
+yet. In `docs/`: the story ([HISTORY.md](docs/HISTORY.md)), every idea ([IDEAS.md](docs/IDEAS.md)),
+every mistake ([MISTAKES.md](docs/MISTAKES.md)), a builder's handoff ([HANDOFF.md](docs/HANDOFF.md)),
+and the provider, files and the Claude import ([LUMINAL.md](docs/LUMINAL.md), [FILES.md](docs/FILES.md),
+[IMPORT.md](docs/IMPORT.md)).
 
 ---
 
 ## Where she came from
 
-Avy comes after two earlier agents, Hermes and Ava. Both were built by long, delegated, multi-phase
-pipelines, and both ended up as codebases nobody understood. Avy starts over on purpose: one file at a
-time, written directly, tried after every step. The name is a joke: she's Ava's baby.
+The idea began as a way to turn doom-scrolling into getting things done: *"What I'm trying to do is make
+productivity engaging and addictive."* It went through an idle game where little agents work in rooms
+you customize, then a proactive personal agent (*"It builds a model of my life. It keeps track of things.
+It reaches out to me"*), then Ava, a big build done by delegation that came back cluttered and
+unreadable. Before that there was Hermes. Both ended up as codebases nobody understood:
+
+> *"We're going to make a new codebase from scratch. We're going to do it in the dumbest way possible.
+> We're going to begin with one file, and guess who's going to write it? You."*
+
+So Avy starts over on purpose: one file at a time, written directly, tried after every step, and
+explained before it's built. The name is a joke: *"she's Ava's baby."* The full story is in
+[docs/HISTORY.md](docs/HISTORY.md).
 
 The bigger picture behind her is five things a capable agent needs. Avy takes on two of them first:
 - **unlimited context**: an unbounded memory, with what's needed pulled in for each moment
@@ -22,12 +34,31 @@ The bigger picture behind her is five things a capable agent needs. Avy takes on
 
 The other three wait their turn: persistence, proactivity, and a model of the user.
 
+## The vision, in his words
+
+- **One endless conversation that never forgets.** *"There is no 'new chat' because every message you
+  send is like a new chat. It's essentially just one interface that you continue talking to endlessly,
+  and it always fetches the right information."*
+- **Memory that is a mind, not a filing cabinet.** *"When a human tries to recall something, they don't
+  remember the whole thing at one point necessarily. They remember one thing. That reminds them of
+  something else."* And: *"The entire personality of this system and the entire current state of this
+  system is kind of that graph... we're almost building an entity here."*
+- **Truth you can trace.** Pointers to the exact words, never summaries that drift: *"we still want to
+  have the pointer lead up to the log itself, because otherwise there is drifting of information."*
+- **It thinks, not only records**: patterns, ideas, its own conclusions, marked as its own.
+- **Something he enjoys talking to**, where tone and length feel right and encouragement isn't overdone.
+- **It takes the overwhelm out**, and later reaches out on its own, by plan and schedule, never by
+  whim (the proactivity pillar, next).
+- **Built for him**, not for sale; cheap to run; private; and beautiful to use, because he's *"a sucker
+  for good design."*
+
 ## The principles
 
-- **One brain.** DeepSeek does all the thinking. Nothing else decides anything.
+- **One brain.** DeepSeek-V4.1-Flash, through Luminal (US-hosted), does all the thinking. Nothing else
+  decides anything; small local models only hear, speak and search by meaning.
 - **Small and understandable.** Plans come before builds. Code is plain, explained, and kept in a few
   readable files.
-- **The model proposes, code disposes.** DeepSeek fills in the judgment: what matters, how to say it,
+- **The model proposes, code disposes.** The model fills in the judgment: what matters, how to say it,
   what connects. Code enforces everything that has to be right every time, and refuses what it can't
   check. Robustness comes from the system, not from hoping the model behaves.
 - **Never lose the original.** Messages are never edited or deleted. Knowledge changes only by new
@@ -38,6 +69,8 @@ The other three wait their turn: persistence, proactivity, and a model of the us
   from cross-linking.
 - **An experiment, with dials.** Everything about how memory is used can be switched and tuned from
   the page, so we can see what each part actually contributes.
+- **Private data is handled by code, not read.** His Claude export was worked out by probes that print
+  counts and shapes; everything Avy keeps stays in `data/`, never committed.
 
 ---
 
@@ -73,6 +106,26 @@ all of Avy's memory but leaves nothing in it.
 - Its nodes are written x12 instead of k12, so the two memories can never mix.
 - Ending it deletes it entirely, recordings included.
 
+### How hard she thinks
+
+DeepSeek-V4.1-Flash is the only model on Luminal, so instead of choosing a bigger model, you choose how
+hard it thinks: `/thinking:` for her answers and her search (none by default, up to max), and `/mind:`
+for the background mind. More thinking is slower and costs more, and can make up for not having Pro.
+
+### Files of any kind
+
+Attach anything (button, drop, paste): documents, spreadsheets, slides, PDFs, code, data, archives,
+pictures she actually sees, audio and video she hears (with frames she sees). What she read is always
+one click away, and anything can go back out: the files themselves, code blocks she writes as files,
+the whole conversation, and the whole of memory. ([docs/FILES.md](docs/FILES.md))
+
+### Your Claude history
+
+Years of conversations with Claude can become Avy's history, in their own memory file: your words as
+yours, Claude's as Claude's (never Avy's), each conversation in one piece. Turning it into knowledge is
+a long run you start yourself; it's the real-scale test of whether your ideas form hubs.
+([docs/IMPORT.md](docs/IMPORT.md))
+
 ### Voice, without letting voice decide anything
 
 Voice is a convenience, not the primary interface, and never a reason to make memory shallower.
@@ -87,12 +140,12 @@ Memory you can't inspect is memory you can't trust. So everything is visible:
 - **Footnotes.** Where a reply leans on memory, a small number. Hover it to see what memory said and
   whose words it was; click it to open it.
 - **↳ recalled 3 nodes** under a reply opens exactly what memory brought, how each piece was reached,
-  and the note DeepSeek got. If Avy searched herself, it shows her rounds.
+  and the note the model got. If Avy searched herself, it shows her rounds.
 - **The inspector** (`/memory`) reads memory like a wiki:
   - every node with its versions, its evidence, what it rests on, and its connections
   - every connection with its reason and how its strength came to be
   - every conversation with how it was written down
-  - every run of the mind: what DeepSeek was shown, what it answered, what the checks found, what
+  - every run of the mind: what the model was shown, what it answered, what the checks found, what
     changed
 - **Chapters.** The endless conversation is marked where each sitting began, with what that
   conversation was about once it's written.
@@ -155,6 +208,7 @@ model never just claims it.
 |---|---|---|
 | you said | Shreyas's own words are the evidence | facts |
 | Avy said | Avy said it in conversation (her suggestions, her ideas) | not facts about him unless he agreed |
+| Claude said | Claude said it, in an imported conversation from before Avy | like Avy's: not facts about him unless he agreed |
 | inferred | Avy worked it out quietly, resting on other nodes, with a certainty (likely / possible) | useful, more nuanced, and always labeled as her impression |
 
 An inference or a suggestion can be **upgraded**: when Shreyas confirms it, it gets a new version with
@@ -196,14 +250,14 @@ that it happened.
 ### Reflection: how the network grows
 
 Memory isn't only written down; it's thought about, at quiet times, the closest thing to sleep.
-- **Write.** When a sitting ends, DeepSeek turns it into knowledge (with evidence) and first
+- **Write.** When a sitting ends, the model turns it into knowledge (with evidence) and first
   connections, seeing what memory already holds from the whole memory, not just recent things.
-- **Connect.** For new knowledge, code finds candidate partners anywhere in memory and DeepSeek judges
+- **Connect.** For new knowledge, code finds candidate partners anywhere in memory and the model judges
   each pair.
   - Only distant pairs are considered: what's close is already reachable.
   - So Connect builds **bridges**, not cliques. The writer makes the local structure; reflection makes
     the long-range links.
-- **Think.** DeepSeek looks over a focus (the newest conversation with the older things closest to
+- **Think.** The model looks over a focus (the newest conversation with the older things closest to
   it, a hub that has grown, or a quiet corner) and works out what isn't said but follows:
   - patterns ("slept 8, 7, 8 hours" gives "usually sleeps about 8")
   - unnamed things several nodes are about
@@ -217,7 +271,7 @@ Memory isn't only written down; it's thought about, at quiet times, the closest 
   - a near-repeat of an existing inference has to become a new version of it
   - it describes what happens, never who he is
 - **Check.** When something an inference rests on changes, or a connection's ends get new versions,
-  DeepSeek re-examines it: still holds, revise, or let go.
+  the model re-examines it: still holds, revise, or let go.
 
 All of it runs within a daily budget, so reflection costs cents.
 
@@ -268,7 +322,7 @@ Completeness can't be guaranteed, but three properties can be built and measured
 ## How we know it works
 
 The benchmark (`tests/bench/`) replays a made-up month of conversation through the real Avy and
-DeepSeek, with threads running side by side and filler in between. Then it asks questions that need
+the real model, with threads running side by side and filler in between. Then it asks questions that need
 memory, with no recent messages in view, under five search setups:
 - no memory
 - keywords only
@@ -308,7 +362,8 @@ The latest results are in [tests/bench/RESULTS.md](tests/bench/RESULTS.md).
 
 | Part | Status |
 |---|---|
-| Chat with DeepSeek, keys in the page, settings on the card and as / commands | built |
+| Chat with the model, keys in the page, settings on the card and as / commands | built |
+| Luminal as the only provider; how hard it thinks as a setting (Avy and the mind separately); the balance in view | built |
 | Voice: dictation by default, live conversation as a toggle | built |
 | The permanent log, one endless conversation, reload brings it back | built |
 | Context dials (`/window:`, `/recall:`), incognito | built |
@@ -320,11 +375,17 @@ The latest results are in [tests/bench/RESULTS.md](tests/bench/RESULTS.md).
 | Inspector for everything; footnotes; chapters; the living graph | built |
 | The benchmark, and its results | built (keeps being re-run as things are tuned) |
 | Version 1 (log + index) preserved as the fork point (branch `memory-v1`) | done |
+| Files of any kind: attach, read (text, documents, PDFs, pictures, audio, video), download; `/export` | built |
+| Your Claude history: reader, import (done: 503 conversations, 6,561 messages), the mind's run | built; the run is yours to start |
+| Page tests in a real browser against a fake Luminal | built |
+| Concept, history, ideas, mistakes, handoff docs | written |
 
 ## What's next
 
-- **Import the full Claude conversation history** as a real-scale test, to see whether his ideas form
-  hubs (see LATER.md).
+- **Run the mind over the imported Claude history** (`tools/claude_import.py run`), then look: do his
+  ideas form hubs? (docs/IMPORT.md)
+- **What's coming up**: future dates always in view (LATER.md).
+- **What files say, into memory**, not only their names.
 - **Tune reflection** with the benchmark: how bold inferences should be, how sparse the network should
   stay, when to ask him to confirm something.
 - **Beliefs over time.** Nothing is deleted, so "what did you believe a month ago" is answerable;
@@ -341,7 +402,9 @@ The latest results are in [tests/bench/RESULTS.md](tests/bench/RESULTS.md).
 | `c7` | connection 7 |
 | `ep4` | episode (conversation) 4 |
 | shape | thing, information, or idea |
-| origin | you said, Avy said, or inferred |
+| origin | you said, Avy said, or inferred (Avy said shows as "Claude said" for imported conversations) |
+| imported | a message from the Claude history (`via = claude`) |
+| effort | how hard the model thinks: none, low, medium, high, xhigh, ultra, max |
 | evidence | the exact words a said node came from |
 | basis | the nodes an inference rests on |
 | support | one reason to believe (or doubt) a connection |

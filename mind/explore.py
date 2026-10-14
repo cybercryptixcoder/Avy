@@ -3,12 +3,12 @@
 Rule-based recall (memory/recall.py) lands near the words of a message and walks outward in rings.
 But what a message needs is often nowhere near its words: "how should I organize the shared drive?"
 may need what Shreyas once said about ant trails and footpaths on a campus, which share no words with
-it. The message is only a proxy for the task. So here DeepSeek steers the search, the way AlphaEvolve
+it. The message is only a proxy for the task. So here the model steers the search, the way AlphaEvolve
 puts a model where an evolutionary algorithm had fixed rules:
 
   0. Land: code runs ordinary recall and a plain search, and shows the closest nodes as previews, each
      with its connections (kind and reason): the signposts.
-  1. Each round, DeepSeek sees what it has read, what's at the frontier, and its own notes, and decides:
+  1. Each round, the model sees what it has read, what's at the frontier, and its own notes, and decides:
        task       what the message actually needs
        questions  what it still needs to know (the open questions drive the search)
        open       nodes to read in full: their exact words, everything they connect to   (dig)
@@ -124,10 +124,11 @@ def search(library, text, words=True, meaning=True, k=8):
 
 
 def explore(library, home, text, recent="", shown_from=None, depth="normal", words=True, meaning=True,
-            learn=True, progress=None):
-    """Search memory with DeepSeek steering. library: the memories to read; home: the one being talked to
+            learn=True, progress=None, effort="none"):
+    """Search memory with the model steering. library: the memories to read; home: the one being talked to
     (log lines come from it). recent: the last message or two, for context. learn: strengthen connections
     that led to what was kept. progress(event): told about each round as it happens.
+    effort: how hard the model thinks each round (the /thinking: setting; "none" is fastest).
     Returns a trace shaped like Memory.recall's, plus trace["explore"] with every round."""
     started = time.time()
     level = DEPTHS.get(depth)
@@ -167,7 +168,7 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
                              rnd, rounds_allowed)
         convo = [{"role": "system", "content": INSTRUCTIONS}, {"role": "user", "content": prompt}]
         try:
-            reply = llm.call(convo, TOOL, max_tokens=2000)
+            reply = llm.call(convo, TOOL, max_tokens=2000, effort=effort)
         except Exception as e:
             rec["error"] = str(getattr(e, "message", e))
             break

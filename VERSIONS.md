@@ -12,6 +12,11 @@ from it.
 | v1 | `memory-v1` | **The fork point.** The permanent log, plus an index: pages of entries (people, topics, facts, events, decisions, preferences, tasks), each pointing at its exact words, with versions and links (about, builds on, related). Recall by meaning and words, walking links. Context dials, incognito, dictation and live voice. | `data/memory.db` |
 | v2 | `memory-v2`, then `main` | Log, knowledge (things, information, ideas; said by you, said by Avy, or inferred) and a living network (connections with kinds, reasons and strength built from supports). A mind that writes, connects, thinks and re-checks. Rule-based recall with search switches, and Avy searching her own memory. Footnotes, chapters, the living graph. | `data/memory-v2.db` |
 
+Since v2 (on `main`, same memory design): the model moved from DeepSeek's own API to Luminal (a US-hosted
+provider, DeepSeek-V4.1-Flash only; docs/LUMINAL.md), files of any kind can be attached, and a Claude
+history can be imported into its own memory file, `data/memory-claude.db` (docs/IMPORT.md). Version 1's
+code still talks to DeepSeek directly; going back to it needs a DeepSeek key.
+
 ## Going back to v1
 
 ```

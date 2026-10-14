@@ -28,16 +28,14 @@ parser.add_argument("run")
 parser.add_argument("--variant", nargs="+", action="append", required=True, help="name key=value ...")
 parser.add_argument("--configs", default="both,explore")
 parser.add_argument("--probes", default="", help="only these probes (comma-separated ids)")
-parser.add_argument("--judge", default="deepseek-v4-pro")
+parser.add_argument("--judge-effort", default="high")
 parser.add_argument("--key", default=str(ROOT / ".env"))
 parser.add_argument("--models", default=str(ROOT / "data" / "models" / "meaning"))
 args = parser.parse_args()
-for line in Path(args.key).read_text().splitlines():
-    if line.startswith("DEEPSEEK_API_KEY="):
-        os.environ["DEEPSEEK_API_KEY"] = line.split("=", 1)[1].strip()
+import judge    # noqa: E402
+judge.load_keys(args.key)
 
 import app      # noqa: E402
-import judge    # noqa: E402
 import memory   # noqa: E402
 import world    # noqa: E402
 from memory import recall as recall_module  # noqa: E402
@@ -101,8 +99,7 @@ def ask(probe, cfg_name):
     else:
         trace = mem.recall(probe["ask"], "", None, cfg["depth"], cfg["words"], cfg["meaning"])
     messages = app.briefing([], trace["briefing"], probe["ask"], core=True)
-    with app.deepseek({"model": "deepseek-flash", "messages": messages, "thinking": {"type": "disabled"}}) as r:
-        text = json.loads(r.read())["choices"][0]["message"]["content"]
+    text = app.luminal.complete({"messages": messages, "max_tokens": app.REPLY_TOKENS})["choices"][0]["message"]["content"]
     items = [node_tags(x["node"], parts=True) for x in trace["nodes"]] + [{tags[l["message"]]} if tags.get(l["message"]) else set()
                                                                for l in trace["log"]]
     return text, judge.retrieval(probe, items, trace["tokens"])
@@ -124,7 +121,7 @@ for variant in args.variant:
     for p in [p for p in world.PROBES if not args.probes or p["id"] in args.probes.split(",")]:
         for cfg in configs:
             text, ret = ask(p, cfg)
-            g = judge.grade(p, text, args.judge, lambda *a: None, log)
+            g = judge.grade(p, text, args.judge_effort, lambda *a: None, log)
             rows.append({"probe": p["id"], "config": cfg, "score": g["score"], "invented": g["invented"],
                          "coverage": ret["coverage"], "items": ret["items"], "noise": ret["noise"], "answer": text})
             print(f"{name:<8} {p['id']:<14} {cfg:<8} score {g['score']}  coverage {ret['coverage']}  "

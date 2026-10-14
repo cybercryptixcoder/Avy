@@ -6,13 +6,21 @@ living network of knowledge that she thinks about when it's quiet.
 
 - **[CONCEPT.md](CONCEPT.md)**: what Avy is and why, in plain words. Start here.
 - **[MEMORY.md](MEMORY.md)**: how memory is built: storage, rules, the mind's jobs, the algorithms.
+- **[docs/HANDOFF.md](docs/HANDOFF.md)**: everything a builder needs: the map, the contracts, running and testing.
+- **[docs/LUMINAL.md](docs/LUMINAL.md)**: the model provider and its rules.
+- **[docs/FILES.md](docs/FILES.md)**: attaching files of any kind, and getting things out.
+- **[docs/IMPORT.md](docs/IMPORT.md)**: bringing in your Claude history.
+- **[docs/HISTORY.md](docs/HISTORY.md)**: how Avy came to be, from the conversation itself.
+- **[docs/IDEAS.md](docs/IDEAS.md)**: every idea and consideration so far, and where each stands.
+- **[docs/MISTAKES.md](docs/MISTAKES.md)**: what went wrong along the way, and what was learned.
 - **[VERSIONS.md](VERSIONS.md)**: the versions kept side by side, and how to go back or fork.
 - **[LATER.md](LATER.md)**: what's decided but not built yet.
 - **[tests/bench/RESULTS.md](tests/bench/RESULTS.md)**: how well it works, measured.
 
 ## Rules
 
-- **One brain:** DeepSeek. No other model does the thinking.
+- **One brain:** DeepSeek-V4.1-Flash, through Luminal (a US-hosted provider). No other model does the
+  thinking; local models only hear, speak, and search by meaning.
 - **Small steps:** each change is something you can try right away.
 - **Keys stay local:** API keys are entered in the app and saved to a local `.env`, which is never committed.
 
@@ -24,8 +32,9 @@ From this folder, every time (it pulls updates and installs anything new; alread
 git pull && python3 -m pip install -q -r requirements-voice.txt && python3 app.py
 ```
 
-Your browser opens http://localhost:8000. Paste your DeepSeek key in the Keys panel once; it's saved to `.env`.
-Needs Python 3.10–3.13 (Kokoro doesn't support 3.14 yet).
+Your browser opens http://localhost:8000. Paste your Luminal key in the Keys panel once (the orange key
+button); it's saved to `.env` and you're set. Needs Python 3.10–3.13 (Kokoro doesn't support 3.14 yet).
+`python3 luminal.py` checks the key and shows your balance.
 
 The first time version 2 runs, it copies your conversation (the log) from version 1's `data/memory.db`
 into its own `data/memory-v2.db`, and rebuilds memory from it in the background over a few minutes. The
@@ -51,6 +60,17 @@ old file is left exactly as it was.
   - `/explore:` on (the default) lets Avy search her memory herself, step by step: a few seconds slower,
     and much better at finding what a message really needs. You'll see what she's looking at while she
     does. Off searches by rules, instantly.
+- **How hard Avy thinks:** `/thinking:` none (the default, fastest) up to max, for her answers and her
+  search; `/mind:` the same for the background mind. The top bar shows your Luminal balance; the
+  "spent" tile is an estimate.
+- **Files:** `[ attach ]`, drop, or paste anything: documents, spreadsheets, slides, PDFs, code, pictures
+  (she sees them), audio and video (she hears them, and sees frames). Ask her for a file and `[ save ]`
+  on it downloads it. `/files` lists what you've attached; `/export` downloads the conversation
+  (`/export: json`, `/export: memory`). See docs/FILES.md.
+- **Your Claude history:** attach the export and press `[ import ]`, or `python3 tools/claude_import.py`
+  (docs/IMPORT.md). It goes into its own memory, `data/memory-claude.db`; open it with
+  `python3 app.py --memory data/memory-claude.db`. Turning it into knowledge is a separate, longer run
+  that only you start.
 - **Incognito:** `/incognito` starts a separate conversation. Avy can still use her memory, but nothing
   said there is kept: it has its own temporary memory, deleted when you end it.
 - **Memory's own work:** it writes each sitting into knowledge when the sitting ends, and reflects when
@@ -59,7 +79,7 @@ old file is left exactly as it was.
 - **Under the hood:** `/memory` opens the inspector:
   - every node like a wiki page: where it was said, what it rests on, its connections, its versions
   - every connection with why it exists and how strong it is
-  - every conversation, and every run of the mind with exactly what DeepSeek was shown and answered
+  - every conversation, and every run of the mind with exactly what the model was shown and answered
   - the journal of every change, and the network's health
 
   `↳ recalled 3 nodes` under a reply shows what memory brought for it, and how.
@@ -73,27 +93,34 @@ old file is left exactly as it was.
 
 Everything stays in this folder:
 
-- `.env`: your keys.
+- `.env`: your keys (see `.env.example`).
 - `data/memory-v2.db`: everything ever said, and the knowledge and network built from it.
 - `data/memory.db`: version 1's memory, if you used it (left as it was).
 - `data/settings.json`: your choices from the system card or `/` commands.
 - `data/models/`: the speech models (about 0.7 GB) and the meaning-search model (about 65 MB), downloaded on the first run.
 - `data/recordings/`: a backup of everything you say, written as you talk, with its transcript next to it.
   The newest 50 (up to 300 MB) are kept; older ones are deleted. `/retry` re-transcribes the newest one.
-- `data/incognito/`: an incognito conversation's memory and recordings, only while it's going.
+- `data/files/`: files you attached, each as it came, with what Avy read from it.
+- `data/memory-claude.db`: your imported Claude history, if you imported it.
+- `data/incognito/`: an incognito conversation's memory, recordings and files, only while it's going.
 
 `data/` and `.env` are never committed.
 
 ## What's here
 
-- `app.py`: the server: the page, keys, settings, and every exchange with DeepSeek (typed or spoken).
+- `app.py`: the server: the page, keys, settings, files, exports, and every exchange with the model (typed or spoken).
+- `luminal.py`: the only model client, and the rules it follows (docs/LUMINAL.md).
+- `files.py`: attached files: kept as they came, read into text and pictures for the model.
 - `memory/`: the log, knowledge, the network, the rules, search, recall. Never calls the model.
-- `mind/`: where DeepSeek works on memory: writing, connecting, thinking, re-checking, and searching.
+- `mind/`: where the model works on memory: writing, connecting, thinking, re-checking, and searching.
 - `voice.py`: push-to-talk. faster-whisper writes down what you said; in live mode Kokoro speaks the
   answer sentence by sentence. Started by app.py when the voice packages are installed.
 - `index.html`: the page.
 - `tools/copy_log.py`: carry the log from one memory file to another (see VERSIONS.md).
-- `tests/test_memory.py`: memory checks that run offline (`python3 tests/test_memory.py`).
+- `tools/claude_export.py`, `tools/claude_import.py`: read a Claude export; import it and run the mind over it.
+- `tests/test_memory.py`, `test_luminal.py`, `test_import.py`, `test_files.py`: offline checks
+  (`python3 tests/test_memory.py`, and so on).
+- `tests/page/`: the page in a real browser against a fake Luminal (`python3 tests/page/run.py`).
 - `tests/bench/`: the benchmark: a month of conversation replayed through the real Avy, questions that need
-  memory, a judge. `python3 tests/bench/run.py` (about half an hour and 40 cents; a throwaway memory, never yours).
+  memory, a judge. `python3 tests/bench/run.py` (under an hour and well under a dollar; a throwaway memory, never yours).
 - `requirements.txt` / `requirements-voice.txt`: packages. Add new ones here and the run command installs them.

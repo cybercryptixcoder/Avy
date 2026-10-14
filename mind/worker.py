@@ -14,7 +14,7 @@ import threading
 from datetime import datetime
 
 from memory import health as measure_health, record_health
-from memory.common import minutes_between, stamp
+from memory.common import IMPORTED, minutes_between, stamp
 
 from . import jobs, reflect, writer
 
@@ -44,11 +44,15 @@ def run(mem, job):
     return result
 
 
-def write_due(mem, force=False, connect=True, limit=50):
-    """Write every stretch that's due, then connect what was written. Returns the runs."""
+def write_due(mem, force=False, connect=True, limit=50, imported=False):
+    """Write every stretch that's due, then connect what was written. Returns the runs.
+    Imported conversations (tools/claude_import.py) are left alone unless imported=True: only the import's
+    own run writes them, when you start it."""
     results = []
     with RUN_LOCK:
         while not mem.closed and len(results) < limit and (stretch := writer.due(mem, app["page"](), force)):
+            if not imported and mem.message(stretch[0])["via"] == IMPORTED:
+                break
             failures = mem.value("SELECT COUNT(*) FROM runs WHERE job = 'write' AND focus = ? AND status IN ('failed', 'error')",
                                  f"#{stretch[0]}-")
             if failures >= writer.GIVE_UP_AFTER:
@@ -114,8 +118,9 @@ def quiet_minutes(mem):
 
 
 def due_for_reflection(mem):
-    """Quiet long enough, something new since the last reflection, and budget left today."""
-    if quiet_minutes(mem) < REFLECT_IDLE or calls_today(mem) >= REFLECT_CALLS:
+    """Quiet long enough, something new since the last reflection, and budget left today. Never while
+    imported conversations wait to be written (the import's run reflects as it goes)."""
+    if quiet_minutes(mem) < REFLECT_IDLE or calls_today(mem) >= REFLECT_CALLS or mem.waiting_import():
         return False
     since = mem.mark("reflected_at", "")
     newer = mem.value("SELECT COUNT(*) FROM runs WHERE job = 'write' AND at > ?", since)
@@ -139,11 +144,11 @@ def loop():
                 print(f"Memory ({mem.name}): the background mind hit a problem ({e}); it will try again.")
 
 
-def start(ask, prices, memories, main, page):
-    """ask: sends one request to DeepSeek. memories: the memories to keep written. main: the main one.
-    page: how many messages make an episode right now."""
+def start(ask, prices, memories, main, page, effort=lambda: "none"):
+    """ask: sends one request to the model. memories: the memories to keep written. main: the main one.
+    page: how many messages make an episode right now. effort: how hard the mind thinks (/mind:)."""
     from . import llm
-    llm.app.update(ask=ask, prices=prices)
+    llm.app.update(ask=ask, prices=prices, effort=effort)
     app.update(memories=memories, main=main, page=page)
     threading.Thread(target=loop, daemon=True).start()
     nudge()

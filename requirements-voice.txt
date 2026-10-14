@@ -1,4 +1,4 @@
-# Voice: push-to-talk with faster-whisper (ears) and Kokoro (mouth); DeepSeek is still the brain.
+# Voice: push-to-talk with faster-whisper (ears) and Kokoro (mouth); the model (through Luminal) is still the brain.
 # Works on Python 3.10-3.13 (Kokoro doesn't support 3.14 yet).
 # Models download into data/models on first run (about 0.7 GB).
 -r requirements.txt

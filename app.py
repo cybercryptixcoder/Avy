@@ -14,15 +14,15 @@ import hashlib
 import json
 import os
 import shutil
-import ssl
-import urllib.error
+import sys
 import urllib.parse
-import urllib.request
 import webbrowser
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import files
+import luminal
 import memory
 from memory import recall as recalling
 from mind import explore, llm as mind_llm, worker, writer
@@ -40,15 +40,19 @@ ENV_FILE = HERE / ".env"                    # your keys; .gitignore keeps it off
 DATA = HERE / "data"                        # everything else Avy saves (also kept off GitHub)
 SETTINGS_FILE = DATA / "settings.json"      #   your choices from the system card or / commands
 MEMORY_FILE = DATA / "memory-v2.db"         #   everything ever said, and the knowledge and network built from it
+                                            #   (python3 app.py --memory <file> opens another one, like the
+                                            #   imported Claude history in data/memory-claude.db)
 V1_MEMORY = DATA / "memory.db"              #   version 1's memory (the log is copied from it once; never changed)
 INCOGNITO_DIR = DATA / "incognito"          #   an incognito conversation: deleted when it ends
+FILES_DIR = DATA / "files"                  #   files you attach, each kept as it came, with what Avy read from it
+CLAUDE_MEMORY = DATA / "memory-claude.db"   #   where an imported Claude history goes (tools/claude_import.py)
                                             #   data/models      speech and meaning-search models
                                             #   data/recordings  backups of what you said (voice)
 PORT = 8000
 
 # Every key the Keys panel asks for. Add a line here to add a field.
 KEYS = {
-    "DEEPSEEK_API_KEY": "DeepSeek API key",
+    luminal.KEY_NAME: "Luminal API key",
 }
 
 SYSTEM_PROMPT = f"""You are Avy, {memory.NAME}'s personal assistant.
@@ -66,7 +70,14 @@ Memory holds nodes (things, information and ideas) with handles like [k12], in t
 A node that changed shows its earlier versions; the newest is what's true now. The note also lists how
 the nodes connect, with reasons: follow those, because that's how something from weeks ago turns out to
 matter now. Use what's relevant and ignore the rest. If neither the recent messages nor memory covers
-something, say you don't remember it rather than guessing."""
+something, say you don't remember it rather than guessing.
+
+He can attach files of any kind. Their contents come inside <file> tags in his message: text as text,
+pictures (and frames of a video) as images you can see, recordings as transcripts with times. Use them
+directly. If a file couldn't be read, or only its start is shown, say so instead of guessing at the rest.
+When he asks you to make a file (a script, a CSV, notes to keep), put its whole content in one fenced code
+block with the right language, like ```csv; the page shows it with a button that saves it as a file. That
+is the one place markdown is fine."""
 
 FOOTNOTES = """When part of your answer comes from memory, put that node's handle right after it, like
 this[k12], with no space before it. The page turns these into small footnotes. Use only handles from the
@@ -80,7 +91,7 @@ your memory of the main conversation, but nothing said here will be remembered o
 
 def system_prompt(incognito=False, core=True):
     """Avy's instructions plus the core of her memory (its biggest hubs). It only changes when the network
-    does, so DeepSeek can reuse its cached copy (the time goes in the memory note instead).
+    does, so the model's prompt cache can reuse it (the time goes in the memory note instead).
     core=False when memory search is off: then she gets no memory at all."""
     choice = current_settings()
     hubs = MEMORIES["main"].core() if core else ""
@@ -101,9 +112,10 @@ ENGLISH_VOICES = [
 ]
 
 SETTINGS = {   # short: the few words under its name in the / panel. card: shown on the system card too.
-    "model":    {"short": "which DeepSeek model answers", "card": True,
-                 "about": "which DeepSeek model answers",
-                 "options": ["deepseek-flash", "deepseek-v4-pro"], "default": "deepseek-flash"},
+    "thinking": {"short": "how hard Avy thinks", "card": True,
+                 "about": "how hard Avy thinks before answering (and while she searches her memory): none is fastest; "
+                          "low to max think longer and cost more (DeepSeek-V4.1-Flash's reasoning, through Luminal)",
+                 "options": luminal.EFFORTS, "default": "none"},
     "window":   {"short": "recent messages read verbatim", "card": True,
                  "about": "how many recent messages Avy reads word for word; the rest comes from memory (all: an ordinary chat)",
                  "options": ["0", "5", "10", "20", "40", "80", "all"], "default": "20"},
@@ -111,7 +123,7 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
                  "about": "how far memory search reaches on each message (with explore on: how many rounds Avy searches)",
                  "options": ["off", "light", "normal", "deep", "max"], "default": "normal"},
     "explore":  {"short": "Avy searches memory herself", "card": True,
-                 "about": "on: DeepSeek steers the memory search step by step, following the task, not just the words (a few seconds more). off: search by rules, instantly",
+                 "about": "on: the model steers the memory search step by step, following the task, not just the words (a few seconds more). off: search by rules, instantly",
                  "options": ["on", "off"], "default": "on"},
     "live":     {"short": "spoken back-and-forth", "card": True,
                  "about": "on: Space talks to Avy and she answers out loud. off: Space types what you say into the box",
@@ -125,9 +137,10 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
     "footnotes": {"short": "mark what came from memory", "card": False,
                   "about": "Avy marks what came from memory with small footnotes you can hover and click",
                   "options": ["on", "off"], "default": "on"},
-    "thinking": {"short": "think before answering", "card": False,
-                 "about": "think before answering (slower, costs more)",
-                 "options": ["off", "low", "high", "max"], "default": "off"},
+    "mind":     {"short": "how hard the mind thinks", "card": False,
+                 "about": "how hard the background mind thinks while it writes memory, connects and reflects "
+                          "(none is fastest and cheapest; higher levels think before every answer)",
+                 "options": luminal.EFFORTS, "default": "none"},
     "voice":    {"short": "Avy's voice", "card": False,
                  "about": "Avy's voice (Kokoro). a = American, b = British, f/m = female/male",
                  "options": ENGLISH_VOICES, "default": "af_heart"},
@@ -140,11 +153,9 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
                  "default": "distil-small.en"},
 }
 
-# Dollars per million tokens at off-peak rates (peak hours cost double), from DeepSeek's pricing page.
-PRICES = {
-    "deepseek-flash":  {"cache_hit": 0.003, "cache_miss": 0.15, "output": 0.60},
-    "deepseek-v4-pro": {"cache_hit": 0.022, "cache_miss": 0.66, "output": 1.98},
-}
+# Dollars per million tokens, for estimates only: Luminal publishes no per-token price (its wallet,
+# GET /v1/balance, is the truth). See luminal.PRICES.
+PRICES = luminal.PRICES
 
 
 def current_settings():
@@ -200,6 +211,8 @@ def settings_payload():
         "schema": {name: {"about": s["about"], "short": s["short"], "card": s["card"], "options": s["options"]}
                    for name, s in SETTINGS.items()},
         "prices": PRICES,
+        "brain": {"model": luminal.model(), "provider": "Luminal", "balance": wallet(),
+                  "context": luminal.CONTEXT_TOKENS},
         "files": {
             "data": str(DATA.resolve()),
             "models_mb": round(folder_size(DATA / "models") / 1e6),
@@ -237,8 +250,6 @@ def write_env(env):
 for _name, _value in read_env().items():
     os.environ.setdefault(_name, _value)
 
-API_BASE = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-
 
 def key_status():
     """What the page is allowed to know about the keys: only the last 4 characters."""
@@ -268,88 +279,42 @@ def voice_status():
 
 
 # ---------------------------------------------------------------------------
-# 4. Talking to DeepSeek (text chat and voice both come through here)
+# 4. Talking to the model: DeepSeek-V4.1-Flash through Luminal (luminal.py has the rules it follows).
+#    Replies, voice, Avy's search and the background mind all come through here.
 # ---------------------------------------------------------------------------
 
-def make_ssl_context():
-    """How Python checks that it's really talking to DeepSeek (HTTPS certificates).
-
-    Some Python installs (python.org on Mac is the usual one) ship without a
-    certificate list, so every HTTPS request fails. If `truststore` is installed
-    we use your computer's own certificate store, which always works; otherwise
-    `certifi`'s list if that's around; otherwise Python's default.
-    """
-    try:
-        import truststore
-        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT), "your computer's certificate store"
-    except ImportError:
-        pass
-    try:
-        import certifi
-        return ssl.create_default_context(cafile=certifi.where()), "certifi"
-    except ImportError:
-        return ssl.create_default_context(), "Python's default"
+SSL_CONTEXT, SSL_SOURCE = luminal.SSL_CONTEXT, luminal.SSL_SOURCE
+FriendlyError = luminal.LuminalError        # failures with a message that's safe to show on the page
+REPLY_TOKENS = 8000                         # the most a reply may say (Luminal caps silently at 8,192 if it isn't sent)
 
 
-SSL_CONTEXT, SSL_SOURCE = make_ssl_context()
-
-
-class FriendlyError(Exception):
-    """An error with a message that's safe and useful to show on the page."""
-    def __init__(self, status, message):
-        super().__init__(message)
-        self.status = status
-        self.message = message
-
-
-def deepseek(payload, beta=False):
-    """Send one request to DeepSeek. Returns the open response, or raises a friendly error.
-    beta=True uses DeepSeek's beta address, where tool calls can be marked strict."""
-    key = os.environ.get("DEEPSEEK_API_KEY")
-    if not key:
-        raise FriendlyError(400, "Add your DeepSeek key first. Click the orange key button at the top right.")
-    request = urllib.request.Request(
-        API_BASE + ("/beta" if beta else "") + "/chat/completions",
-        data=json.dumps(payload).encode(),
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-    )
-    try:
-        return urllib.request.urlopen(request, timeout=120, context=SSL_CONTEXT)
-    except urllib.error.HTTPError as e:
-        if e.code == 401:
-            raise FriendlyError(401, "DeepSeek rejected the key. Paste a fresh one in Keys.")
-        if e.code == 402:
-            raise FriendlyError(402, "Your DeepSeek balance is empty. Top up at platform.deepseek.com, then send again.")
-        detail = e.read().decode(errors="replace")[:300]
-        raise FriendlyError(e.code, f"DeepSeek returned an error ({e.code}): {detail}")
-    except urllib.error.URLError as e:
-        if isinstance(e.reason, ssl.SSLCertVerificationError):
-            raise FriendlyError(502, "Python can't check DeepSeek's security certificate on this computer. "
-                                     "Run  python3 -m pip install truststore  once, then restart app.py.")
-        raise FriendlyError(502, f"Can't reach DeepSeek ({e.reason}). Check your internet connection, then send again.")
-
-
-def ask_deepseek(messages, model):
-    """Start a streaming reply."""
-    choice = current_settings()
-    payload = {
-        "model": model,
-        "messages": messages,
-        "stream": True,                              # send words as they're written
-        "stream_options": {"include_usage": True},   # token counts arrive at the end
-    }
-    if choice["thinking"] == "off":
-        payload["thinking"] = {"type": "disabled"}   # DeepSeek thinks by default; off is faster
-    else:
-        payload["thinking"] = {"type": "enabled"}
-        payload["reasoning_effort"] = choice["thinking"]   # low, high or max
-    return deepseek(payload)
+def ask_model(messages):
+    """Start a streamed reply, thinking as hard as /thinking: says."""
+    return luminal.open_stream({"messages": messages, "max_tokens": REPLY_TOKENS}, effort=current_settings()["thinking"])
 
 
 def ask_json(payload):
-    """One structured request for the mind (writing, reflecting, searching): the whole answer at once."""
-    with deepseek(payload, beta=True) as response:
-        return json.loads(response.read())
+    """One structured request for the mind and the search: the whole answer, put together."""
+    return luminal.complete(payload)
+
+
+_wallet = {"usd": None, "at": 0.0, "busy": False}
+
+
+def wallet():
+    """The Luminal balance in dollars (refreshed in the background at most once a minute), or None."""
+    import threading
+    import time as _time
+
+    def refresh():
+        try:
+            _wallet["usd"] = luminal.balance()
+        finally:
+            _wallet["at"], _wallet["busy"] = _time.time(), False
+    if luminal.key() and not _wallet["busy"] and _time.time() - _wallet["at"] > 60:
+        _wallet["busy"] = True
+        threading.Thread(target=refresh, daemon=True).start()
+    return _wallet["usd"]
 
 
 # ---------------------------------------------------------------------------
@@ -381,6 +346,16 @@ def end_incognito():
         shutil.rmtree(INCOGNITO_DIR, ignore_errors=True)
 
 
+def files_folder():
+    """Where attached files go: an incognito conversation keeps its own (deleted with it)."""
+    return INCOGNITO_DIR / "files" if MEMORIES["incognito"] else FILES_DIR
+
+
+def file_folders():
+    """Every place a file can be found right now: the incognito conversation's first."""
+    return [INCOGNITO_DIR / "files" if MEMORIES["incognito"] else None, FILES_DIR]
+
+
 def recordings_folder():
     """Where voice recordings go: an incognito conversation keeps its own (deleted with it)."""
     return INCOGNITO_DIR / "recordings" if MEMORIES["incognito"] else DATA / "recordings"
@@ -399,16 +374,18 @@ class Turn:
     """Your message in, Avy's reply out, both saved to the log.
 
         turn = Turn("when's rohan's birthday?", "text")   # gathers memory, lays out the briefing
-        upstream = turn.ask()                             # starts DeepSeek; saves your message
+        upstream = turn.ask()                             # starts the reply; saves your message
         ...stream the reply...
         turn.finish(reply, usage, cut=False)              # saves Avy's reply
 
     progress(event), if given, hears about each round while Avy searches her memory herself.
     """
 
-    def __init__(self, text, via, progress=None):
+    def __init__(self, text, via, progress=None, attached=()):
         choice = current_settings()
-        self.text, self.via, self.model = text, via, choice["model"]
+        self.text, self.via, self.model = text, via, luminal.model()
+        self.attached = list(attached)                           # file records ({"id", "name", ...}), already read
+        query = text or "attached: " + ", ".join(r["name"] for r in self.attached)
         self.mem = talking_to()
         self.incognito = self.mem is MEMORIES["incognito"]
         shown = self.mem.window(window_size())                   # /window: what she reads word for word
@@ -416,21 +393,24 @@ class Turn:
         previous = self.mem.last_said()
         opts = {"depth": choice["recall"], "words": choice["words"] == "on", "meaning": choice["meaning"] == "on"}
         self.searching = choice["recall"] != "off" and (opts["words"] or opts["meaning"])
-        if choice["explore"] == "on" and self.searching:          # /explore: DeepSeek steers the search
+        if choice["explore"] == "on" and self.searching:          # /explore: the model steers the search
             library = explore.Library([MEMORIES["main"], MEMORIES["incognito"]])
-            recent = "\n".join(f"{memory.who(m['role'])}: {memory.clip(m['text'], 0, 500)}" for m in self.mem.window(2)[-2:])
-            self.recall = explore.explore(library, self.mem, text, recent, shown_from, progress=progress, **opts)
+            recent = "\n".join(f"{memory.who(m['role'], m.get('via'))}: {memory.clip(m['text'], 0, 500)}" for m in self.mem.window(2)[-2:])
+            self.recall = explore.explore(library, self.mem, query, recent, shown_from, progress=progress,
+                                          effort=choice["thinking"], **opts)
         else:                                                     # by rules
-            self.recall = self.mem.recall(text, previous, shown_from, **opts)
+            self.recall = self.mem.recall(query, previous, shown_from, **opts)
             if self.incognito and self.searching:                 # incognito also reads the main memory
-                main = MEMORIES["main"].recall(text, previous, None, **opts)
+                main = MEMORIES["main"].recall(query, previous, None, **opts)
                 self.recall = recalling.combine(MEMORIES["main"], main, self.mem, self.recall)
-        self.messages = briefing(shown, self.recall["briefing"], text, self.incognito, core=self.searching)
+        self.messages = briefing(shown, self.recall["briefing"], text, self.incognito, core=self.searching,
+                                 attached=self.attached)
         self.user_id = self.recall_id = self.reply_id = None
 
     def ask(self):
-        upstream = ask_deepseek(self.messages, self.model)   # if this fails, nothing is saved
-        self.user_id = self.mem.add("user", self.text, self.via)
+        upstream = ask_model(self.messages)                 # if this fails, nothing is saved
+        meta = {"files": [files.brief(r) for r in self.attached]} if self.attached else None
+        self.user_id = self.mem.add("user", self.text, self.via, meta)
         self.recall_id = self.mem.save_recall(self.user_id, self.recall)
         return upstream
 
@@ -457,9 +437,15 @@ class Turn:
         return self.reply_id
 
 
-def briefing(shown, memory_note, text, incognito=False, core=True):
-    """What DeepSeek sees, in this order: instructions and core (same every time, so it's cached),
-    the newest messages word for word, the memory note for this message, then your message."""
+FILE_CHARS = 240_000     # all the files in one briefing together, at most (about 60,000 tokens)
+MAX_PICTURES = 16        # pictures and video frames in one briefing, at most
+
+
+def briefing(shown, memory_note, text, incognito=False, core=True, attached=()):
+    """What the model sees, in this order: instructions and core (same every time, so it's cached),
+    the newest messages word for word, the memory note for this message, then your message.
+    Files go with the message they came with: the newest message's first, then earlier ones in the
+    window, newest first, while there's room (FILE_CHARS, MAX_PICTURES)."""
     messages = [{"role": "system", "content": system_prompt(incognito, core)}]
     previous_at = None
     for m in shown:
@@ -471,22 +457,32 @@ def briefing(shown, memory_note, text, incognito=False, core=True):
             content += " [he cut you off here]"
         messages.append({"role": m["role"], "content": content})
         previous_at = at
+    room = {"chars": FILE_CHARS, "pictures": MAX_PICTURES}
+    newest = with_files(text, attached, room)
+    for message, m in reversed(list(zip(messages[1:], shown))):
+        kept = [f for f in m["meta"].get("files") or [] if isinstance(f, dict) and f.get("id")]   # imported ones are only names
+        if kept:
+            message["content"] = with_files(message["content"], kept, room)
     messages.append({"role": "system", "content": memory_note})
-    messages.append({"role": "user", "content": text})
+    messages.append({"role": "user", "content": newest})
     return messages
 
 
-def stream_text(line):
-    """The words and token counts in one line of DeepSeek's stream: (text, usage or None)."""
-    line = line.decode(errors="replace").strip() if isinstance(line, bytes) else line.strip()
-    if not line.startswith("data:") or line == "data: [DONE]":
-        return "", None
-    try:
-        chunk = json.loads(line[5:])
-    except json.JSONDecodeError:
-        return "", None
-    text = "".join((c.get("delta") or {}).get("content") or "" for c in chunk.get("choices") or [])
-    return text, chunk.get("usage")
+def with_files(content, records, room):
+    """A message's text with its files added (and its pictures as image parts), using up room."""
+    if not records:
+        return content
+    blocks, pictures = files.for_model(records, file_folders(), max(0, room["chars"]), pictures=room["pictures"] > 0)
+    pictures = pictures[:max(0, room["pictures"])]
+    room["chars"] -= len(blocks)
+    room["pictures"] -= len(pictures)
+    text = (content + "\n\n" if content else "") + "[attached]\n" + blocks
+    if not pictures:
+        return text
+    return [{"type": "text", "text": text}] + [{"type": "image_url", "image_url": {"url": url}} for url in pictures]
+
+
+stream_text = luminal.stream_text     # the words and token counts in one line of a streamed reply
 
 
 # ---------------------------------------------------------------------------
@@ -523,6 +519,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, settings_payload())
         elif url.path == "/api/events":
             self.events()
+        # --- files you attached, downloads and exports ---
+        elif url.path == "/api/files":
+            self.send_json(200, {"files": files.listing(file_folders())})
+        elif url.path.startswith("/api/files/"):
+            self.file_view(url.path.split("/")[3:], q)
+        elif url.path == "/api/export":
+            self.export(q)
+        elif url.path == "/api/import":
+            self.send_json(200, IMPORT)
         # --- memory, for the chat history, the inspector and the graph (?memory=main|incognito) ---
         elif url.path in MEMORY_VIEWS:
             mem = memory_for(q)
@@ -572,6 +577,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400 if problem else 200, {"error": problem} if problem else settings_payload())
         elif self.path == "/api/chat":
             self.chat()
+        elif self.path == "/api/files":
+            self.upload()
+        elif self.path.startswith("/api/files/") and self.path.endswith("/import"):
+            problem = start_import(self.path.split("/")[3])
+            self.send_json(400 if problem else 200, {"error": problem} if problem else IMPORT)
+        elif self.path in ("/api/index", "/api/reflect") and talking_to().waiting_import():
+            n = talking_to().waiting_import()
+            self.send_json(409, {"error": f"{n:,} imported messages are waiting to be written. That's the import's own run, "
+                                          "started by you: python3 tools/claude_import.py run (see docs/IMPORT.md)."})
         elif self.path == "/api/index":         # /index: write what's waiting now, even a short stretch
             mem = talking_to()
             runs = worker.write_due(mem, force=True)
@@ -601,8 +615,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(200, key_status())
 
     def chat(self):
-        text = str(self.read_json().get("text") or "").strip()
-        if not text:
+        body = self.read_json()
+        text = str(body.get("text") or "").strip()
+        attached = []
+        for fid in body.get("files") or []:
+            record = files.wait(fid, file_folders(), seconds=600)      # still being read: wait for it
+            if not record:
+                return self.send_json(400, {"error": "One of the attached files isn't here any more. Attach it again."})
+            attached.append(record)
+        if not text and not attached:
             return self.send_json(400, {"error": "There's nothing to send."})
         # The stream starts right away, so the page can show Avy searching her memory before she answers.
         self.send_response(200)
@@ -610,7 +631,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         try:
-            turn = Turn(text, "text", progress=lambda e: self.event({"avy": {"searching": e}}))
+            turn = Turn(text, "text", progress=lambda e: self.event({"avy": {"searching": e}}), attached=attached)
             upstream = turn.ask()
         except FriendlyError as e:
             return self.event({"avy": {"error": e.message}})
@@ -620,7 +641,7 @@ class Handler(BaseHTTPRequestHandler):
             print(f"A turn failed: {e!r}")
             return self.event({"avy": {"error": f"Something went wrong preparing the reply ({e})."}})
 
-        # Pass DeepSeek's stream through to the page line by line, keeping what got there.
+        # Pass the model's stream through to the page line by line, keeping what got there.
         reply, usage, cut = "", None, False
         try:
             self.event({"avy": {"turn": turn.summary()}})
@@ -636,7 +657,7 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             cut = True                     # you pressed Stop or closed the tab
         except OSError:
-            cut = True                     # DeepSeek dropped the connection partway through
+            cut = True                     # the connection dropped partway through
         saved = turn.finish(reply, usage, cut)
         if not cut:
             try:
@@ -644,6 +665,51 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(b"data: [DONE]\n\n")
             except OSError:
                 pass
+
+    def upload(self):
+        """A file, as the request's body. Any kind, any size up to files.MAX_BYTES."""
+        length = int(self.headers.get("Content-Length") or 0)
+        name = urllib.parse.unquote(self.headers.get("X-File-Name") or "file")
+        if length <= 0:
+            return self.send_json(400, {"error": "That file is empty."})
+        if length > files.MAX_BYTES:
+            return self.send_json(413, {"error": f"That file is over {files.fmt_size(files.MAX_BYTES)}."})
+        mime = (self.headers.get("Content-Type") or "").split(";")[0].strip()
+        self.send_json(200, files.save(self.rfile, length, name, "" if mime == "application/octet-stream" else mime, files_folder()))
+
+    def file_view(self, parts, q):
+        """/api/files/<id> (its record), .../download (?inline=1 to view it), .../text (what Avy read)."""
+        fid, what = parts[0], (parts[1] if len(parts) > 1 else "")
+        path, record = files.original(fid, file_folders())
+        if not record:
+            return self.send_json(404, {"error": "That file isn't here."})
+        if what == "":
+            self.send_json(200, record)
+        elif what == "download":
+            inline = q.get("inline", ["0"])[0] == "1"
+            self.send_download(path, record["name"], record.get("mime") or "application/octet-stream", inline)
+        elif what == "text":
+            body = files.text_of(fid, file_folders()).encode()
+            self.send_download_bytes(body, record["name"] + ".txt", "text/plain; charset=utf-8", inline=True)
+        else:
+            self.send_json(404, {"error": "Not found"})
+
+    def export(self, q):
+        """/api/export?what=conversation&format=md|json, or what=memory (the knowledge and network, JSON)."""
+        mem = memory_for(q)
+        if not mem:
+            return self.send_json(404, {"error": "That memory isn't open."})
+        what, fmt = q.get("what", ["conversation"])[0], q.get("format", ["md"])[0]
+        day = datetime.now().strftime("%Y-%m-%d")
+        if what == "memory":
+            body = json.dumps(export_memory(mem), indent=1, ensure_ascii=False).encode()
+            return self.send_download_bytes(body, f"avy-memory-{mem.name}-{day}.json", "application/json")
+        msgs = mem.messages_between(1, mem.last_id())
+        if fmt == "json":
+            body = json.dumps({"exported": memory.stamp(), "memory": mem.name, "messages": msgs}, indent=1, ensure_ascii=False)
+            return self.send_download_bytes(body.encode(), f"avy-conversation-{mem.name}-{day}.json", "application/json")
+        self.send_download_bytes(conversation_markdown(mem, msgs).encode(), f"avy-conversation-{mem.name}-{day}.md",
+                                 "text/markdown; charset=utf-8")
 
     def events(self):
         """What the mind is doing in the background, as it happens (for the page's live touches)."""
@@ -707,6 +773,28 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_download(self, path, name, content_type, inline=False):
+        """A file, streamed from disk (it can be big), saved under its own name unless inline."""
+        size = path.stat().st_size
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(size))
+        self.send_header("Content-Disposition", disposition(name, inline))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if inline:
+            self.send_header("Content-Security-Policy", "sandbox")     # an uploaded web page can't run as Avy's page
+        self.end_headers()
+        with open(path, "rb") as f:
+            shutil.copyfileobj(f, self.wfile, 1 << 20)
+
+    def send_download_bytes(self, body, name, content_type, inline=False):
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Disposition", disposition(name, inline))
+        self.end_headers()
+        self.wfile.write(body)
+
     def send_file(self, path, content_type):
         body = path.read_bytes()
         self.send_response(200)
@@ -719,31 +807,129 @@ class Handler(BaseHTTPRequestHandler):
         pass   # keep the terminal for things that matter
 
 
+def disposition(name, inline=False):
+    plain = "".join(c if 32 <= ord(c) < 127 and c not in '"\\' else "_" for c in name)
+    return f'{"inline" if inline else "attachment"}; filename="{plain}"; filename*=UTF-8\'\'{urllib.parse.quote(name)}'
+
+
+def conversation_markdown(mem, msgs):
+    """The whole log as Markdown: a heading where each sitting (or imported conversation) begins."""
+    if not msgs:
+        return "# Avy: the conversation\n\nNothing's been said yet.\n"
+    out = [f"# Avy: the conversation ({mem.name} memory)", "",
+           f"Exported {memory.when(memory.stamp())}: {len(msgs):,} messages, "
+           f"{memory.when(msgs[0]['at'])} to {memory.when(msgs[-1]['at'])}.", ""]
+    previous = None
+    for m in msgs:
+        at, conv = datetime.fromisoformat(m["at"]), m["meta"].get("conversation")
+        if previous is None or conv != previous[1] or (at - previous[0]).total_seconds() > 30 * 60:
+            title = m["meta"].get("conversation_name")
+            out += [f"## {at:%A, %b %d, %Y, %I:%M %p}" + (f": {title} (with Claude)" if title else ""), ""]
+        previous = (at, conv)
+        who = memory.who(m["role"], m.get("via"))
+        out.append(f"**{who}** · {at:%I:%M %p}" + (" · spoken" if m.get("via") == "voice" else "")
+                   + (" · cut off" if m["meta"].get("cut") else ""))
+        if m["text"]:
+            out.append(m["text"])
+        names = [f["name"] if isinstance(f, dict) else f for f in m["meta"].get("files") or []]
+        names += [a["name"] for a in m["meta"].get("attachments") or []]
+        if names:
+            out.append("*attached: " + ", ".join(names) + "*")
+        out.append("")
+    return "\n".join(out)
+
+
+def export_memory(mem):
+    """Everything memory knows, as data: nodes (with where each was said), connections, conversations."""
+    nodes = []
+    for n in mem.current_nodes():
+        nodes.append({**mem.node_brief(n), "text": n["text"], "at": n["at"],
+                      "evidence": [{"message": e["message"], "quote": e.get("quote")} for e in mem.evidence_of(n["id"])]})
+    graph = mem.graph_data()
+    return {"exported": memory.stamp(), "memory": mem.name, "stats": mem.stats(), "nodes": nodes,
+            "connections": graph["edges"], "rests_on": graph["rests"],
+            "conversations": [{k: e.get(k) for k in ("id", "headline", "first", "last", "at")} for e in mem.episodes_list(100_000)]}
+
+
 # ---------------------------------------------------------------------------
-# 8. Start
+# 8. Importing a Claude history from the page (the same as tools/claude_import.py import)
+# ---------------------------------------------------------------------------
+
+IMPORT = {"state": "idle"}      # what the page's import is doing: idle, reading, importing, done, failed
+
+
+def start_import(fid):
+    """Start importing an attached Claude export. Returns a problem, or None if it started."""
+    path, record = files.original(fid, file_folders())
+    if not record or record.get("kind") != "claude-export":
+        return "That file isn't a Claude data export."
+    if IMPORT["state"] in ("reading", "importing"):
+        return "An import is already going."
+    if MEMORIES["incognito"]:
+        return "End the incognito conversation first: an import goes into a memory that's kept."
+    import threading
+    here = MEMORIES["main"].path.resolve() == CLAUDE_MEMORY.resolve()
+    IMPORT.clear()
+    IMPORT.update(state="reading", file=record["name"], target=str(CLAUDE_MEMORY), here=here, done=0, of=0, messages=0)
+    threading.Thread(target=run_import, args=(path, here), daemon=True).start()
+    return None
+
+
+def run_import(path, here):
+    """The imported history goes into its own memory file (data/memory-claude.db), so Avy's own log stays
+    in time order (the import is older). If Avy is running on that file, it goes straight in."""
+    sys.path.insert(0, str(HERE / "tools"))
+    import claude_import
+    try:
+        convs, skipped = claude_import.read_all(path, progress=False)
+        IMPORT.update(state="importing", of=len([c for c in convs if c.messages]))
+        mem = MEMORIES["main"] if here else memory.Memory(CLAUDE_MEMORY)
+        done = claude_import.import_conversations(mem, convs, say=lambda *a: None,
+                                                  progress=lambda i, n, m: IMPORT.update(done=i, of=n, messages=m))
+        IMPORT.update(state="done", added=done, waiting=mem.waiting_import(), total=mem.last_id())
+        if not here:
+            mem.close()
+    except Exception as e:
+        IMPORT.update(state="failed", problem=f"{type(e).__name__}: {e}"[:300])
+
+
+# ---------------------------------------------------------------------------
+# 9. Start
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     DATA.mkdir(exist_ok=True)
     shutil.rmtree(INCOGNITO_DIR, ignore_errors=True)   # an incognito conversation left over from a crash: gone
+    if "--memory" in sys.argv[1:-1]:                   # another memory file, e.g. the imported Claude history
+        MEMORY_FILE = Path(sys.argv[sys.argv.index("--memory") + 1]).expanduser().resolve()
+    elif os.environ.get("AVY_MEMORY"):
+        MEMORY_FILE = Path(os.environ["AVY_MEMORY"]).expanduser().resolve()
+    default_file = MEMORY_FILE == DATA / "memory-v2.db"
     first_run = not MEMORY_FILE.exists()
     MEMORIES["main"] = memory.Memory(MEMORY_FILE)
-    if first_run and V1_MEMORY.exists():                # version 1's log carries over; its file is left as it was
+    if first_run and default_file and V1_MEMORY.exists():   # version 1's log carries over; its file is left as it was
         copied = MEMORIES["main"].copy_log_from(V1_MEMORY)
         print(f"Memory v2: copied {copied} messages from {V1_MEMORY.name}; knowledge is rebuilt from them in the background.")
     memory.embedder.start(DATA / "models" / "meaning")
     worker.start(ask=ask_json, prices=PRICES, page=page_size, main=lambda: MEMORIES["main"],
+                 effort=lambda: current_settings()["mind"],
                  memories=lambda: [m for m in MEMORIES.values() if m])
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
     url = f"http://localhost:{PORT}"
     main = MEMORIES["main"]
     print(f"Avy is up at {url}  (Ctrl+C to stop)")
     print(f"Files go in {DATA.resolve()}")
-    print(f"Memory: {main.last_id()} messages so far, written into knowledge up to #{main.written_up_to()}.")
+    print(f"Memory: {MEMORY_FILE.name}, {main.last_id()} messages so far, written into knowledge up to #{main.written_up_to()}.")
+    if main.waiting_import():
+        print(f"  {main.waiting_import():,} imported messages wait to be written. That only happens when you run "
+              "python3 tools/claude_import.py run (docs/IMPORT.md).")
+    print(f"Model: {luminal.model()} through Luminal ({luminal.base_url()})"
+          + ("" if luminal.key() else ". Add your Luminal key in the page (the orange key button)."))
     print(f"Checking HTTPS certificates with {SSL_SOURCE}.")
     if voice:
         voice.start(turn=Turn, settings=current_settings, data=DATA, recordings=recordings_folder,
                     page_port=PORT, ssl_context=SSL_CONTEXT)
+        files.hooks["transcribe"] = voice.transcribe_file     # attached audio and video can be listened to
     else:
         print(VOICE_PROBLEM)
     if not os.environ.get("AVY_NO_BROWSER"):

@@ -5,3 +5,12 @@ truststore
 # Memory: search by meaning, with a small local model (about 65 MB, downloaded into
 # data/models on first run). Without it, memory still works with keyword search.
 fastembed==0.9.0
+
+# Files you attach: PDFs (pypdf) and pictures (Pillow, which also shrinks them for the model).
+# Without these, such files are still kept and named; Avy just can't read them. Audio and video
+# are listened to with the voice packages (requirements-voice.txt).
+pypdf
+Pillow
+
+# Importing a Claude export (tools/claude_import.py): reads the huge JSON a piece at a time.
+ijson

@@ -21,7 +21,7 @@ What each thread tests:
   ants (again)      his exact words, found through knowledge and traced to the log (verbatim)
 
 Lines are (speaker, text). Shreyas's lines are sent through Avy for real; a scripted "avy" line is
-saved as her reply instead of asking DeepSeek (used where the test needs to know what she said).
+saved as her reply instead of asking the model (used where the test needs to know what she said).
 """
 
 START = "2026-09-01"     # day 1
@@ -187,7 +187,7 @@ SESSIONS = [
 ]
 
 # Each probe: when it's asked, the question, the threads (or single sittings, "basil@14") that hold
-# what it needs, and the points a good answer makes (graded by a separate DeepSeek judge).
+# what it needs, and the points a good answer makes (graded by a separate judge).
 PROBES = [
     {"id": "origin", "day": 18, "at": "10:00", "needs": ["dishes"],
      "ask": "About the chores system at my place: which parts did I come up with, and which were your suggestions?",

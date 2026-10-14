@@ -3,11 +3,11 @@
 import json
 import sqlite3
 
-from .common import minutes_between, stamp
+from .common import IMPORTED, minutes_between, stamp
 
-WINDOW = 20             # the newest messages go to DeepSeek word for word (the /window: setting)
+WINDOW = 20             # the newest messages go to the model word for word (the /window: setting)
 WINDOW_CHARS = 48_000   # ...but no more than this much text for a window of 20 (about 12k tokens)
-ALL_CHARS = 3_000_000   # /window: all ... up to about 750k tokens, under DeepSeek's 1M limit
+ALL_CHARS = 480_000     # /window: all ... about 120k tokens, inside Luminal's 163,840-token context
 SITTING_GAP = 30        # minutes of quiet that end a sitting (and so an episode)
 
 
@@ -45,7 +45,7 @@ class Log:
     def window(self, size=WINDOW):
         """The newest `size` messages, word for word (size None: all of them; 0: none).
         The start moves in steps of half the size, so it stays put for a few exchanges and
-        DeepSeek can reuse its cached copy of the beginning."""
+        the model can reuse its cached copy of the beginning."""
         last = self.last_id()
         if size == 0 or last == 0:
             return []
@@ -86,6 +86,11 @@ class Log:
 
     # --- episodes ----------------------------------------------------------------------------
 
+    def waiting_import(self):
+        """Imported messages (tools/claude_import.py) not yet written into knowledge. Only the import's own
+        run writes them, never the background mind, so that big job only happens when you start it."""
+        return self.value("SELECT COUNT(*) FROM messages WHERE id > ? AND via = ?", self.written_up_to(), IMPORTED) or 0
+
     def written_up_to(self):
         """The last message that's been turned into knowledge (or looked at and found to hold none)."""
         return self.value("SELECT MAX(last) FROM episodes") or 0
@@ -101,16 +106,23 @@ class Log:
         A stretch ends at a sitting break (SITTING_GAP minutes of quiet), or after about `page`
         messages (on one of Avy's replies, so an exchange isn't split), or, for the newest one,
         once you've been away idle_minutes. force=True takes whatever is waiting."""
-        start, last = self.written_up_to() + 1, self.last_id()
+        return self.stretch_from(self.written_up_to() + 1, page, force, idle_minutes, now_iso)
+
+    def stretch_from(self, start, page, force=False, idle_minutes=SITTING_GAP, now_iso=None):
+        """The stretch starting at message `start`, by the rules above (next_stretch starts after what's written)."""
+        last = self.last_id()
         if last < start:
             return None
         msgs = self.messages_between(start, min(last, start + page + 2))
         for i in range(1, len(msgs)):
+            if msgs[i - 1]["meta"].get("conversation") != msgs[i]["meta"].get("conversation"):
+                return start, msgs[i - 1]["id"]                     # an imported conversation ended here
             if minutes_between(msgs[i - 1]["at"], msgs[i]["at"]) >= SITTING_GAP:
                 return start, msgs[i - 1]["id"]                     # a sitting ended here
             if i + 1 >= page:                                       # a page's worth: end on Avy's reply nearby
                 near = msgs[max(0, i - 2):i + 1]
-                if i + 1 < len(msgs) and minutes_between(msgs[i]["at"], msgs[i + 1]["at"]) < SITTING_GAP:
+                if (i + 1 < len(msgs) and minutes_between(msgs[i]["at"], msgs[i + 1]["at"]) < SITTING_GAP
+                        and msgs[i + 1]["meta"].get("conversation") == msgs[i]["meta"].get("conversation")):
                     near.append(msgs[i + 1])
                 replies = [x["id"] for x in near if x["role"] == "assistant"]
                 return start, replies[-1] if replies else msgs[i]["id"]

@@ -1,6 +1,6 @@
 """
 Meaning search: a small local model turns text into 384 numbers, so that "my exam" lands near
-"the probability quiz". It runs on this computer and only ever searches; DeepSeek is still the
+"the probability quiz". It runs on this computer and only ever searches; the model is still the
 only brain. It's optional: without it, keyword search still works. One model, shared by every
 open memory.
 """

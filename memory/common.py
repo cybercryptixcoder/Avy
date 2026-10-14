@@ -58,8 +58,14 @@ def tokens(text):
     return len(text) // 4 + 1   # a rough count: about four characters per token
 
 
-def who(role):
-    return NAME if role == "user" else "Avy"
+IMPORTED = "claude"     # messages.via for conversations imported from a Claude export (tools/claude_import.py)
+
+
+def who(role, via=None):
+    """Who said a message. Imported conversations were with Claude, not Avy."""
+    if role == "user":
+        return NAME
+    return "Claude" if via == IMPORTED else "Avy"
 
 
 def clip(text, around, limit):

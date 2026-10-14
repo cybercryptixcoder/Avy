@@ -20,8 +20,8 @@ memory/                   stores and searches; never calls the model
   health.py               the network's shape in numbers
   inspect.py              what the inspector and the graph read
   embed.py                the meaning-search model (bge-small, 384 numbers per text, on the CPU)
-mind/                     where DeepSeek comes in; only ever proposes
-  llm.py                  one strict tool call; cost; one retry when a connection drops
+mind/                     where the model comes in (through luminal.py); only ever proposes
+  llm.py                  one strict tool call (forced, or offered when the mind thinks); cost; a retry on top of Luminal's
   jobs.py                 the engine: prompt, call, check, repair (up to 2), apply, record
   writer.py               Write: an episode of the log becomes knowledge
   reflect.py              Connect, Think, Check, and how their inputs are chosen
@@ -64,7 +64,7 @@ Views:
 ## The rules (`memory/rules.py`)
 
 Every proposal is checked when it's applied, whoever made it. A refusal comes with a reason in plain
-words, and the same words go back to DeepSeek when one of its proposals breaks a rule.
+words, and the same words go back to the model when one of its proposals breaks a rule.
 
 1. **The log is permanent.**
 2. **Said knowledge has evidence**: real messages, spans inside them. **Origin** is decided by the
@@ -127,7 +127,9 @@ Implicit neighbors are never stored:
 
 Every job goes through `jobs.run(mem, job)`:
 1. `job.prompt()`
-2. one forced tool call (thinking off, as DeepSeek requires for forced calls)
+2. one tool call, thinking as hard as `/mind:` says (default none). With none the tool is forced; with
+   thinking on it's offered (`auto`), because Luminal refuses a forced call while thinking. An answer
+   given as plain JSON instead of the call is accepted; no answer at all is sent back as a problem.
 3. `job.check(answer)` returns proposals, problems and notes
 4. problems go back in plain words, up to twice; the attempt with the fewest problems wins
 5. `mem.apply_all`
@@ -195,7 +197,7 @@ Rounds as set by `/recall:` (light 1, normal 2, deep 3, max 4):
 - **The map, every round (code).** The 10 biggest things, said or inferred (`HUBS_SHOWN`), each with
   its connections, parts and when it was last touched, so she can open what he's in the middle of even
   when nothing in the message points there ("anything to wrap up before I leave?").
-- **Each round**, DeepSeek answers `explore_memory {task, questions[], open[], follow[], search[], keep[{item, why}], done}`:
+- **Each round**, the model answers `explore_memory {task, questions[], open[], follow[], search[], keep[{item, why}], done}`:
   - `open` reads up to 5 nodes in full: the exact words and every connection
   - `follow` adds up to 4 nodes' neighbors to the frontier
   - `search` runs up to 3 new searches in its own words (nodes, plus raw log lines it can keep as `#41`)
@@ -204,8 +206,8 @@ Rounds as set by `/recall:` (light 1, normal 2, deep 3, max 4):
 
 What's kept becomes the note (same tiers), followed by the task it took the message to need. Edges
 followed to something kept get a `used` support (only in the memory being talked to, never from
-incognito into the main memory, never in benchmark probes). If DeepSeek can't be reached, it falls back
-to recall by rules.
+incognito into the main memory, never in benchmark probes). It thinks as hard as `/thinking:` says. If
+the model can't be reached, it falls back to recall by rules.
 
 In incognito she reads both memories: the main one is read-only, and its older messages that match by
 themselves (its safety net) come along in their own section. The fallback reads both too.
@@ -216,28 +218,54 @@ themselves (its safety net) come along in their own section. The fallback reads 
 window   = the newest /window: messages, word for word
 memory   = explore() if /explore: on, else recall()   (+ the main memory, read-only, in incognito)
 messages = [system: instructions + footnote rule + the core (the biggest said hubs)]
-         + window + [system: the memory note] + [user: the message]
-stream the reply; save both messages; save the recall; nudge the mind
+         + window (with the files those messages carried, while there's room)
+         + [system: the memory note] + [user: the message, its files in <file> tags, pictures as images]
+stream the reply (/thinking: effort); save both messages (the files in meta); save the recall; nudge the mind
 ```
+
+Files: see docs/FILES.md. The log keeps `meta.files` (name, kind, size, what was read); the writer sees
+the names as `[attached: ...]`.
+
+## Imported conversations (docs/IMPORT.md)
+
+- Messages from a Claude export have `via = "claude"` and `meta` with `conversation`,
+  `conversation_name`, `source`, `claude` (its id), and maybe `project`, `attachments`, `files`.
+- `who(role, via)` names the assistant "Claude" for them; knowledge from Claude's words shows as
+  "Claude said" (`speaker`, derived from the first evidence message; the origin stays `avy`, since the
+  database's origins are fixed), and recall gives it its own tier.
+- A stretch never crosses from one conversation into another (`stretch_from` cuts at a change of
+  `meta.conversation`), and the writer's "just before" context comes only from the same conversation. The
+  writer is told the stretch is an earlier conversation with Claude, so its rules about Avy's words apply
+  to Claude's.
+- `waiting_import()` counts imported messages not yet written. While any wait, the background mind
+  neither writes them nor reflects, and `/index` and `/reflect` refuse: only `tools/claude_import.py run`
+  writes them, in time order, with the clock set to each stretch's time, reflecting once per day of
+  conversation.
+- The writer never sends more than 480,000 characters of log at once (`ALL_CHARS`, about 120,000 tokens,
+  inside Luminal's 163,840).
 
 The reply cites memory as `[k12]` right after what it supports. The page turns those into footnotes,
 and voice strips them before speaking.
 
 ## Settings
 
-model, window, recall, explore and live are on the system card. Everything else is also a `/`
-command: words, meaning, footnotes, thinking, voice, speed, whisper.
+thinking, window, recall, explore and live are on the system card. Everything else is also a `/`
+command: words, meaning, footnotes, mind, voice, speed, whisper.
 
 ## Testing
 
 - `python3 tests/test_memory.py [--meaning <model folder>]`: every rule, every job with a scripted
-  DeepSeek (repair loops, failures, give-ups), recall in all modes, explore, incognito, carrying the v1
+  model (repair loops, failures, give-ups), recall in all modes, explore, incognito, carrying the v1
   log, the inspector's views. Offline, in seconds.
-- `python3 tests/bench/run.py`: the benchmark (see CONCEPT.md, and `tests/bench/RESULTS.md`). Real
-  DeepSeek, about half an hour and about 40 cents. `tests/bench/check_words.py` proves its questions
+- `python3 tests/test_luminal.py`, `test_import.py`, `test_files.py`: the provider's rules, the Claude
+  import, and attached files, offline.
+- `python3 tests/page/run.py`: the page in a real browser against a fake Luminal.
+- `python3 tests/bench/run.py`: the benchmark (see CONCEPT.md, and `tests/bench/RESULTS.md`). The real
+  model through Luminal (`--mind` and `--thinking` set how hard it thinks; the judge thinks at high). `tests/bench/check_words.py` proves its questions
   share no searchable words with what they need. Around it:
   - `judge.py`: the grader (two passes, averaged; the whole true log in front of it)
-  - `v1_replay.py`: plays the same month through version 1's code, unchanged, and grades it the same way
+  - `v1_replay.py`: plays the same month through version 1's code, unchanged (which still needs a DeepSeek key
+    of its own), and grades it the same way
   - `regrade.py`: grades a finished run again with the current judge and rubrics
   - `ask_again.py`: asks a finished run's questions again on its finished memory with one setting
     changed (how the node cap was settled)

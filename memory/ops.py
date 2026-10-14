@@ -2,7 +2,7 @@
 
 Each proposal is checked against the rules (rules.py) at the moment of writing, then saved in one
 transaction, or refused. Either way it goes in the journal, with the rule it broke if it was refused.
-DeepSeek never writes to memory directly: the jobs in mind/ turn its answers into proposals.
+The model never writes to memory directly: the jobs in mind/ turn its answers into proposals.
 
 Proposals (plain dicts):
     {"op": "add_node", "shape", "label", "title", "text", "about", "evidence": [(message, start, end, exact)],

@@ -1,5 +1,5 @@
 """
-The benchmark: a month of conversation (world.py) replayed through the real Avy and DeepSeek, then
+The benchmark: a month of conversation (world.py) replayed through the real Avy and the model (through Luminal), then
 questions that need memory, answered under several search setups and graded.
 
     python3 tests/bench/run.py                          uses the key in .env
@@ -14,7 +14,7 @@ What happens:
      it reflects (check, think, connect), as it would in a quiet spell.
   3. On each probe's day, the question is answered under every setup in world.CONFIGS at /window: 0, so
      everything has to come through memory. Nothing from the probes is saved.
-  4. A separate judge (deepseek-v4-pro) grades each answer against the points a good answer makes, with
+  4. A separate judge (Flash, thinking at judge.JUDGE_EFFORT) grades each answer against the points a good answer makes, with
      the true conversation in front of it, and flags anything made up.
   5. Retrieval is scored too: did memory bring the sittings the question needed, and how much else?
   6. The network's shape is checked: did a hub form for the unnamed project, did the habit get inferred
@@ -43,17 +43,17 @@ parser.add_argument("--key", default=str(ROOT / ".env"))
 parser.add_argument("--models", default=str(ROOT / "data" / "models" / "meaning"))
 parser.add_argument("--configs", default="none,words,meaning,both,explore")
 parser.add_argument("--out", default=str(HERE / "results"))
-parser.add_argument("--judge", default="deepseek-v4-pro")
+parser.add_argument("--judge-effort", default="high", help="how hard the judge thinks")
+parser.add_argument("--mind", default="none", help="how hard the mind thinks while writing and reflecting (/mind:)")
+parser.add_argument("--thinking", default="none", help="how hard Avy thinks when she answers (/thinking:)")
 parser.add_argument("--name", default="")
 parser.add_argument("--until", type=int, default=99, help="only play the world up to this day (a quick try)")
 args = parser.parse_args()
-for line in Path(args.key).read_text().splitlines():
-    if line.startswith("DEEPSEEK_API_KEY="):
-        os.environ["DEEPSEEK_API_KEY"] = line.split("=", 1)[1].strip()
+import judge      # noqa: E402
+judge.load_keys(args.key)
 
 import app        # noqa: E402  (the key has to be in place first)
 import memory     # noqa: E402
-import judge      # noqa: E402
 import world      # noqa: E402
 from mind import explore, llm, worker  # noqa: E402
 
@@ -76,9 +76,9 @@ memory.embedder.wait(300)
 work = Path(OUT / f"{STAMP}.memory")
 work.mkdir(exist_ok=True)
 mem = app.MEMORIES["main"] = memory.Memory(work / "memory-v2.db")
-llm.app.update(ask=app.ask_json, prices=app.PRICES)
+llm.app.update(ask=app.ask_json, prices=app.PRICES, effort=lambda: args.mind)
 defaults = {name: spec["default"] for name, spec in app.SETTINGS.items()}
-settings = dict(defaults, explore="off", footnotes="on")
+settings = dict(defaults, explore="off", footnotes="on", thinking=args.thinking, mind=args.mind)
 app.current_settings = lambda: settings
 say(f"benchmark {STAMP}: memory in {work}, meaning search {memory.embedder.status}")
 
@@ -171,8 +171,7 @@ def answer(probe, name, cfg):
     else:
         trace = mem.recall(probe["ask"], "", None, cfg["depth"], cfg["words"], cfg["meaning"])
     messages = app.briefing([], trace["briefing"], probe["ask"], core=searching)
-    with app.deepseek({"model": "deepseek-flash", "messages": messages, "thinking": {"type": "disabled"}}) as r:
-        reply = json.loads(r.read())
+    reply = app.luminal.complete({"messages": messages, "max_tokens": app.REPLY_TOKENS}, effort=args.thinking)
     text = reply["choices"][0]["message"]["content"]
     explored = trace.get("explore") or {}
     return {"config": name, "answer": text, "seconds": round(time.time() - started, 1),
@@ -186,7 +185,7 @@ def answer(probe, name, cfg):
 
 def grade(probe, a):
     log = [(m["at"], m["role"], m["text"]) for m in mem.messages_between(1, mem.last_id())]
-    return judge.grade(probe, a["answer"], args.judge, say, log)
+    return judge.grade(probe, a["answer"], args.judge_effort, say, log)
 
 
 # --- the network's shape ------------------------------------------------------------------------------

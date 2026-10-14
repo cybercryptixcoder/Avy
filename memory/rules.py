@@ -1,7 +1,7 @@
 """The rules every change to memory must pass, whoever proposed it.
 
 Each check returns None (fine) or the reason it's refused, in plain words. The same words go back
-to DeepSeek when one of its proposals breaks a rule, so it can fix it. ops.py runs these checks
+to the model when one of its proposals breaks a rule, so it can fix it. ops.py runs these checks
 again at the moment of writing, so nothing gets in around them.
 
     1. The log is permanent.                        (the database itself refuses edits and deletes)

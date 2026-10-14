@@ -5,8 +5,12 @@ Version 1's code is used exactly as it is on the memory-v1 branch. It indexes th
 benchmark run produced (same messages, same times), and answers the same questions at the same
 moments, at /window: 0 and /recall: normal. Then the answers are graded by the same judge.
 
+Version 1 only knows DeepSeek's own API, so its side still needs a DeepSeek key (--v1-key, a file with
+DEEPSEEK_API_KEY=...). The judge runs through Luminal like everything else (--key). This is only for
+reproducing the old comparison in RESULTS.md; nothing in Avy itself uses DeepSeek's API any more.
+
     git worktree add ../avy-v1 memory-v1                       # version 1's code, beside this one
-    python3 tests/bench/v1_replay.py --v1 ../avy-v1 --run tests/bench/results/<stamp>.json --key .env
+    python3 tests/bench/v1_replay.py --v1 ../avy-v1 --run tests/bench/results/<stamp>.json --key .env --v1-key deepseek.env
 
 It writes <stamp>.v1.json next to the run, and adds a column to its report.
 """
@@ -68,12 +72,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--v1", required=True, help="a checkout of the memory-v1 branch")
     parser.add_argument("--run", required=True, help="a v2 benchmark result (.json); its .memory folder holds the log")
-    parser.add_argument("--key", default=str(HERE.parent.parent / ".env"))
+    parser.add_argument("--key", default=str(HERE.parent.parent / ".env"), help="the Luminal key, for the judge")
+    parser.add_argument("--v1-key", required=True, help="a file with DEEPSEEK_API_KEY=..., for version 1's own calls")
     parser.add_argument("--models", default=str(HERE.parent.parent / "data" / "models" / "meaning"))
     parser.add_argument("--python", default=sys.executable)
     args = parser.parse_args()
-    key = next(l.split("=", 1)[1].strip() for l in Path(args.key).read_text().splitlines() if l.startswith("DEEPSEEK_API_KEY="))
-    os.environ["DEEPSEEK_API_KEY"] = key
+    key = next(l.split("=", 1)[1].strip() for l in Path(args.v1_key).read_text().splitlines() if l.startswith("DEEPSEEK_API_KEY="))
 
     run_file = Path(args.run)
     result = json.loads(run_file.read_text())
@@ -117,8 +121,10 @@ def main():
             current = lines.get(text, current)
         tags[mid] = current
     import judge
+    judge.load_keys(args.key)
+    import luminal
     from mind import llm
-    llm.app.update(ask=ask_json(key), prices={"deepseek-v4-pro": {"cache_hit": 0.022, "cache_miss": 0.66, "output": 1.98}})
+    llm.app.update(ask=luminal.complete, prices=luminal.PRICES)
     probes = {p["id"]: p for p in world.PROBES}
     for a in v1["answers"]:
         p = probes[a["id"]]
@@ -135,22 +141,6 @@ def main():
     import report
     run_file.with_suffix(".md").write_text(report.markdown(result))
     print(f"version 1: {v1['entries']} entries, {v1['links']} links, indexing ${v1['cost']:.4f}. report: {run_file.with_suffix('.md')}")
-
-
-def ask_json(key):
-    """One structured request to DeepSeek (the judge), without importing app.py."""
-    import ssl
-    import urllib.request
-    try:
-        import truststore
-        ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    except ImportError:
-        ctx = ssl.create_default_context()
-    def ask(payload):
-        req = urllib.request.Request("https://api.deepseek.com/beta/chat/completions", data=json.dumps(payload).encode(),
-                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
-        return json.loads(urllib.request.urlopen(req, timeout=120, context=ctx).read())
-    return ask
 
 
 if __name__ == "__main__":

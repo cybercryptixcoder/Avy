@@ -1,13 +1,17 @@
 """Grading for the benchmark, shared by run.py (version 2) and v1_replay.py (version 1).
 
-  grade()      a separate DeepSeek judge scores an answer against the points a good answer makes, with
-               the true conversations in front of it, and flags anything stated that they don't support
+  grade()      a separate judge (the same Flash model, thinking hard: JUDGE_EFFORT) scores an answer
+               against the points a good answer makes, with the true conversations in front of it, and
+               flags anything stated that they don't support
+  load_keys()  the Luminal key (and address and model, if set) from a .env file
   retrieval()  what memory brought, scored: which sittings the question needed were covered, and how
                many items were about something else entirely
 """
 
+import os
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import world
 from mind import llm
@@ -23,6 +27,20 @@ TOOL = llm.tool("grade", "Grade the answer.", {
 })
 
 DAY1 = datetime.fromisoformat(world.START + "T00:00").astimezone()
+
+# Luminal serves only Flash, so the judge is Flash with thinking turned up (it used to be DeepSeek's Pro).
+JUDGE_EFFORT = "high"
+ENV_NAMES = ("LUMINAL_API_KEY", "LUMINAL_BASE_URL", "HELIX_FLASH_MODEL")
+
+
+def load_keys(path):
+    """Put the Luminal settings from a .env file into the environment (before app.py is imported)."""
+    for line in Path(path).read_text().splitlines():
+        name, _, value = line.partition("=")
+        if name.strip() in ENV_NAMES and value.strip():
+            os.environ[name.strip()] = value.strip()
+    if not os.environ.get("LUMINAL_API_KEY"):
+        raise SystemExit(f"No LUMINAL_API_KEY in {path}.")
 
 
 def moment(day, hhmm):
@@ -43,10 +61,10 @@ def truth(probe, log=None):
     return "\n".join(lines) or "(nothing yet)"
 
 
-def grade(probe, answer, model="deepseek-v4-pro", say=print, log=None, passes=2):
+def grade(probe, answer, effort=JUDGE_EFFORT, say=print, log=None, passes=2):
     """Graded `passes` times independently: scores are averaged, and something counts as made up only
     if every pass says so (a single judge is noisy; the same answer can get 0 and 1)."""
-    results = [one_grade(probe, answer, model, say, log) for _ in range(passes)]
+    results = [one_grade(probe, answer, effort, say, log) for _ in range(passes)]
     good = [r for r in results if r["score"] is not None]
     if not good:
         return results[0]
@@ -63,7 +81,7 @@ def grade(probe, answer, model="deepseek-v4-pro", say=print, log=None, passes=2)
             "passes": [r["score"] for r in good], "cost": round(sum(r["cost"] for r in results), 5)}
 
 
-def one_grade(probe, answer, model, say, log):
+def one_grade(probe, answer, effort, say, log):
     convo = [{"role": "system", "content": "You grade answers from Avy, a personal assistant with a memory of her past "
               "conversations with Shreyas. Be strict but fair: a point is met only if the answer actually makes it "
               "(in any words), partly if it gestures at it, missed otherwise. Then say whether the answer states as "
@@ -75,7 +93,7 @@ def one_grade(probe, answer, model, say, log):
               "Points a good answer makes:\n" + "\n".join(f"{i}. {p}" for i, p in enumerate(probe["points"], 1))}]
     for attempt in range(3):
         try:
-            reply = llm.call(convo, TOOL, model=model, max_tokens=2000)
+            reply = llm.call(convo, TOOL, max_tokens=2000, effort=effort)
             g, problem = llm.read_call(reply, "grade")
             if g and isinstance(g.get("points"), list):
                 verdicts = {int(p.get("point", 0)): p for p in g["points"]}
@@ -83,7 +101,7 @@ def one_grade(probe, answer, model, say, log):
                 score = sum({"met": 1, "partly": 0.5}.get(m["verdict"], 0) for m in marks) / len(marks)
                 return {"score": round(score, 2), "marks": [{"verdict": m["verdict"], "why": m.get("why", "")} for m in marks],
                         "invented": bool(g.get("invented")), "invented_what": g.get("invented_what") or "",
-                        "cost": round(llm.cost(reply.get("usage") or {}, model), 5)}
+                        "cost": round(llm.cost(reply.get("usage") or {}), 5)}
         except Exception as e:
             say(f"     (judge retry: {e})")
             time.sleep(3)

@@ -8,7 +8,7 @@ Avy's memory, version 2. It stores and searches; it never calls the model.
                    every reason anyone had to believe it. This layer is alive: connections form,
                    strengthen, fade and get rewired, with all the history kept.
 
-The mind (mind/) is where DeepSeek comes in: it writes knowledge from the log, connects it, and
+The mind (mind/) is where the model comes in: it writes knowledge from the log, connects it, and
 thinks about it. It only ever proposes; every change comes through Memory.apply (ops.py), which
 checks it against the rules (rules.py) and journals it.
 

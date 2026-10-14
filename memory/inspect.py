@@ -22,6 +22,7 @@ class Inspect:
             "versions": self.value("SELECT COUNT(*) FROM nodes"),
             "connections": len(self.live_edges()),
             "written_to": written,
+            "waiting_import": self.waiting_import(),
             "waiting": self.last_id() - written,
             "failed_runs": self.value("SELECT COUNT(*) FROM (SELECT status FROM runs ORDER BY id DESC LIMIT 20) "
                                       "WHERE status IN ('failed', 'error')"),
@@ -53,8 +54,8 @@ class Inspect:
 
     def node_brief(self, n):
         return {"chain": n["chain"], "handle": self.handle(n["chain"]), "title": n["title"], "shape": n["shape"],
-                "label": n["label"], "origin": n["origin"], "certainty": n["certainty"], "version": n["version"],
-                "state": n["state"]}
+                "label": n["label"], "origin": n["origin"], "speaker": self.speaker(n), "certainty": n["certainty"],
+                "version": n["version"], "state": n["state"]}
 
     def node_record(self, chain, version=None):
         """A node as a wiki page: what it says, where it came from, what it connects to, every version."""
@@ -63,7 +64,7 @@ class Inspect:
             return None
         versions = []
         for v in self.versions(chain):
-            versions.append({**v, "evidence": self.evidence_of(v["id"]), "basis": [
+            versions.append({**v, "speaker": self.speaker(v), "evidence": self.evidence_of(v["id"]), "basis": [
                 {"handle": self.handle(b["chain"]), "chain": b["chain"], "title": b["now"]["title"] if b["now"] else "?",
                  "standing": self.standing(b["now"]) if b["now"] else "", "stale": b["stale"]} for b in self.basis_of(v["id"])]})
         shown = next((v for v in versions if v["version"] == version), versions[0]) if version else versions[0]
