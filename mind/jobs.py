@@ -1,13 +1,13 @@
-"""The engine every model job runs through. A job is one question to DeepSeek with a strict answer shape:
+"""The engine every model job runs through. A job is one question to the model with a strict answer shape:
 
-    1. job.prompt()        what DeepSeek is shown, with short handles (#41 message, k12 node, p3 pair)
+    1. job.prompt()        what the model is shown, with short handles (#41 message, k12 node, p3 pair)
     2. llm.call()          one structured answer (a tool call whose shape a schema fixes)
     3. job.check(answer)   code checks every part of it and turns what passes into proposals
-    4. repair              what failed goes back to DeepSeek in plain words, up to twice
+    4. repair              what failed goes back to the model in plain words, up to twice
     5. memory.apply_all()  the best answer's proposals go through the one door (rules + journal)
     6. a run record        the prompt, every reply, every problem, the cost: all inspectable
 
-If DeepSeek can't be reached, nothing is lost and nothing half-written: the run says why.
+If the model can't be reached, nothing is lost and nothing half-written: the run says why.
 """
 
 import json
@@ -16,13 +16,13 @@ from dataclasses import dataclass, field
 
 from . import llm
 
-REPAIRS = 2    # how many times DeepSeek may fix its answer
+REPAIRS = 2    # how many times the model may fix its answer
 
 
 @dataclass
 class Plan:
     ops: list = field(default_factory=list)        # proposals for memory.apply_all
-    problems: list = field(default_factory=list)   # what's wrong, in plain words, for DeepSeek to fix
+    problems: list = field(default_factory=list)   # what's wrong, in plain words, for the model to fix
     notes: list = field(default_factory=list)      # what code fixed by itself (kept in the run's record)
     extra: dict = field(default_factory=dict)      # anything the job wants back in after()
 
@@ -58,7 +58,7 @@ def run(mem, job):
             reply = llm.call(convo, job.tool, job.model, job.max_tokens)
         except Exception as e:
             run_id = save(mem, job, "error", attempt, started, asked, replies,
-                          problem_log + [[f"couldn't reach DeepSeek: {getattr(e, 'message', e)}"]], used)
+                          problem_log + [[f"couldn't reach the model: {getattr(e, 'message', e)}"]], used)
             return {"id": run_id, "job": job.name, "status": "error", "attempts": attempt, "applied": 0, "rejected": 0,
                     "focus": job.focus, "problem": str(getattr(e, "message", e))}
         replies.append(reply)

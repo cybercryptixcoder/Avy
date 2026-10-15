@@ -1,6 +1,6 @@
 """The writer: turns a stretch of the log (an episode) into knowledge, in the background.
 
-DeepSeek does the judgment: what's worth knowing, how to say it, what it connects to.
+The model does the judgment: what's worth knowing, how to say it, what it connects to.
 Code does everything that has to be right every time:
   1. picks the stretch, and what memory already holds that it may touch (from the whole memory)
   2. asks for one structured answer (write_episode)
@@ -14,6 +14,7 @@ across the whole memory, not just this stretch.
 import re
 
 from memory import NAME, SHAPES, KINDS, embedder, locate, node_ref, message_ref, when, who, same_title
+from memory.common import IMPORTED
 from memory.rules import SELF
 
 from . import llm
@@ -159,7 +160,27 @@ def in_question(text, start, end):
 
 def as_line(m, limit):
     text = m["text"] if len(m["text"]) <= limit else m["text"][:limit] + " …(cut here)"
-    return f"#{m['id']} {when(m['at'])}  {who(m['role'])}: {text}"
+    meta = m.get("meta") or {}
+    files = [f"{a['name']} ({a['chars']:,} characters)" if a.get("chars") else a["name"] for a in meta.get("attachments") or []]
+    files += [f["name"] if isinstance(f, dict) else f for f in meta.get("files") or []]
+    attached = f"  [attached: {', '.join(files)}]" if files else ""
+    return f"#{m['id']} {when(m['at'])}  {who(m['role'], m.get('via'))}: {text}{attached}"
+
+
+def imported_note(stretch):
+    """For a stretch from an imported Claude conversation: what it is, so the rules about Avy's words
+    are applied to Claude's."""
+    first = next(iter(stretch.values()), None)
+    if not first or first.get("via") != IMPORTED:
+        return None
+    meta = first.get("meta") or {}
+    title = meta.get("conversation_name") or ""
+    where = f" in his project \"{meta['project']}\"" if meta.get("project") else ""
+    return (f"This stretch is from one of {NAME}'s earlier conversations with Claude, another AI assistant, before "
+            f"Avy existed{where}" + (f", titled \"{title}\"" if title else "") + ". Lines marked Claude are Claude's "
+            "words: everything the instructions say about Avy's words applies to Claude's (a concrete suggestion of "
+            "its own gets its own node; its questions, tips and general explanations aren't memory about him; its "
+            f"guesses never go into a node about what {NAME} said). Files he attached are named, not shown.")
 
 
 class Write(Job):
@@ -204,6 +225,11 @@ class Write(Job):
         else:
             parts.append("Memory is empty: this is the start.")
         before = mem.messages_between(max(1, self.first - CONTEXT_BEFORE), self.first - 1)
+        here = (next(iter(self.stretch.values()), {}).get("meta") or {}).get("conversation")
+        before = [m for m in before if (m.get("meta") or {}).get("conversation") == here]   # never another conversation
+        note = imported_note(self.stretch)
+        if note:
+            parts.append(note)
         if before:
             parts.append("Just before, for context only (already written; don't cite these):\n"
                          + "\n".join(as_line(m, 600) for m in before))

@@ -1,8 +1,8 @@
 """
-Avy's mind: where DeepSeek comes in. It never writes to memory directly; it proposes, and memory's
+Avy's mind: where the model comes in. It never writes to memory directly; it proposes, and memory's
 one door (memory/ops.py) checks every proposal against the rules and journals it.
 
-    llm.py       one strict tool call to DeepSeek, and what it cost
+    llm.py       one strict tool call to the model, and what it cost
     jobs.py      the engine: prompt, call, check, repair (up to twice), apply, record the run
     writer.py    Write: a stretch of the log becomes knowledge (nodes with evidence, first edges)
     reflect.py   Connect (find partners anywhere in memory and judge them), Think (patterns, unnamed

@@ -15,14 +15,14 @@ sys.path.insert(0, str(HERE))
 
 run_file = Path(sys.argv[1])
 key_file = Path(sys.argv[sys.argv.index("--key") + 1]) if "--key" in sys.argv else HERE.parent.parent / ".env"
-key = next(l.split("=", 1)[1].strip() for l in key_file.read_text().splitlines() if l.startswith("DEEPSEEK_API_KEY="))
 
 import judge          # noqa: E402
+judge.load_keys(key_file)
+import luminal        # noqa: E402
 import report         # noqa: E402
-import v1_replay      # noqa: E402
 from mind import llm  # noqa: E402
 
-llm.app.update(ask=v1_replay.ask_json(key), prices={"deepseek-v4-pro": {"cache_hit": 0.022, "cache_miss": 0.66, "output": 1.98}})
+llm.app.update(ask=luminal.complete, prices=luminal.PRICES)
 r = json.loads(run_file.read_text())
 log = sqlite3.connect(f"file:{run_file.with_suffix('.memory') / 'memory-v2.db'}?mode=ro", uri=True).execute(
     "SELECT at, role, text FROM messages ORDER BY id").fetchall()

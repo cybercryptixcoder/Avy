@@ -1,18 +1,18 @@
 # How well memory works, measured
 
 The benchmark (`tests/bench/`, described in [CONCEPT.md](../../CONCEPT.md#how-we-know-it-works)) plays a
-made-up month of conversation through the real Avy and DeepSeek, lets the mind write and reflect every
+made-up month of conversation through the real Avy and the real model, lets the mind write and reflect every
 night, then asks ten questions that need memory, with no recent messages in view. Each question is
 answered six ways, and a separate judge grades every answer against the points a good one makes, with
 the whole true conversation in front of it:
 
 | setup | what it is |
 |---|---|
-| no memory | nothing looked up: what DeepSeek guesses |
+| no memory | nothing looked up: what the model guesses |
 | keywords only | recall by rules, word search only |
 | meaning only | recall by rules, meaning search only |
 | keywords + meaning | recall by rules, both halves of search |
-| **Avy searches** | **explore: DeepSeek steers the search itself (the default)** |
+| **Avy searches** | **explore: the model steers the search itself (the default)** |
 | version 1 | the fork point's code, unchanged, played through the same month |
 
 Most questions share no searchable words with what they need (`check_words.py` proves it), so keyword
@@ -25,6 +25,34 @@ replies are generated fresh. The full reports are in [`results/`](results/): run
 below are the `.again.json` files.
 
 ---
+
+## Oct 14: the same benchmark on Luminal
+
+Avy moved from DeepSeek's own API to Luminal (DeepSeek-V4.1-Flash only; docs/LUMINAL.md). One full run
+with everything else unchanged: the mind and Avy's answers with thinking off, as before. One thing had to
+change: the judge used to be DeepSeek's Pro, which Luminal doesn't serve, so it's now Flash thinking at
+`high`. Scores aren't strictly comparable with the runs below for that reason.
+
+| run | no memory | keywords only | meaning only | keywords + meaning | Avy searches |
+|---|---|---|---|---|---|
+| Luminal, mind thinking none (`2026-10-14_19-17_luminal-mind-none`) | 21% | 27% | 75% | 73% | **86%** |
+| the five DeepSeek runs below, average (range) | 18% (15–20) | 37% (26–46) | 79% (72–83) | 82% (76–94) | 85% (76–93) |
+
+- **Nothing was lost in the move.** Avy searching for herself scored 86%, inside the DeepSeek runs'
+  range and on their average. It brought everything every question needed (100% coverage on all nine
+  that needed something), and only 27% of what it brought was off-topic, against 49% for recall by
+  rules.
+- **The network checks:** bridge ✓ (the two concepts one step apart), hub ✓, pattern ✓ (the writing habit
+  inferred), revision ✓ (and revised when it changed), tension ✓, ideas ✓ (13 of his and Avy's ideas kept
+  as ideas). One project, one hub ✗ this time: the plant gadget had its own hub, but two inferred
+  summaries of it sat beside it instead of under it (the same failure as runs 3 and 4).
+- **No call failed** in the whole run (the client retries quietly, so a passing hiccup wouldn't show; none
+  surfaced as an error).
+- **Cost and time:** about 43 cents (the mind 20, Avy's replies 4, questions and grading 19; the judge
+  costs more now that it thinks) in 39 minutes.
+
+A second run with the mind thinking at `high` (`--mind high`) is under way, to see whether thinking
+improves what memory writes; its results will be added here.
 
 ## The short version
 
@@ -211,8 +239,9 @@ Each fix is a general rule, tested offline (`tests/test_memory.py`) and then mea
   scale (see [LATER.md](../../LATER.md)).
 - **The fixes were found on these same questions**, so there's a risk of fitting to them. Each fix is a
   general rule rather than a tweak for one question, but a fresh set of questions would be a fairer test.
-- **DeepSeek writes, answers and judges.** The judge is a different, stronger model than the one
-  answering, and it reads the whole true log, but it's still a model.
+- **The same model family writes, answers and judges.** In the DeepSeek runs the judge was a different,
+  stronger model (Pro); on Luminal it's Flash thinking hard. It reads the whole true log, but it's still a
+  model.
 - **Noise.** With nothing changed, scores move a few points. Single questions in single runs swing
   widely (multi-hop for Avy searching ranged 19–100%), so read the averages and the patterns, not one cell.
 
@@ -225,7 +254,8 @@ adds about 2 cents of indexing plus grading. Everything on this page cost about 
 ## Running it
 
 ```
-python3 tests/bench/run.py                     a fresh month, all six setups (version 1 needs v1_replay.py)
+python3 tests/bench/run.py                     a fresh month, five setups, through Luminal (the key in .env)
+python3 tests/bench/run.py --mind high         the same with the mind thinking hard (--thinking for Avy's answers)
 python3 tests/bench/v1_replay.py --v1 <memory-v1 checkout> --run results/<stamp>.json
 python3 tests/bench/ask_again.py results/<stamp>.json --variant a nodes=12 --variant b nodes=24
 python3 tests/bench/summary.py results/*.json  the tables on this page

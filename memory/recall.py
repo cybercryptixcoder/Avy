@@ -58,6 +58,8 @@ STEP = {
 TIERS = [   # how the memory note is laid out, most reliable first
     ("user", "What Shreyas told you (his exact words are quoted; #41 is message 41):"),
     ("avy", "What you said to him before (your own suggestions and ideas: not facts about him unless he agreed):"),
+    ("claude", "What Claude, the assistant he talked to before you existed, said to him (its suggestions and "
+               "explanations: not facts about him unless he agreed; never present them as your own words):"),
     ("inferred", "What you worked out yourself (inferred, never said by anyone; how sure you are, and what it rests on):"),
 ]
 
@@ -69,7 +71,7 @@ def hub_discount(degree):
 
 
 def briefing(sections, note=None):
-    """The memory note DeepSeek gets right before your newest message.
+    """The memory note the model gets right before your newest message.
     sections: [(heading, [blocks])]; empty ones are left out."""
     parts = [f"Memory for this message. It is now {now():%A, %B %d, %Y, %I:%M %p %Z}."]
     parts += [f"{heading}\n" + "\n".join(blocks) for heading, blocks in sections if blocks]
@@ -83,7 +85,7 @@ class Recall:
     def recall(self, text, previous="", shown_from=None, depth="normal", words=True, meaning=True):
         """What this memory knows that's relevant to the message.
           previous    your message before this one, used only when this one refers back to it
-          shown_from  the first message already in front of DeepSeek word for word (not recalled again)
+          shown_from  the first message already in front of the model word for word (not recalled again)
           depth       off, light, normal, deep, max (see DEPTHS)
           words       use shared words to search (/words:)
           meaning     use meaning to search (/meaning:)
@@ -202,8 +204,8 @@ class Recall:
     def trace_item(self, chain, hit, block, msgs):
         n = self.current(chain)
         return {"node": chain, "handle": self.handle(chain), "memory": self.name, "title": n["title"], "shape": n["shape"],
-                "label": n["label"], "origin": n["origin"], "certainty": n["certainty"], "version": n["version"],
-                "score": round(hit["score"], 3), "how": hit["how"], "matched": hit.get("matched"), "via": hit.get("via"),
+                "label": n["label"], "origin": n["origin"], "speaker": self.speaker(n), "certainty": n["certainty"],
+                "version": n["version"], "score": round(hit["score"], 3), "how": hit["how"], "matched": hit.get("matched"), "via": hit.get("via"),
                 "kind": hit.get("kind"), "direction": hit.get("direction"), "edge": hit.get("edge"),
                 "messages": sorted(msgs), "block": block}
 
@@ -250,7 +252,7 @@ class Recall:
         """The memory note's sections for one memory's trace. label: added to headings (incognito)."""
         out = []
         for origin, heading in TIERS:
-            blocks = [x["block"] for x in trace["nodes"] if x["origin"] == origin]
+            blocks = [x["block"] for x in trace["nodes"] if x.get("speaker", x["origin"]) == origin]
             out.append((heading.replace(":", f"{label}:", 1) if label else heading, blocks))
         lines = []
         for c in trace["connections"]:
@@ -263,7 +265,7 @@ class Recall:
         return out
 
     def node_block(self, chain, full=False, shown_from=None):
-        """One node, the way DeepSeek sees it. full=True shows the whole message each quote came from.
+        """One node, the way the model sees it. full=True shows the whole message each quote came from.
         Messages from shown_from on are already in the recent conversation, so they're only pointed to."""
         n = self.current(chain)
         bits = [n["shape"] + (f", {n['label']}" if n["label"] and n["label"] != n["shape"] else ""), self.standing(n)]
@@ -280,9 +282,9 @@ class Recall:
             elif full:
                 m = self.message(v["message"])
                 text = m["text"][:v["start"]] + "«" + m["text"][v["start"]:v["end"]] + "»" + m["text"][v["end"]:]
-                lines.append(f"   #{m['id']} {when(m['at'])}, {who(m['role'])}: {clip(text, v['start'], 600)}")
+                lines.append(f"   #{m['id']} {when(m['at'])}, {who(m['role'], m.get('via'))}: {clip(text, v['start'], 600)}")
             else:
-                lines.append(f"   #{v['message']} {when(v['at'])}, {who(v['role'])}: \"{v['quote']}\"")
+                lines.append(f"   #{v['message']} {when(v['at'])}, {who(v['role'], v.get('via'))}: \"{v['quote']}\"")
         if n["shape"] == "thing":                # a hub shows what hangs on it, like a wiki page's contents
             parts = self.parts(chain)
             if parts:
@@ -312,7 +314,7 @@ class Recall:
         return "\n".join(lines), msgs
 
     def message_block(self, m):
-        return f"#{m['id']} {when(m['at'])}, {who(m['role'])}: {clip(m['text'], 0, 700)}"
+        return f"#{m['id']} {when(m['at'])}, {who(m['role'], m.get('via'))}: {clip(m['text'], 0, 700)}"
 
     def hubs(self, limit=10, said_only=False):
         """The biggest things (3+ live connections), most connected first: [(node, degree)]."""
@@ -327,7 +329,7 @@ class Recall:
     def core(self, limit=10):
         """The biggest hubs, sent with every message so Avy always knows the big things in Shreyas's
         world. Only things that were said: identity, not conclusions. It only changes when the network
-        does, so DeepSeek can cache it."""
+        does, so the model can cache it."""
         hubs = self.hubs(limit, said_only=True)
         if not hubs:
             return ""

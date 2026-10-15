@@ -15,11 +15,11 @@ An inferred node becomes a 'user' one only by a new version whose evidence is Sh
 
 import re
 
-from .common import NAME
+from .common import IMPORTED, NAME
 
 SHAPES = ("thing", "information", "idea")
 ORIGINS = ("user", "avy", "inferred")
-SAID_BY = {"user": "you said", "avy": "Avy said", "inferred": "inferred"}
+SAID_BY = {"user": "you said", "avy": "Avy said", "claude": "Claude said", "inferred": "inferred"}
 
 
 class Knowledge:
@@ -46,7 +46,7 @@ class Knowledge:
 
     def evidence_of(self, nid):
         """The exact words a node version came from (version row id)."""
-        return self.rows("""SELECT v.*, m.at, m.role FROM evidence v JOIN messages m ON m.id = v.message
+        return self.rows("""SELECT v.*, m.at, m.role, m.via FROM evidence v JOIN messages m ON m.id = v.message
                             WHERE v.node = ? ORDER BY v.message, v.start""", nid)
 
     def basis_of(self, nid):
@@ -79,11 +79,19 @@ class Knowledge:
         text = f"{n['title']}: {n['text']}" + (f" ({n['label']})" if n.get("label") else "")
         return re.sub(rf"\b{NAME}'s\b", "his", re.sub(rf"\b{NAME}\b", "he", text))
 
+    def speaker(self, n):
+        """Who a node comes from: 'user', 'avy', 'claude' or 'inferred'. The same as its origin, except that
+        an assistant's node quoting only imported conversations (tools/claude_import.py) was Claude's."""
+        if n["origin"] != "avy":
+            return n["origin"]
+        via = self.value("SELECT m.via FROM evidence v JOIN messages m ON m.id = v.message WHERE v.node = ? LIMIT 1", n["id"])
+        return "claude" if via == IMPORTED else "avy"
+
     def standing(self, n):
-        """How reliable a node is, in words: 'you said', 'Avy said', 'inferred, likely'."""
+        """How reliable a node is, in words: 'you said', 'Avy said', 'Claude said', 'inferred, likely'."""
         if n["origin"] == "inferred":
             return f"inferred, {n['certainty'] or 'possible'}"
-        return SAID_BY[n["origin"]]
+        return SAID_BY[self.speaker(n)]
 
     def things(self):
         """Current thing nodes, for matching names in text."""

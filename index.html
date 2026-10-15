@@ -338,6 +338,23 @@ button { cursor: pointer; background: none; border: 0; }
 .status button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .status button.off { opacity: .4; }
 
+/* Files: the tray of what you're about to send (above the status line), and chips on the messages that carried them */
+.tray { display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 9px 2px 0; font-size: 12.5px; }
+.tray[hidden] { display: none; }
+.chip { display: inline-flex; align-items: baseline; gap: .9ch; max-width: 100%; min-width: 0; padding: 1px 8px 2px;
+        border: 1.5px solid var(--ink); border-radius: 4px; white-space: nowrap; font-weight: 400; }
+.chip .nm { font-weight: 700; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; color: inherit; text-decoration: none; }
+.chip a.nm:hover { text-decoration: underline; text-underline-offset: 3px; }
+.chip .wh { opacity: .6; overflow: hidden; text-overflow: ellipsis; max-width: 44ch; }
+.chip.problem { border-style: dashed; }
+.chip.busy .wh { animation: pulse 1.3s ease-in-out infinite; }
+.chip button, .chip a.act { font: inherit; font-weight: 700; color: inherit; text-decoration: none; }
+.chip button:hover, .chip a.act:hover { text-decoration: underline; text-underline-offset: 3px; }
+@keyframes pulse { 50% { opacity: .2; } }
+.line .chips { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 7px; font-size: 12.5px; }
+.chat.dropping .log { outline: 2px dashed var(--ink); outline-offset: -8px; }
+.chat.dropping .how::before { content: "drop to attach · "; font-weight: 700; opacity: 1; }
+
 /* The little ASCII field in the corner: drifts while idle, churns while Avy works.
    Once memory has a network, a tiny view of the real network takes its place (click it to open). */
 .scope {
@@ -475,10 +492,10 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
     <div class="nav-pill">
       <span class="nav-globe"><svg class="icon"><use href="#i-globe"/></svg></span>
       <ul class="nav-items">
-        <li><span class="dot ok"></span>Brain: <span id="navModel">deepseek-flash</span></li>
+        <li><span class="dot ok"></span>Brain: <span id="navModel">flash</span></li>
         <li><span class="dot" id="keyDot"></span><span id="keyText">Checking key</span></li>
         <li><span class="dot" id="memDot"></span><span id="memText">Memory</span></li>
-        <li><span class="dot ok" id="rateDot"></span><span id="rateText">Off-peak rate</span></li>
+        <li title="What's left on your Luminal account (checked once a minute)"><span class="dot" id="rateDot"></span><span id="rateText">Luminal</span></li>
       </ul>
       <button class="pill-btn" id="openMemory" type="button" title="Look inside Avy's memory (/memory)">Memory <svg class="icon"><use href="#i-arrow"/></svg></button>
     </div>
@@ -521,7 +538,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
         <div class="tile green">
           <div class="tile-head">
             Spent this session
-            <span class="toggle" title="DeepSeek charges double at peak hours"><i id="offTag" class="on">Off-peak</i><i id="peakTag">Peak</i></span>
+            <span class="toggle" title="Worked out from DeepSeek's list prices. What Luminal actually charged shows in the balance at the top."><i class="on">estimate</i></span>
           </div>
           <b id="tSpent">$0.0000</b>
         </div>
@@ -564,8 +581,11 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
         </aside>
       </div>
       <div class="rule bottom"></div>
+      <div class="tray" id="tray" hidden aria-label="Files to send"></div>
       <div class="status">
         <span class="how" id="how"></span>
+        <input type="file" id="filePick" multiple hidden>
+        <button id="attach" type="button" title="Attach files of any kind (or drop them on the conversation, or paste them)">[ attach ]</button>
         <button id="endIncognito" type="button" hidden>[ end incognito ]</button>
         <button id="micOff" type="button" hidden>[ mic off ]</button>
         <button id="talk" type="button">[ talk ]</button>
@@ -621,6 +641,7 @@ let voiceInfo = { available: false, problem: "Checking voice..." };
 let oldestShown = null;  // the earliest message number on screen (older ones: [ load earlier ])
 let incognito = false;   // in an incognito conversation: nothing said is kept once it ends
 let historyShown = false; // the conversation is loaded once the page knows which one it's in
+const tray = { items: [] }; // files to send with the next message: { file, xhr, progress, state, record, problem }
 const liveMode = () => settings.values.live === "on";   // live: Space talks to Avy; otherwise Space dictates
 
 async function getJSON(url, options) {
@@ -632,29 +653,26 @@ async function getJSON(url, options) {
 
 
 /* ===================================================================
-   2. Prices. DeepSeek's rates come from app.py; peak hours
-      (01:00-04:00 and 06:00-10:00 UTC, Monday to Friday) cost 2x.
+   2. Prices: an estimate from DeepSeek's list prices (app.py sends them,
+      dollars per million tokens). Luminal's balance is the real number.
    =================================================================== */
-function isPeak(now = new Date()) {
-  const day = now.getUTCDay(), hour = now.getUTCHours();
-  const weekday = day >= 1 && day <= 5;
-  return weekday && ((hour >= 1 && hour < 4) || (hour >= 6 && hour < 10));
+function costOf(usage) {
+  const price = settings.prices || {};
+  const hit  = usage.prompt_tokens_details?.cached_tokens ?? usage.prompt_cache_hit_tokens ?? 0;
+  const miss = Math.max(0, (usage.prompt_tokens || 0) - hit);
+  const perMillion = hit * (price.cache_hit || 0) + miss * (price.cache_miss || 0) + (usage.completion_tokens || 0) * (price.output || 0);
+  return perMillion / 1e6;
 }
 
-function costOf(usage, model) {
-  const price = settings.prices[model] || { cache_hit: 0, cache_miss: 0, output: 0 };
-  const hit  = usage.prompt_cache_hit_tokens ?? 0;
-  const miss = usage.prompt_cache_miss_tokens ?? (usage.prompt_tokens || 0) - hit;
-  const perMillion = hit * price.cache_hit + miss * price.cache_miss + (usage.completion_tokens || 0) * price.output;
-  return (perMillion / 1e6) * (isPeak() ? 2 : 1);
-}
-
-function countUsage(usage, model) {
+function countUsage(usage) {
   if (!usage) return;
   session.tokens += usage.total_tokens || 0;
-  session.dollars += costOf(usage, model);
+  session.dollars += costOf(usage);
   updateTiles();
 }
+
+// "deepseek-ai/DeepSeek-V4.1-Flash" -> "deepseek-v4.1-flash"
+const brainName = () => (settings.brain?.model || "").split("/").pop().toLowerCase();
 
 
 /* ===================================================================
@@ -664,16 +682,16 @@ async function loadStatus() {
   const status = await (await fetch("/api/status")).json();
   if (pageIsStale(status.page)) return;
   showStatus(status);
-  // Open Keys if there's no DeepSeek key yet. Only focus the prompt otherwise:
+  // Open Keys if there's no Luminal key yet. Only focus the prompt otherwise:
   // focusing it first makes Chrome drop your typing after the panel closes.
-  if (!status.keys.find(k => k.name === "DEEPSEEK_API_KEY").hint) openKeys();
+  if (!status.keys.find(k => k.name === "LUMINAL_API_KEY").hint) openKeys();
   else input.focus();
 }
 
 function showStatus(status) {
-  const deepseek = status.keys.find(k => k.name === "DEEPSEEK_API_KEY");
-  $("keyText").textContent = deepseek.hint ? "Key saved" : "No key yet";
-  $("keyDot").className = "dot " + (deepseek.hint ? "ok" : "warn");
+  const luminal = status.keys.find(k => k.name === "LUMINAL_API_KEY");
+  $("keyText").textContent = luminal.hint ? "Key saved" : "No key yet";
+  $("keyDot").className = "dot " + (luminal.hint ? "ok" : "warn");
   $("keyFields").replaceChildren(...status.keys.map(keyField));
   if (status.incognito !== incognito || !historyShown) showIncognito(status.incognito);
   showVoice(status.voice);
@@ -749,7 +767,7 @@ async function changeSetting(name, value) {
 
 function renderSystem() {
   const v = settings.values;
-  if (!v.model) return;
+  if (!settings.brain) return;
   // the card keeps the important settings; every setting is also a / command
   $("sysRows").replaceChildren(...Object.keys(settings.schema).filter((name) => settings.schema[name].card).map((name) => {
     const row = document.createElement("button");
@@ -766,15 +784,17 @@ function renderSystem() {
     return row;
   }));
 
-  const price = settings.prices[v.model] || {};
+  const price = settings.prices || {};
   const f = settings.files, m = settings.memory || {};
   const halves = [v.words === "on" && "words", v.meaning === "on" && (m.meaning === "on" || !m.meaning ? "meaning" : "meaning (loading)")].filter(Boolean);
+  const waitingImport = m.waiting_import ? `, ${m.waiting_import.toLocaleString()} imported wait for tools/claude_import.py run` : "";
   const info = [
     ["mic", voiceInfo.available ? (liveMode() ? "live: space talks to avy" : "space dictates into the box") : (voiceInfo.problem || "voice off")],
-    ["price", `$${price.cache_miss} in, $${price.output} out /1M${isPeak() ? " ×2 now" : ""}`],
+    ["brain", `${brainName()} via luminal, mind thinks ${v.mind}`],
+    ["price", `~$${price.cache_miss} in, $${price.output} out /1M`],
     ["memory", `${m.messages ?? 0} msgs · ${m.nodes ?? 0} nodes · ${m.connections ?? 0} links`],
     ["knows", `${m.ideas ?? 0} ideas · ${m.inferred ?? 0} inferred · ${m.episodes ?? 0} convos`],
-    ["mind", mindNow || `written to #${m.written_to ?? 0}${m.waiting ? `, ${m.waiting} waiting` : ""}${m.failed_runs ? `, ${m.failed_runs} failed` : ""}`],
+    ["mind", mindNow || `written to #${m.written_to ?? 0}${m.waiting ? `, ${m.waiting} waiting` : ""}${m.failed_runs ? `, ${m.failed_runs} failed` : ""}${waitingImport}`],
     ["search", halves.length ? halves.join(" + ") + (v.explore === "on" ? ", avy steers" : "") : "off: no memory"],
     ["files", f.data],
     ["models", `${f.models_mb} MB`],
@@ -789,10 +809,11 @@ function renderSystem() {
     return row;
   }));
 
-  $("navModel").textContent = v.model;
+  $("navModel").textContent = brainName();
+  showBalance();
   $("meta").innerHTML = "";
   $("meta").append(
-    `avy 0.3: ${v.model}, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
+    `avy 0.3: ${brainName()} via luminal, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
     document.createElement("br"),
     incognito ? "incognito: a separate conversation. avy can use her memory, but nothing said here is kept. /incognito ends it."
               : `one endless conversation: avy remembers it all. hold space to ${liveMode() ? "talk" : "dictate"}, / for commands.`,
@@ -863,13 +884,17 @@ document.querySelector(".side").addEventListener("scroll", closeMenu);
    =================================================================== */
 async function send() {
   const text = input.value.trim();
-  if (!text || controller) return;
+  if ((!text && !tray.items.length) || controller) return;
   if (text.startsWith("/")) return runCommand(text);
+  if (!(await filesSettled())) return;                     // still uploading or being read: wait (or give up)
+  const sending = tray.items.filter((i) => i.record);
+  if (!text && !sending.length) return;
   input.value = ""; grow(); drawCursor(); showHow();
+  clearTray();
   interruptAvy();
 
-  const model = settings.values.model;
   const yourLine = addLine("you", text);
+  if (sending.length) yourLine.append(el("div", "chips", sending.map((i) => fileChip(i.record))));
   yourLine.dataset.at = new Date().toISOString();
   drawChapters();
 
@@ -887,7 +912,7 @@ async function send() {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, files: sending.map((i) => i.record.id) }),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -923,15 +948,16 @@ async function send() {
   searching?.done();
   block.remove();
   setBusy(false);
-  countUsage(usage, model);
+  countUsage(usage);
   if (reply) words.innerHTML = renderMarkdown(reply);
 
   if (reply && stopped) avyLine.classList.add("cut");     // saved as cut off, too
   if (!reply) {
     avyLine.remove(); trace?.remove(); thought?.line.remove();
-    if (!turn) {          // nothing reached the log: undo this turn and put your message back at the prompt
+    if (!turn) {          // nothing reached the log: undo this turn and put your message (and files) back
       yourLine.remove();
       input.value = text; grow(); drawCursor();
+      sending.forEach((i) => tray.items.push(i)); drawTray();
     }
   }
   if (failed) addLine("error", failed);
@@ -941,7 +967,7 @@ async function send() {
   input.focus();
 }
 
-// DeepSeek streams lines like:  data: {"choices":[{"delta":{"content":"Hi"}}]}
+// The model streams lines like:  data: {"choices":[{"delta":{"content":"Hi"}}]}
 async function readStream(res, onChunk) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -985,7 +1011,7 @@ function searchingLine(before) {
   };
 }
 
-// While DeepSeek thinks (only when thinking isn't off): a dim line with a running timer.
+// While the model thinks (only when thinking isn't off): a dim line with a running timer.
 function thinkingLine(before) {
   const line = document.createElement("div");
   line.className = "line note";
@@ -1039,7 +1065,8 @@ function renderParts(text) {
       const lang = newline >= 0 ? part.slice(0, newline).trim() : "";
       const code = newline >= 0 ? part.slice(newline + 1) : part;
       return `<div class="codebox"><div class="codebox-head"><span>${escapeHtml(lang || "code")}</span>` +
-             `<button class="copy" type="button">[ copy ]</button></div><pre>${escapeHtml(code.replace(/\n$/, ""))}</pre></div>`;
+             `<span class="acts"><button class="save" type="button" data-lang="${escapeHtml(lang)}">[ save ]</button> ` +
+             `<button class="copy" type="button">[ copy ]</button></span></div><pre>${escapeHtml(code.replace(/\n$/, ""))}</pre></div>`;
     }
     if (i > 0) part = part.replace(/^\n/, "");     // the box already breaks the line
     if (i < parts.length - 1) part = part.replace(/\n$/, "");
@@ -1052,16 +1079,38 @@ function renderParts(text) {
   }).join("");
 }
 
-// [ copy ] on code boxes
+// [ copy ] and [ save ] on code boxes. Save downloads it as a file: ```csv saves avy.csv, and a box
+// labelled with a file name (```notes.md) saves under that name.
+const EXTENSIONS = { python: "py", py: "py", javascript: "js", js: "js", typescript: "ts", ts: "ts", tsx: "tsx", jsx: "jsx",
+  json: "json", csv: "csv", tsv: "tsv", markdown: "md", md: "md", html: "html", css: "css", bash: "sh", sh: "sh", shell: "sh",
+  zsh: "sh", sql: "sql", yaml: "yml", yml: "yml", toml: "toml", ini: "ini", xml: "xml", svg: "svg", java: "java", c: "c",
+  cpp: "cpp", "c++": "cpp", go: "go", rust: "rs", rs: "rs", ruby: "rb", swift: "swift", kotlin: "kt", r: "r", php: "php",
+  latex: "tex", tex: "tex", text: "txt", txt: "txt", plain: "txt", ics: "ics", vcf: "vcf" };
+
+function saveAs(name, text, type = "text/plain") {
+  const url = URL.createObjectURL(new Blob([text], { type: type + ";charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
 log.addEventListener("click", (e) => {
-  const button = e.target.closest(".copy");
+  const button = e.target.closest(".copy, .save");
   if (!button) return;
-  navigator.clipboard.writeText(button.closest(".codebox").querySelector("pre").textContent);
+  const text = button.closest(".codebox").querySelector("pre").textContent;
+  if (button.classList.contains("save")) {
+    const lang = (button.dataset.lang || "").trim();
+    const name = /^[\w.-]+\.[\w]+$/.test(lang) ? lang : `avy.${EXTENSIONS[lang.toLowerCase()] || "txt"}`;
+    saveAs(name, text + "\n");
+    button.textContent = "[ saved ]";
+    return setTimeout(() => (button.textContent = "[ save ]"), 1200);
+  }
+  navigator.clipboard.writeText(text);
   button.textContent = "[ copied ]";
   setTimeout(() => (button.textContent = "[ copy ]"), 1200);
 });
 
-// kinds: you, avy, error, note (dim info), cmd (a command you ran; never sent to DeepSeek)
+// kinds: you, avy, error, note (dim info), cmd (a command you ran; never sent to the model)
 function addLine(kind, text, before = prompt) {
   const line = document.createElement("div");
   line.className = "line " + kind;
@@ -1098,7 +1147,12 @@ function addTrace(after, recalled) {
 // A message from the log, drawn the same way it was the first time.
 function showMessage(m, before) {
   let line;
-  if (m.role === "user") line = addLine("you", m.text, before);
+  if (m.role === "user") {
+    line = addLine("you", m.text, before);
+    const carried = [...(m.meta.files || []), ...(m.meta.attachments || [])]    // imported messages only have names
+      .map((f) => typeof f === "string" ? { name: f } : f);
+    if (carried.length) line.append(el("div", "chips", carried.map((f) => fileChip(f))));
+  }
   else {
     line = addLine("avy", "", before);
     line.innerHTML = renderMarkdown(m.text);
@@ -1295,12 +1349,15 @@ function updateTiles() {
   $("tSpent").textContent = "$" + session.dollars.toFixed(4);
 }
 
-function updateRate() {
-  const peak = isPeak();
-  $("rateText").textContent = peak ? "Peak rate (2×)" : "Off-peak rate";
-  $("rateDot").className = "dot " + (peak ? "warn" : "ok");
-  $("offTag").classList.toggle("on", !peak);
-  $("peakTag").classList.toggle("on", peak);
+// The top bar: what's left on the Luminal account (the server checks it at most once a minute).
+function showBalance() {
+  const usd = settings.brain?.balance;
+  $("rateText").textContent = usd == null ? "Luminal: balance unknown" : `Luminal: $${usd.toFixed(2)} left`;
+  $("rateDot").className = "dot " + (usd == null ? "" : usd < 5 ? "warn" : "ok");
+}
+
+async function updateRate() {
+  try { settings = await getJSON("/api/settings"); } catch { return; }
   renderSystem();
 }
 
@@ -1377,6 +1434,9 @@ const ACTIONS = {
   clear:     { short: "clear the screen", about: "clear the screen (memory keeps everything)", run: clearScreen },
   keys:      { short: "your API keys", about: "open the keys panel", run: openKeys },
   where:     { short: "where files live", about: "where Avy keeps its files", run: showWhere },
+  attach:    { short: "attach files", about: "attach files of any kind (you can also drop them here or paste them)", run: () => $("filePick").click() },
+  files:     { short: "files you've attached", about: "the files you've attached, newest first: open them, or see what Avy read", run: showFiles },
+  export:    { short: "download the conversation", about: "download the whole conversation as Markdown (/export: json for data, /export: memory for the knowledge and network)", run: exportNow },
   retry:     { short: "re-transcribe last recording", about: "transcribe your newest recording again", run: retryRecording },
   help:      { short: "list every command", about: "list every command", run: showHelp },
 };
@@ -1521,6 +1581,8 @@ async function showWhere() {
     `  settings.json   your choices (system card and / commands)`,
     `  models/         speech and meaning-search models, ${f.models_mb} MB`,
     `  recordings/     your last ${f.recordings} recordings with their transcripts, ${f.recordings_mb} MB`,
+    `  files/          files you attached, each as it came, with what Avy read from it`,
+    `  memory-claude.db  your imported Claude history, if you imported one`,
     `  incognito/      an incognito conversation, only while it's going`,
     `keys are in .env next to app.py.`,
   ].join("\n"));
@@ -1905,7 +1967,7 @@ function onVoiceMessage(m) {
       return;
     case "done":
       if (!reply) return;
-      countUsage(m.usage, reply.model);
+      countUsage(m.usage);
       reply.done = true;
       reply.fullText = m.text;
       if (!voice.playing.length) finishReply(m.text);
@@ -1920,7 +1982,7 @@ function onVoiceMessage(m) {
 
 function askAloud(text) {
   if (voice.ws?.readyState !== WebSocket.OPEN) { addLine("error", "The voice connection dropped. Type your message instead."); return setState("idle"); }
-  reply = { model: settings.values.model, heard: [], captions: [], line: null, done: false, recalled: null, trace: null };
+  reply = { heard: [], captions: [], line: null, done: false, recalled: null, trace: null };
   voice.ws.send(JSON.stringify({ type: "reply", text }));
   setState("thinking");
 }
@@ -2052,6 +2114,7 @@ function showHow() {
   else if (voiceState === "speaking") { text = "avy is talking: tap space to cut in"; live = true; }
   else if (controller) text = "esc or [ stop ] to stop";
   else if (input.value.startsWith("/")) text = "tab completes, ↑↓ picks, enter runs, esc closes";
+  else if (tray.items.length) text = `enter sends ${plural(tray.items.length, "file")}${input.value ? " with your message" : ""}, × takes one out`;
   else if (input.value) text = "enter to send, shift+enter for a new line" + (voiceInfo.available && !liveMode() ? ", hold space to dictate more" : "");
   else if (!voiceInfo.available) text = "type a message, / for commands";
   else text = liveMode() ? "live: hold space to talk to avy, tap twice to lock, / for commands"
@@ -2260,8 +2323,8 @@ function pointer(v, mem) {                      // evidence: #388 Oct 2 · you  
               ["g", v.exact ? `"${v.quote}"` : "(the whole message)"]],
              () => inspect("log", v.message, v.exact ? { start: v.start, end: v.end } : null, mem));
 }
-const ORIGIN = { user: "you said", avy: "avy said", inferred: "inferred" };
-function standing(n) { return n.origin === "inferred" ? `inferred, ${n.certainty || "possible"}` : ORIGIN[n.origin]; }
+const ORIGIN = { user: "you said", avy: "avy said", claude: "claude said", inferred: "inferred" };
+function standing(n) { return n.origin === "inferred" ? `inferred, ${n.certainty || "possible"}` : ORIGIN[n.speaker || n.origin]; }
 function nodeRow(n, extra = "", mem) {           // a node: [shape] [title] [handle]
   return row([["k", n.shape.padEnd(12)], ["g", n.title + (n.version > 1 ? `  v${n.version}` : "")],
               ["n", `${extra}${standing(n)} · ${n.handle}`]],
@@ -2314,7 +2377,7 @@ function runBlock(run, mem) {                     // how a job went: status, pro
     const call = r.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     try { return `try ${i + 1}:\n` + JSON.stringify(JSON.parse(call), null, 1); } catch { return `try ${i + 1}:\n` + (call || JSON.stringify(r).slice(0, 2000)); }
   }).join("\n\n");
-  nodes.push(...toggle("what DeepSeek was shown", shown), ...toggle("what it answered", said));
+  nodes.push(...toggle("what the model was shown", shown), ...toggle("what it answered", said));
   return nodes;
 }
 function journalRow(j, mem) {                     // one proposed change: applied, or refused and why
@@ -2390,14 +2453,14 @@ const VIEWS = {
     if (shown.evidence.length) nodes.push(sec("said in"), shown.evidence.map((v) => pointer(v, mem)));
     if (shown.basis.length) nodes.push(sec("rests on"), shown.basis.map((b) =>
       row([["k", b.standing.padEnd(16)], ["g", b.title], ["n", `${b.stale ? "changed since · " : ""}${b.handle}`]], () => inspect("node", b.chain, null, mem))));
-    const origins = [...new Set(r.versions.map((v) => v.origin).reverse())];
+    const origins = [...new Set(r.versions.map((v) => v.speaker || v.origin).reverse())];
     if (origins.length > 1) nodes.push(el("div", "dim", "\nwho said it: " + origins.map((o) => ORIGIN[o]).join(", then ")));
     const live = r.links.filter((l) => l.live), dormant = r.links.filter((l) => !l.live);
     nodes.push(sec(`connections (${live.length})`), live.length ? live.map((l) => linkRow(l, mem)) : el("div", "dim", "none yet"));
     if (dormant.length) nodes.push(sec(`dormant (${dormant.length}): too weak to follow, kept as history`), dormant.map((l) => linkRow(l, mem)));
     if (r.inferred_from_this.length) nodes.push(sec("what avy inferred from this"), r.inferred_from_this.map((x) => nodeRow(x, "", mem)));
     nodes.push(sec("versions, newest first"), r.versions.map((v) => el("div", v.id === n.id ? "" : "dim",
-      row([["k", `v${v.version}`], ["g", (v.state === "retracted" ? "(let go) " : "") + v.text], ["n", ORIGIN[v.origin]]],
+      row([["k", `v${v.version}`], ["g", (v.state === "retracted" ? "(let go) " : "") + v.text], ["n", ORIGIN[v.speaker || v.origin]]],
           () => inspect("node", chain, v.version, mem), v.id !== r.head ? "old" : ""),
       v.evidence.map((x) => pointer(x, mem)))));
     if (r.journal.length) nodes.push(sec("history"), r.journal.map((j) => journalRow(j, mem)));
@@ -2485,7 +2548,7 @@ const VIEWS = {
     return [`recall for #${r.message}`, [
       el("div", "", `"${t.query}"`),
       el("div", "dim", `${mode} · looked at ${t.searched.nodes} nodes and ${t.searched.log} older messages · ~${t.tokens} tokens · ${t.seconds}s`),
-      x ? [sec(`avy's search: ${plural(x.rounds.length, "round")}${x.fell_back ? " (couldn't reach deepseek; fell back to rules)" : ""}`),
+      x ? [sec(`avy's search: ${plural(x.rounds.length, "round")}${x.fell_back ? " (couldn't reach the model; fell back to rules)" : ""}`),
            x.task ? el("div", "para", `she took this to need: ${x.task}`) : null,
            el("div", "dim", `landed on: ${(x.landing || []).join(" ")}`),
            x.rounds.map((s) => el("div", "round",
@@ -2507,7 +2570,7 @@ const VIEWS = {
       t.log.length ? t.log.map((l) => row([["n", `#${l.message}`], ["g", l.why || `found by ${l.how === "both" ? "words + meaning" : l.how}`]],
                                            () => inspect("log", l.message, null, memOf(l)))) : el("div", "dim", "none"),
       t.skipped ? el("div", "dim", `${t.skipped} more matched but didn't fit`) : null,
-      ...toggle("the exact memory note DeepSeek got", r.briefing),
+      ...toggle("the exact memory note the model got", r.briefing),
     ]];
   },
 
@@ -2816,13 +2879,212 @@ window.graphHears = (m) => { if (m.state === "done" && m.new_chains?.length) loa
 
 
 /* ===================================================================
+   11b. Files: attach any kind (the button, dropping, pasting). Each is uploaded,
+        read by the server (text, pictures, what's said in a recording), then
+        sent with your next message. A Claude export can be imported from here.
+   =================================================================== */
+function attachFiles(list) {
+  for (const file of list) {
+    const item = { file, progress: 0, state: "uploading", record: null };
+    tray.items.push(item);
+    upload(item);
+  }
+  drawTray();
+  input.focus();
+}
+
+function upload(item) {
+  const xhr = item.xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/files");
+  xhr.setRequestHeader("X-File-Name", encodeURIComponent(item.file.name || "pasted"));
+  xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
+  xhr.upload.onprogress = (e) => { if (e.lengthComputable) { item.progress = e.loaded / e.total; drawTray(); } };
+  xhr.onload = () => {
+    let body = {};
+    try { body = JSON.parse(xhr.responseText); } catch {}
+    if (xhr.status !== 200) return fail(item, body.error || `the upload failed (${xhr.status})`);
+    item.record = body;
+    item.state = body.status;
+    drawTray();
+    if (body.status === "reading") watchFile(item);
+  };
+  xhr.onerror = () => fail(item, "the upload failed. Is python3 app.py still running?");
+  xhr.send(item.file);
+}
+
+function fail(item, why) { item.state = "problem"; item.problem = why; drawTray(); }
+
+async function watchFile(item) {
+  while (item.state === "reading") {
+    await new Promise((r) => setTimeout(r, 700));
+    try {
+      const record = await getJSON(`/api/files/${item.record.id}`);
+      item.record = record;
+      if (record.status !== "reading") item.state = record.status;
+    } catch { /* the server may be busy reading: try again */ }
+    drawTray();
+  }
+}
+
+function removeFromTray(item) {
+  item.xhr?.abort();
+  item.state = "removed";
+  tray.items = tray.items.filter((i) => i !== item);
+  drawTray();
+}
+
+function clearTray() { tray.items = []; drawTray(); }
+
+function drawTray() {
+  const box = $("tray");
+  box.hidden = !tray.items.length;
+  box.replaceChildren(...tray.items.map((item) => {
+    const what = item.state === "uploading" ? `uploading ${Math.round(item.progress * 100)}%`
+               : item.state === "reading" ? (item.record?.what || "reading…") : null;
+    const chip = fileChip(item.record || { name: item.file.name, size: item.file.size }, what || item.problem, item.state);
+    const x = el("button", "", "×");
+    x.type = "button"; x.title = "Don't send this one";
+    x.onclick = () => removeFromTray(item);
+    chip.append(x);
+    return chip;
+  }));
+  showHow();
+}
+
+// One file as a chip: its name (opens it), what Avy made of it, and, for a Claude export, [ import ].
+function fileChip(f, what = null, state = "ready") {
+  const chip = el("span", "chip" + (state === "problem" || f.status === "problem" ? " problem" : "")
+                          + (state === "uploading" || state === "reading" ? " busy" : ""));
+  const name = f.id ? el("a", "nm", f.name) : el("span", "nm", f.name);
+  if (f.id) { name.href = `/api/files/${f.id}/download?inline=1`; name.target = "_blank"; name.rel = "noopener"; name.title = "open it"; }
+  chip.append(name, el("span", "wh", what || f.what || (f.size != null ? sizeOf(f.size) : "name only")));
+  if (f.id && f.chars && state === "ready") {
+    const read = el("a", "act", "read");
+    read.href = `/api/files/${f.id}/text`; read.target = "_blank"; read.title = "what Avy read from it";
+    chip.append(read);
+  }
+  if (f.id && f.kind === "claude-export" && state === "ready") {
+    const go = el("button", "", "[ import ]");
+    go.type = "button"; go.title = "copy its conversations into Avy's memory (no model calls)";
+    go.onclick = () => importExport(f);
+    chip.append(go);
+  }
+  return chip;
+}
+
+function sizeOf(n) {
+  if (n == null) return "";
+  const units = ["bytes", "KB", "MB", "GB"];
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return i ? `${n.toFixed(1)} ${units[i]}` : `${n} bytes`;
+}
+
+// Before sending: every file uploaded and read. Shows what it's waiting for; Esc gives up waiting.
+async function filesSettled() {
+  let note = null, gaveUp = false;
+  const stop = (e) => { if (e.key === "Escape") gaveUp = true; };
+  document.addEventListener("keydown", stop);
+  try {
+    while (tray.items.some((i) => i.state === "uploading" || i.state === "reading")) {
+      if (gaveUp) return false;
+      const busy = tray.items.filter((i) => i.state === "uploading" || i.state === "reading").length;
+      if (!note) note = addLine("note", "");
+      note.textContent = `waiting for ${busy === 1 ? "a file" : busy + " files"} to finish (esc to stop waiting)…`;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return true;
+  } finally {
+    document.removeEventListener("keydown", stop);
+    note?.remove();
+  }
+}
+
+$("attach").onclick = () => $("filePick").click();
+$("filePick").onchange = (e) => { attachFiles([...e.target.files]); e.target.value = ""; };
+
+// Dropping files anywhere on the page attaches them (and stops the browser from opening them instead).
+let dragDepth = 0;
+const dragsFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+document.addEventListener("dragenter", (e) => { if (dragsFiles(e)) { dragDepth++; $("chat").classList.add("dropping"); } });
+document.addEventListener("dragleave", (e) => { if (dragsFiles(e) && --dragDepth <= 0) { dragDepth = 0; $("chat").classList.remove("dropping"); } });
+document.addEventListener("dragover", (e) => { if (dragsFiles(e)) e.preventDefault(); });
+document.addEventListener("drop", (e) => {
+  if (!dragsFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  $("chat").classList.remove("dropping");
+  if (e.dataTransfer.files.length) attachFiles([...e.dataTransfer.files]);
+});
+
+// Pasting a picture or a file into the box attaches it; pasting text pastes text, as usual.
+input.addEventListener("paste", (e) => {
+  const pasted = [...(e.clipboardData?.files || [])];
+  if (!pasted.length) return;
+  e.preventDefault();
+  attachFiles(pasted);
+});
+
+// /files: what you've attached, newest first.
+async function showFiles() {
+  try {
+    const { files } = await getJSON("/api/files");
+    if (!files.length) return addLine("note", "no files yet. [ attach ], drop or paste one.");
+    const line = addLine("note", `${files.length === 100 ? "the newest 100" : plural(files.length, "file")} you've attached:`);
+    line.append(el("div", "chips", files.map((f) => fileChip(f, null, f.status))));
+  } catch (e) { addLine("error", e.message); }
+}
+
+// /export: the conversation as Markdown (or json), or memory's knowledge and network (memory).
+function exportNow(arg) {
+  const how = (arg || "md").toLowerCase();
+  const query = how === "memory" ? "what=memory" : `what=conversation&format=${how === "json" ? "json" : "md"}`;
+  const a = Object.assign(document.createElement("a"), { href: `/api/export?${query}&memory=${incognito ? "incognito" : "main"}` });
+  document.body.append(a); a.click(); a.remove();
+  addLine("note", how === "memory" ? "downloading memory: every node, connection and conversation, as JSON"
+                                   : `downloading the whole conversation as ${how === "json" ? "JSON" : "Markdown"}`);
+}
+
+// A Claude export: copy its conversations in (no model calls), with progress. The mind's run that turns
+// them into knowledge is separate, and yours to start: python3 tools/claude_import.py run.
+async function importExport(f) {
+  const line = addLine("note", `importing your Claude history from ${f.name}…`);
+  try {
+    await getJSON(`/api/files/${f.id}/import`, { method: "POST" });
+  } catch (e) { line.textContent = `couldn't import: ${e.message}`; return; }
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 1000));
+    let s;
+    try { s = await getJSON("/api/import"); } catch { continue; }
+    if (s.state === "reading") line.textContent = `reading ${s.file}…`;
+    else if (s.state === "importing") line.textContent = `importing: ${s.done} of ${s.of} conversations, ${s.messages.toLocaleString()} messages so far…`;
+    else if (s.state === "failed") { line.textContent = `the import stopped: ${s.problem}`; return; }
+    else if (s.state === "done") {
+      const added = s.added || {};
+      line.textContent = [
+        `imported ${plural(added.conversations || 0, "conversation")}, ${(added.messages || 0).toLocaleString()} messages` +
+          (s.here ? " into this memory." : ` into ${s.target}.`),
+        s.here ? "" : "to talk to Avy with that history: stop app.py, then start it with  python3 app.py --memory data/memory-claude.db",
+        `${(s.waiting || 0).toLocaleString()} imported messages wait to become knowledge. That's a big job, so it only starts when you run`,
+        "  python3 tools/claude_import.py plan    (what it will take)",
+        "  python3 tools/claude_import.py run     (do it; stop and resume any time)",
+      ].filter(Boolean).join("\n");
+      refreshMemory();
+      return;
+    }
+  }
+}
+
+
+/* ===================================================================
    12. Start
    =================================================================== */
 setBusy(false);
 setState("idle");
 updateTiles();
 if (still) { drawScope(); drawBars(0); } else requestAnimationFrame(tick);
-loadSettings().then(() => { updateRate(); setInterval(updateRate, 60_000); refreshMemory(); });
+// The balance arrives a moment after start (the server asks Luminal in the background), then once a minute.
+loadSettings().then(() => { setTimeout(updateRate, 4000); setInterval(updateRate, 60_000); refreshMemory(); });
 setInterval(() => { if (!document.hidden) refreshMemory(); }, 20_000);   // the indexer works in the background
 loadStatus();          // then the conversation: the main one, or an incognito one still going
 listenToMind();

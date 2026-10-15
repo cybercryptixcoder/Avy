@@ -4,7 +4,7 @@ Avy's voice. app.py starts this when the voice packages are installed.
 You hold Space (or double-tap it to lock) while you talk. When you let go,
 faster-whisper writes down the whole recording in one go. Then, depending on /live:
     off (dictation)  the words go into your text box, to edit and send yourself
-    on (live)        DeepSeek answers with memory, exactly like a typed message (a Turn from
+    on (live)        the model answers with memory, exactly like a typed message (a Turn from
                      app.py), and Kokoro 82M speaks it a sentence at a time while the rest is
                      still coming. Pressing Space while Avy talks cuts her off; only the part
                      you heard is saved to the log.
@@ -166,12 +166,48 @@ def transcribe(source):
     return " ".join(s.text.strip() for s in segments).strip()
 
 
+def load_audio(path):
+    """The sound of any audio or video file as 16 kHz mono samples (PyAV, which comes with faster-whisper),
+    or None if it has no sound. Done here rather than by faster-whisper, whose own loader breaks on newer PyAV."""
+    import av
+    with av.open(str(path)) as container:
+        stream = next(iter(container.streams.audio), None)
+        if stream is None:
+            return None
+        resampler = av.AudioResampler(format="s16", layout="mono", rate=MIC_RATE)
+        chunks = []
+        for frame in container.decode(stream):
+            chunks += [f.to_ndarray().reshape(-1) for f in resampler.resample(frame)]
+        chunks += [f.to_ndarray().reshape(-1) for f in resampler.resample(None)]
+    return np.concatenate(chunks).astype(np.float32) / 32768 if chunks else np.zeros(0, np.float32)
+
+
+def transcribe_file(path):
+    """Any audio or video file you attach: (text with a time at the start of each line, its length in
+    seconds). Speech in other languages needs a whisper model without .en (large-v3-turbo); the .en models
+    only hear English."""
+    audio = load_audio(path)
+    if audio is None or len(audio) < MIC_RATE // 4:
+        return "", 0.0
+    name = app["settings"]()["whisper"]
+    segments, info = whisper(name).transcribe(
+        audio, language="en" if name.endswith(".en") else None, beam_size=5,
+        condition_on_previous_text=False, vad_filter=True)
+    lines = []
+    for s in segments:
+        m, sec = divmod(int(s.start), 60)
+        h, m = divmod(m, 60)
+        lines.append(f"[{h}:{m:02}:{sec:02}] " if h else f"[{m}:{sec:02}] ")
+        lines[-1] += s.text.strip()
+    return "\n".join(lines), info.duration
+
+
 # ---------------------------------------------------------------------------
-# 4. Replies: DeepSeek streams text; finished sentences go to Kokoro while the rest is coming
+# 4. Replies: The model streams text; finished sentences go to Kokoro while the rest is coming
 # ---------------------------------------------------------------------------
 
-def stream_deepseek(turn, put, cancel):
-    """Runs in a background thread: starts the turn, reads DeepSeek's stream, hands pieces to the event loop."""
+def stream_reply(turn, put, cancel):
+    """Runs in a background thread: starts the turn, reads the model's stream, hands pieces to the event loop."""
     try:
         upstream = turn.ask()
     except Exception as e:
@@ -195,7 +231,7 @@ def stream_deepseek(turn, put, cancel):
                     if delta.get("content"):
                         put(("text", delta["content"]))
     except Exception as e:
-        return put(("error", f"Lost the connection to DeepSeek partway through ({e})."))
+        return put(("error", f"Lost the connection to the model partway through ({e})."))
     put(("end", None))
 
 
@@ -254,7 +290,7 @@ async def reply(ws, text, state):
     except Exception as e:
         return await ws.send(json.dumps({"type": "error", "text": f"Memory couldn't be read ({e})."}))
     spoken = state["spoken"] = Spoken(turn)
-    threading.Thread(target=stream_deepseek, args=(turn, put, cancel), daemon=True).start()
+    threading.Thread(target=stream_reply, args=(turn, put, cancel), daemon=True).start()
     mouth = asyncio.create_task(speak_sentences(ws, sentences))
 
     pending, told_thinking = "", False
@@ -292,7 +328,7 @@ async def reply(ws, text, state):
         # otherwise it's saved when the page says how much you heard ("heard")
         await ws.send(json.dumps({"type": "done", "text": spoken.text, "usage": spoken.usage}))
     finally:
-        cancel.set()          # stop reading DeepSeek if we were cut off
+        cancel.set()          # stop reading the model if we were cut off
         mouth.cancel()
 
 

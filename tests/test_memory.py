@@ -1,10 +1,10 @@
 """
-Offline tests for Avy's memory (version 2): no DeepSeek, no network. Run from the Avy folder:
+Offline tests for Avy's memory (version 2): no model, no network. Run from the Avy folder:
 
     python3 tests/test_memory.py                     keyword search only (fast)
     python3 tests/test_memory.py --meaning <folder>  also loads the meaning-search model from <folder>
 
-DeepSeek is replaced by a script of answers, so every rule and every job can be checked exactly.
+The model is replaced by a script of answers, so every rule and every job can be checked exactly.
 Each check prints ok or FAIL; the last line says how many failed.
 """
 
@@ -41,7 +41,7 @@ def say(mem, role, text, minutes=1):
     return mem.add(role, text)
 
 
-# A scripted DeepSeek: each call takes the next answer in the queue (the tool name must match).
+# A scripted model: each call takes the next answer in the queue (the tool name must match).
 queue = []
 
 
@@ -58,7 +58,7 @@ def scripted(payload):
             "usage": {"prompt_tokens": 1000, "completion_tokens": 200}}
 
 
-llm.app.update(ask=scripted, prices={"deepseek-flash": {"cache_hit": 0.003, "cache_miss": 0.15, "output": 0.6}})
+llm.app.update(ask=scripted, prices={"cache_hit": 0.003, "cache_miss": 0.15, "output": 0.6})
 
 folder = Path(tempfile.mkdtemp())
 if "--meaning" in sys.argv:
@@ -270,7 +270,7 @@ ok("problem: Shreyas as a node", "himself isn't a node" in said)
 ok("problem: an edge to a node that doesn't exist", "k404 isn't a node" in said)
 ok("problem: an edge without a reason", "needs a reason" in said)
 ok("problem: 'said' quoting Avy instead of Shreyas", "said must quote" in said)
-print("      (what DeepSeek would be sent back:)\n        - " + "\n        - ".join(plan.problems))
+print("      (what the model would be sent back:)\n        - " + "\n        - ".join(plan.problems))
 
 # a whole run with the repair loop: wrong first, right second
 wrong = json.loads(json.dumps(good))
@@ -342,7 +342,7 @@ for role, t in [("user", "one more thing"), ("assistant", "sure")]:
 later(40)
 queue += [("x", unreachable), ("x", unreachable)]
 res = worker.write_due(w, connect=False)
-ok("can't reach DeepSeek: nothing half-written, the run says why", res[0]["status"] == "error" and w.written_up_to() == 7, res)
+ok("can't reach the model: nothing half-written, the run says why", res[0]["status"] == "error" and w.written_up_to() == 7, res)
 ok("...and it waits before retrying that stretch", writer.due(w, 20) is None)
 ok("after three failures on one stretch, it's saved without knowledge so writing moves on", True)
 for _ in range(2):
@@ -484,7 +484,7 @@ ok("the connection it followed to something it kept gets stronger ('used')",
    sum(1 for s in w.rows("SELECT * FROM supports WHERE kind = 'used'")) == before + 1)
 queue += [("x", unreachable), ("x", unreachable)]
 t = explore.explore(lib, w, "tell me about my sister")
-ok("if DeepSeek can't be reached, it falls back to ordinary recall", t["explore"].get("fell_back") and t["nodes"], t.get("explore"))
+ok("if the model can't be reached, it falls back to ordinary recall", t["explore"].get("fell_back") and t["nodes"], t.get("explore"))
 
 # --- 11. incognito: its own file, its own letter; the main memory never touched -------------------------------
 before = w.last_id()
@@ -505,7 +505,7 @@ ok("Avy searching in incognito also brings the main memory's older messages that
    "Miso" in t["briefing"] and "(from the main conversation; read-only here)" in t["briefing"], t["briefing"][:500])
 queue += [("x", unreachable), ("x", unreachable)]
 t = explore.explore(explore.Library([w, inc]), inc, "what's my cat called?", learn=False)
-ok("...and if DeepSeek can't be reached, the fallback reads both memories too",
+ok("...and if the model can't be reached, the fallback reads both memories too",
    t["explore"].get("fell_back") and "Miso" in t["briefing"] and "read-only here" in t["briefing"], t["briefing"][:500])
 inc.close(delete=True)
 ok("ending incognito deletes its file", not list((folder / "incognito").glob("x.db*")))

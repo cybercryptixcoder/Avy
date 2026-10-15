@@ -2,30 +2,19 @@
 
 Ideas we've decided to build, but not yet. Each one says when it makes sense to pick it up.
 
-## Your whole Claude history, as a real-scale test
+## Your whole Claude history: the mind's run
 
-*Next.*
+*Yours to start.* The reader and the import are built and the import is done (503 conversations, 6,561
+messages, in `data/memory-claude.db` on whichever machine ran it; docs/IMPORT.md). What's left is the
+long run that turns it into knowledge, which costs real tokens, so it's started by hand:
+`python3 tools/claude_import.py plan`, a trial with `run --max-stretches 20`, then `run --max-dollars N`.
+Then the judging:
+- the biggest hubs (are they your real interests and projects?)
+- the ideas that formed
+- bridges between distant areas
+- the network's health numbers at scale
 
-Export every Claude conversation (years of them, many long and involved) and run Avy's mind over it,
-to see memory at real scale. Ideas are how you live, and you know exactly what yours are. If they show
-up as distinct hubs, with the right things around them and sensible bridges between them, that's strong
-evidence the network works.
-
-What it needs:
-- **A parser for the export**, written against its schema. The file is far too big to read through, so
-  the parser works from the structure: a list of conversations, each with messages, their speaker,
-  time and text.
-- **The conversations as their own log.** Each conversation becomes its own stretch, so episodes never
-  span two conversations. Claude's side is a different speaker than Avy, so it's marked as such.
-- **Its own memory file**, so it can be explored (inspector, graph) and compared with your live memory
-  without mixing into it. Merging can come after.
-- **A long, budgeted run of the mind**: write everything, then reflect. It costs real tokens, with
-  progress saved so it can stop and resume.
-- **Ways to judge it**:
-  - the biggest hubs (are they your real interests and projects?)
-  - the ideas that formed
-  - bridges between distant areas
-  - the network's health numbers at scale
+After that: whether to bring Avy's own log in after it (`tools/copy_log.py`) and live on that memory.
 
 ## What's coming up
 
@@ -41,7 +30,26 @@ not race day). What it needs:
   for Avy's answers and her search
 - dates that pass quietly turn into history (done, or an open question: did it happen?)
 
+## What files say, into memory
+
+*Next after the history run.* Today the log keeps which files went with a message and the writer sees their
+names, so memory knows a file was shared and what was said about it, but not what the file itself says.
+A document he shares is often the thing he wants remembered. What it needs: the writer reads a file's
+text (within a budget) and writes knowledge from it, with evidence pointing into the file (a page, a
+line, a time in a recording) the way it points into messages.
+
+## Proactivity
+
+*The next pillar, once memory has met real use.* From the conversation that started it all
+(docs/IDEAS.md, "Proactivity"): structured wake-ups (plan, schedule, stop; wake on triggers or every few
+hours), every task a scheduled job, fixed rules plus rules the model writes for itself that he approves,
+reaching out with what he could do right now. Memory is the model of his life it would use; a simple
+view of tasks, calendar and what Avy plans would come with it.
+
 ## Smaller ones
+
+- **Explore and depth as two dials.** He described separate settings for looking around and digging
+  deep; today one dial (`/recall:`) sets the rounds and Avy chooses each round.
 
 - **"Keep this" from incognito.** Before ending an incognito conversation, promote chosen messages
   into the main memory, so nothing is lost by accident.
@@ -56,7 +64,16 @@ not race day). What it needs:
 - **Graph filters.** Show only ideas, only what you said, only what's changed this week; the path a
   particular answer took.
 
+## Parked ideas
+
+The idle game, the swipe cards, the narrator who keeps you company while agents work, and Ava's card
+interface are kept in docs/IDEAS.md, in case any of them comes back.
+
 ## Done (moved here from this list)
+
+- **Your Claude export, imported** (the reader, the import, the page's `[ import ]`, the run's tooling).
+- **Files**: attach anything, read it, download, export.
+- **A US provider**: Luminal.
 
 - **The living graph** (built in memory v2): the corner miniature, the full-page 3D view, light
   labels, hover and click, and Avy's search lighting up the nodes she looks at.
