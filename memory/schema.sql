@@ -34,6 +34,27 @@ CREATE TRIGGER IF NOT EXISTS log_is_permanent_1 BEFORE UPDATE ON messages
 CREATE TRIGGER IF NOT EXISTS log_is_permanent_2 BEFORE DELETE ON messages
   BEGIN SELECT RAISE(ABORT, 'the log is append-only'); END;
 
+-- What Avy thought before she answered (the model's reasoning, when /thinking: isn't none). Permanent, like
+-- the log: the log records what she said, this records why. It's the raw material of the thought graph
+-- (ARCHITECTURE.md): later, conclusions will be written from it with pointers to the exact span they came from.
+-- It is never sent back to the model as-is: what carries forward is what she concluded, not the thinking.
+CREATE TABLE IF NOT EXISTS reasoning (
+  id       INTEGER PRIMARY KEY,
+  message  INTEGER REFERENCES messages(id),     -- the reply it led to (null: stopped before any reply came)
+  asked    INTEGER REFERENCES messages(id),     -- the message she was answering
+  at       TEXT NOT NULL,
+  source   TEXT NOT NULL DEFAULT 'reply',       -- reply (her answer); later: search, mind
+  effort   TEXT,                                -- the /thinking: level it ran at
+  seconds  REAL,                                -- how long she thought before the first word of the answer
+  tokens   INTEGER,                             -- reasoning tokens, when Luminal reports them
+  text     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reasoning_by_message ON reasoning(message);
+CREATE TRIGGER IF NOT EXISTS reasoning_is_permanent_1 BEFORE UPDATE ON reasoning
+  BEGIN SELECT RAISE(ABORT, 'reasoning is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS reasoning_is_permanent_2 BEFORE DELETE ON reasoning
+  BEGIN SELECT RAISE(ABORT, 'reasoning is append-only'); END;
+
 CREATE TABLE IF NOT EXISTS episodes (
   id        INTEGER PRIMARY KEY,                -- ep1, ep2, ...
   first     INTEGER NOT NULL,                   -- the stretch of the log: #first to #last

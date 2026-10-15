@@ -1,8 +1,8 @@
 """How the mind calls the model (DeepSeek-V4.1-Flash, through Luminal): one strict tool call at a time,
 with the cost counted.
 
-How hard the model thinks is the "effort" (Luminal's reasoning_effort: none, low, medium, high, xhigh,
-ultra, max). With "none" the call names the tool it must use. With thinking on, Luminal doesn't allow
+How hard the model thinks is the "effort" (Luminal's reasoning_effort: none, or DeepSeek's three levels
+low, high, max). With "none" the call names the tool it must use. With thinking on, Luminal doesn't allow
 that, so the tool is offered ("auto") and the instructions, plus the repair loop in jobs.py, make sure
 it's used.
 """
@@ -18,7 +18,8 @@ app = {"ask": None,                 # filled in by app.py (or a test): sends one
 
 def call(convo, tool, model=MODEL, max_tokens=8000, effort=None):
     """Ask for exactly one call to `tool`. effort: how hard to think (default: the /mind: setting)."""
-    effort = effort or app["effort"]() or "none"
+    import luminal
+    effort = luminal.effort_level(effort or app["effort"]() or "none")
     payload = {"model": model, "messages": convo, "tools": [tool], "max_tokens": max_tokens,
                "reasoning_effort": effort,
                "tool_choice": ({"type": "function", "function": {"name": tool["function"]["name"]}}

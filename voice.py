@@ -227,8 +227,10 @@ def stream_reply(turn, put, cancel):
                 for choice in chunk.get("choices") or []:
                     delta = choice.get("delta") or {}
                     if delta.get("reasoning_content"):
-                        put(("thinking", None))
+                        turn.think(delta["reasoning_content"])        # kept with the reply, like a typed one
+                        put(("thinking", delta["reasoning_content"]))
                     if delta.get("content"):
+                        turn.answered()
                         put(("text", delta["content"]))
     except Exception as e:
         return put(("error", f"Lost the connection to the model partway through ({e})."))
@@ -299,9 +301,9 @@ async def reply(ws, text, state):
             kind, value = await pieces.get()
             if kind == "asked":
                 await ws.send(json.dumps({"type": "recall", **value}))
-            elif kind == "thinking" and not told_thinking:
+            elif kind == "thinking":                           # the page shows her thinking as it streams, folded
                 told_thinking = True
-                await ws.send(json.dumps({"type": "thinking"}))
+                await ws.send(json.dumps({"type": "thinking", "text": value or ""}))
             elif kind == "text":
                 start = len(spoken.text) - len(pending)        # where the unsplit tail begins
                 spoken.text += value

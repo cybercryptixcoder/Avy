@@ -171,8 +171,8 @@ def stretches(mem, page):
 PER_STRETCH = {"connect_calls": 3.36, "connect_in": 3545, "connect_out": 593, "write_attempts": 1.41, "write_out": 855}
 PER_DAY = {"think_calls": 5.9, "think_in": 3874, "think_out": 359, "check_calls": 0.65, "check_in": 4205, "check_out": 1187}
 SHOWN_NODES_TOKENS = 3500          # what memory already holds, shown with each stretch once memory has grown
-THINKING_OUT = {"none": 0, "low": 400, "medium": 900, "high": 1500, "xhigh": 2200, "ultra": 3000, "max": 3500}
-SECONDS_PER_CALL = {"none": 6, "low": 12, "medium": 15, "high": 18, "xhigh": 20, "ultra": 22, "max": 24}
+THINKING_OUT = {"none": 0, "low": 400, "high": 1500, "max": 3500}     # DeepSeek's levels (luminal.EFFORTS)
+SECONDS_PER_CALL = {"none": 6, "low": 12, "high": 18, "max": 24}
 
 
 def estimate(mem, effort="none"):
@@ -212,7 +212,7 @@ def cmd_plan(args):
     print("\nEstimate per /mind: thinking level (Luminal publishes no per-token price: dollars use DeepSeek's own list\n"
           "price for V4.1-Flash, so treat them as a rough guide and watch the Luminal balance):\n")
     print(f"{'thinking':<9} {'stretches':>9} {'days':>5} {'calls':>7} {'tokens in':>11} {'tokens out':>11} {'dollars':>8} {'hours':>6}")
-    for effort in ("none", "low", "medium", "high"):
+    for effort in ("none", "low", "high", "max"):
         e = estimate(mem, effort)
         print(f"{effort:<9} {e['stretches']:>9,} {e['days']:>5,} {e['calls']:>7,} {e['tokens_in']:>11,} {e['tokens_out']:>11,} "
               f"{e['dollars']:>8.2f} {e['hours']:>6.1f}")
@@ -310,8 +310,8 @@ def main(argv=None):
     p.add_argument("--memory", default=str(DEFAULT_MEMORY))
     p = sub.add_parser("run", help="the mind's run: write the imported conversations into knowledge")
     p.add_argument("--memory", default=str(DEFAULT_MEMORY))
-    p.add_argument("--effort", default="none", choices=["none", "low", "medium", "high", "xhigh", "ultra", "max"],
-                   help="how hard the mind thinks (none is fastest and cheapest)")
+    p.add_argument("--effort", default="none", choices=["none", "low", "high", "max"],
+                   help="how hard the mind thinks (none is fastest and cheapest; low, high, max are DeepSeek's levels)")
     p.add_argument("--max-dollars", type=float, default=0, help="stop once this much (estimated) is spent")
     p.add_argument("--max-stretches", type=int, default=0, help="stop after this many stretches (a trial run)")
     p.add_argument("--until", default="", help="stop at conversations after this date (YYYY-MM-DD)")

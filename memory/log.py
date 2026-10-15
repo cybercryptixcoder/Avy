@@ -23,6 +23,19 @@ class Log:
         self.remember_meaning([(f"m{mid}", text)])
         return mid
 
+    def add_reasoning(self, text, message=None, asked=None, effort=None, seconds=None, tokens=None, source="reply"):
+        """Keep what Avy thought before answering (permanent, like the log). Returns its id, or None if empty."""
+        if not (text or "").strip():
+            return None
+        with self.tx() as db:
+            return db.execute("""INSERT INTO reasoning (message, asked, at, source, effort, seconds, tokens, text)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                              (message, asked, stamp(), source, effort, seconds, tokens, text)).lastrowid
+
+    def reasoning_of(self, mid):
+        """What she thought before the reply #mid: {id, text, effort, seconds, tokens}, or None."""
+        return self.row("SELECT id, text, effort, seconds, tokens FROM reasoning WHERE message = ? ORDER BY id LIMIT 1", mid)
+
     def message(self, mid):
         m = self.row("SELECT * FROM messages WHERE id = ?", mid)
         if m:

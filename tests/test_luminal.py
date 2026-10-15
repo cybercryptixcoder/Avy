@@ -33,6 +33,13 @@ ok("thinking on: a forced tool call becomes auto (Luminal refuses a forced one w
    p["tool_choice"] == "auto" and p["max_tokens"] == 2000 + luminal.THINKING_ROOM, p)
 ok("thinking off: the tool stays forced", luminal.prepare({"messages": [], "tool_choice": forced})["tool_choice"] == forced)
 ok("an unknown thinking level falls back to none", luminal.prepare({"messages": []}, effort="huge")["reasoning_effort"] == "none")
+ok("only DeepSeek's real levels are offered: none, low, high, max", luminal.EFFORTS == ["none", "low", "high", "max"])
+ok("the names DeepSeek routes onto them are sent as what they become (medium, xhigh -> high; ultra -> max; minimal -> low)",
+   [luminal.prepare({"messages": []}, effort=e)["reasoning_effort"] for e in ("medium", "xhigh", "ultra", "minimal", "MAX")]
+   == ["high", "high", "max", "low", "max"])
+_, reasoning, _ = luminal.stream_parts(b'data: {"choices":[{"delta":{"reasoning_content":"hm"}}]}')
+ok("a streamed line's thinking can be read apart from its answer", reasoning == "hm"
+   and luminal.stream_text(b'data: {"choices":[{"delta":{"reasoning_content":"hm"}}]}') == ("", None))
 ok("max_tokens stays inside Luminal's range", luminal.prepare({"messages": [], "max_tokens": 10 ** 7})["max_tokens"] == luminal.MAX_OUTPUT)
 ok("the model and address can be changed in .env", (os.environ.update(HELIX_FLASH_MODEL="x/y") or luminal.model()) == "x/y")
 os.environ.pop("HELIX_FLASH_MODEL")

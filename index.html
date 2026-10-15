@@ -7,24 +7,75 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta name="color-scheme" content="light dark">
+<script>
+  // The theme, before anything is drawn (so a dark page never flashes light): what /theme: was last set to here.
+  try { const t = localStorage.getItem("avy.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
 
 <style>
 /* ===================================================================
    1. Colors and lines (the whole palette lives here)
    =================================================================== */
 :root {
+  color-scheme: light;
   --paper:  #EEDCC2;  /* behind the frame */
   --card:   #F7ECDC;  /* the frame and light cards */
-  --ink:    #1C1A17;
+  --ink:    #1C1A17;  /* text and every line */
   --yellow: #F6C744;
   --teal:   #4FA596;  /* Avy's badge */
   --orange: #F0692A;  /* keys, warnings, recording */
   --blue:   #7F9CE2;  /* focus */
   --green:  #62BE76;  /* money */
   --grey:   #AEB4B5;
+  /* roles: what each surface is, so the dark theme only has to say what these are */
+  --on-accent:   #1C1A17;          /* text and lines on a colored fill (orange, green, yellow, teal) */
+  --panel:       var(--ink);       /* the instrument surfaces: the system card, the dark tile, menus */
+  --on-panel:    var(--card);
+  --panel-hi:    var(--card);      /* a row lit up on a panel */
+  --on-panel-hi: var(--ink);
+  --tile-grey:   var(--grey);
+  --field:       #FFF8EF;          /* text fields in the keys panel */
+  --shadow:      var(--ink);       /* the offset shadow under floating cards */
+  --inv-ink:     #F7ECDC;          /* incognito turns the conversation inside out */
+  --inv-card:    #1C1A17;
+  --grain-blend: multiply;
+  --grain-alpha: .16;
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --thick: 3px solid var(--ink);
   --thin:  2px solid var(--ink);
   --mono: "Space Mono", ui-monospace, monospace;
+}
+
+/* The dark theme: the same paper and ink, at night. The paper becomes a warm charcoal, the ink a warm
+   off-white; the instrument surfaces (system card, menus) are raised a step instead of inverted, and anything
+   on a colored fill keeps dark ink so it stays readable. Picked by /theme: (auto follows the system).
+   The two blocks are the same values: one for "dark" chosen, one for "auto" on a dark system. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #13110F; --card: #1D1A17; --ink: #ECDFCB;
+  --yellow: #F2C14E; --teal: #5BB5A5; --orange: #F07A3D; --blue: #94ADEC; --green: #6BC27F; --grey: #8C9293;
+  --panel: #2B2723; --on-panel: #ECDFCB; --panel-hi: #ECDFCB; --on-panel-hi: #1D1A17;
+  --tile-grey: #3A3632; --field: #26221E; --shadow: rgb(236 223 203 / .55);
+  --inv-ink: #1C1A17; --inv-card: #E9DCC7;
+  --grain-blend: screen; --grain-alpha: .07;
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #13110F; --card: #1D1A17; --ink: #ECDFCB;
+    --yellow: #F2C14E; --teal: #5BB5A5; --orange: #F07A3D; --blue: #94ADEC; --green: #6BC27F; --grey: #8C9293;
+    --panel: #2B2723; --on-panel: #ECDFCB; --panel-hi: #ECDFCB; --on-panel-hi: #1D1A17;
+    --tile-grey: #3A3632; --field: #26221E; --shadow: rgb(236 223 203 / .55);
+    --inv-ink: #1C1A17; --inv-card: #E9DCC7;
+    --grain-blend: screen; --grain-alpha: .07;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+}
+/* switching themes: everything eases over at once instead of snapping (only while switching) */
+:root.theming, :root.theming *, :root.theming *::before, :root.theming *::after {
+  transition: background-color .35s ease, color .35s ease, border-color .35s ease, fill .35s ease, box-shadow .35s ease !important;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,8 +91,8 @@ body {
 /* printed-paper grain over everything */
 body::after {
   content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
-  opacity: .16; mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: var(--grain-alpha); mix-blend-mode: var(--grain-blend);
+  background-image: var(--grain);
 }
 button, textarea, input { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 0; }
@@ -87,10 +138,13 @@ button { cursor: pointer; background: none; border: 0; }
 .pill-btn:hover { background: var(--ink); color: var(--card); }
 .round-btn {
   width: 62px; height: 62px; flex: none; border-radius: 50%;
-  border: var(--thick); background: var(--orange);
+  border: var(--thick); background: var(--orange); color: var(--on-accent);
   display: grid; place-items: center;
 }
 .round-btn .icon { width: 26px; height: 26px; }
+.icon-btn { width: 42px; height: 42px; flex: none; border: var(--thin); border-radius: 50%; display: grid; place-items: center; }
+.icon-btn:hover { background: var(--ink); color: var(--card); }
+.icon-btn .icon { width: 19px; height: 19px; }
 .round-btn:hover { background: var(--yellow); }
 
 /* --- two columns: the instrument side on the left, the conversation on the right --- */
@@ -115,12 +169,12 @@ button { cursor: pointer; background: none; border: 0; }
 
 /* The system card: everything you can change, plus where things are */
 .sys {
-  background: var(--ink); color: var(--card); border: var(--thin); border-radius: 20px;
+  background: var(--panel); color: var(--on-panel); border: var(--thin); border-radius: 20px;
   padding: 12px 16px 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
 }
 .sys-head {
   display: flex; justify-content: space-between; padding-bottom: 7px; margin-bottom: 4px;
-  border-bottom: 1px dashed rgb(247 236 220 / .35); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  border-bottom: 1px dashed color-mix(in srgb, var(--on-panel) 35%, transparent); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
 }
 .sys-head span:last-child { opacity: .6; font-variant-numeric: tabular-nums; }
 .sys-row {
@@ -130,22 +184,22 @@ button { cursor: pointer; background: none; border: 0; }
 .sys-row .k, .sys-info .k { opacity: .55; }
 .sys-row .v { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sys-row .caret { opacity: .5; font-size: 10px; }
-.sys-row:hover, .sys-row[aria-expanded="true"] { background: var(--card); color: var(--ink); }
+.sys-row:hover, .sys-row[aria-expanded="true"] { background: var(--panel-hi); color: var(--on-panel-hi); }
 .sys-row:focus-visible { outline: 2px solid var(--yellow); outline-offset: 0; }
-.sys-info { margin-top: 6px; padding-top: 7px; border-top: 1px dashed rgb(247 236 220 / .35); }
+.sys-info { margin-top: 6px; padding-top: 7px; border-top: 1px dashed color-mix(in srgb, var(--on-panel) 35%, transparent); }
 .sys-info div { display: grid; grid-template-columns: 9ch minmax(0, 1fr); gap: 6px; }
 .sys-info .v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* The dropdown the system card opens (drawn on top of everything) */
 .menu {
   position: fixed; z-index: 40; list-style: none; overflow-y: auto;
-  background: var(--ink); color: var(--card); border: 2px solid var(--card); outline: 2px solid var(--ink);
+  background: var(--panel); color: var(--on-panel); border: 2px solid var(--card); outline: 2px solid var(--ink);
   font-family: var(--mono); font-size: 12.5px; line-height: 1.5; padding: 4px 0;
   scrollbar-width: thin;
 }
 .menu li { padding: 1px 10px; cursor: pointer; white-space: nowrap; display: flex; gap: 1ch; }
 .menu li .mark { width: 1ch; }
-.menu li.active { background: var(--card); color: var(--ink); }
+.menu li.active { background: var(--panel-hi); color: var(--on-panel-hi); }
 .menu .about { padding: 2px 10px 5px; opacity: .55; white-space: normal; font-size: 11.5px; cursor: default; display: block; }
 
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: auto; }
@@ -158,12 +212,12 @@ button { cursor: pointer; background: none; border: 0; }
   font-weight: 400; font-size: 46px; line-height: 1; letter-spacing: -.035em;
   font-variant-numeric: tabular-nums;
 }
-.tile.dark  { background: var(--ink); color: var(--card); }
-.tile.grey  { background: var(--grey); }
-.tile.green { background: var(--green); grid-column: span 2; }
-.toggle { display: inline-flex; background: var(--ink); border: var(--thin); border-radius: 999px; padding: 2px; }
+.tile.dark  { background: var(--panel); color: var(--on-panel); }
+.tile.grey  { background: var(--tile-grey); }
+.tile.green { background: var(--green); color: var(--on-accent); border-color: var(--on-accent); grid-column: span 2; }
+.toggle { display: inline-flex; background: var(--on-accent); border: 2px solid var(--on-accent); border-radius: 999px; padding: 2px; }
 .toggle i { font-style: normal; font-size: 12px; font-weight: 500; padding: 3px 11px; border-radius: 999px; color: var(--green); }
-.toggle i.on { background: var(--green); color: var(--ink); }
+.toggle i.on { background: var(--green); color: var(--on-accent); }
 
 /* ===================================================================
    4. The conversation: quiet on purpose.
@@ -179,11 +233,9 @@ button { cursor: pointer; background: none; border: 0; }
 
 /* Incognito: the conversation turns dark, so you always know nothing here is kept */
 .chat.incognito {
-  --ink: #F7ECDC; --card: #1C1A17;
+  --ink: var(--inv-ink); --card: var(--inv-card);
   background: var(--card); color: var(--ink); border-radius: 18px; padding: 0 16px 10px;
 }
-.chat.incognito .line code { box-shadow: inset 0 0 0 1px rgb(247 236 220 / .35); }
-.chat.incognito .insp .msg + .msg { border-top-color: rgb(247 236 220 / .25); }
 
 /* the bracket lines from the reference: a rule with short ticks at each end */
 .rule { height: 11px; border: 1.5px solid var(--ink); }
@@ -203,6 +255,15 @@ button { cursor: pointer; background: none; border: 0; }
 .line.cmd { margin-top: 26px; display: grid; grid-template-columns: 2ch 1fr; opacity: .6; }
 .line.note { opacity: .6; font-size: 13.5px; }
 .line.cut::after { content: " —"; opacity: .5; }
+/* Her thinking, folded above the reply: a quiet head you can open, the reasoning in a ruled, dimmer column */
+.line.thought { margin-top: 8px; font-size: 13px; }
+.thought-head { font: inherit; opacity: .5; text-align: left; padding: 0; }
+.thought-head .caret { display: inline-block; width: 1.4ch; }
+.thought-head:hover, .thought-head:focus-visible, .thought-head[aria-expanded="true"] { opacity: .85; }
+.thought-head:hover { text-decoration: underline; text-underline-offset: 3px; }
+.thought-body { margin: 4px 0 2px; padding: 2px 0 2px 12px; border-left: 1.5px solid var(--ink); opacity: .66;
+                font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; max-height: 44vh; overflow-y: auto; scrollbar-width: thin; }
+.thought-body[hidden] { display: none; }
 .line.trace { margin-top: 3px; font-size: 13px; opacity: .42; cursor: pointer; width: fit-content; }
 .line.trace:hover, .line.trace:focus-visible { opacity: .9; text-decoration: underline; text-underline-offset: 3px; }
 .earlier { margin-bottom: 6px; font-size: 13px; font-weight: 700; opacity: .55; }
@@ -214,7 +275,7 @@ button { cursor: pointer; background: none; border: 0; }
             border-radius: 3px; cursor: pointer; opacity: .5; user-select: none; }
 .line .fn:hover, .line .fn:focus-visible, .line .fn.lit { opacity: 1; background: var(--ink); color: var(--card); outline: none; }
 .fn-card { position: fixed; z-index: 45; width: min(46ch, calc(100vw - 32px)); background: var(--card); color: var(--ink);
-           border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 8px 11px 9px;
+           border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); padding: 8px 11px 9px;
            font: 12.5px/1.5 var(--mono); pointer-events: none; }
 .fn-card .h { opacity: .55; font-size: 11.5px; }
 .fn-card .t { font-weight: 700; margin-top: 1px; }
@@ -231,7 +292,7 @@ button { cursor: pointer; background: none; border: 0; }
 
 /* Markdown in Avy's replies, terminal style: one size, no colors. */
 .line .dim { opacity: .45; }
-.line code { box-shadow: inset 0 0 0 1px rgb(28 26 23 / .3); padding: 0 .4ch; }
+.line code { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent); padding: 0 .4ch; }
 .line a { color: inherit; text-underline-offset: 3px; }
 .codebox { margin: 10px 0 4px; border: 1.5px solid var(--ink); white-space: normal; }
 .codebox-head { display: flex; justify-content: space-between; padding: 1px 10px; border-bottom: 1.5px solid var(--ink); font-size: 12px; }
@@ -252,7 +313,7 @@ button { cursor: pointer; background: none; border: 0; }
   color: transparent; caret-color: transparent;
   max-height: 192px; overflow-y: auto; scrollbar-width: none;
 }
-.typed textarea::selection { background: rgb(28 26 23 / .18); }
+.typed textarea::selection { background: color-mix(in srgb, var(--ink) 20%, transparent); }
 .mirror { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .hint { font-weight: 400; opacity: .45; }
 
@@ -311,7 +372,7 @@ button { cursor: pointer; background: none; border: 0; }
 .insp .ref { font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .insp .ref:hover { background: var(--ink); color: var(--card); text-decoration: none; }
 .insp .msg { padding: 7px 0 7px 12px; border-left: 1.5px solid transparent; }
-.insp .msg + .msg { border-top: 1px dashed rgb(28 26 23 / .25); }
+.insp .msg + .msg { border-top: 1px dashed color-mix(in srgb, var(--ink) 25%, transparent); }
 .insp .msg.here { border-left-color: var(--ink); }
 .insp .msg .text { white-space: pre-wrap; margin-top: 2px; }
 .insp mark { background: var(--ink); color: var(--card); padding: 0 1px; }
@@ -382,7 +443,7 @@ button { cursor: pointer; background: none; border: 0; }
 .graph-foot { position: absolute; bottom: 14px; left: 24px; right: 24px; font: 12px/1.5 var(--mono); opacity: .5; pointer-events: none;
               display: flex; justify-content: space-between; gap: 2ch; flex-wrap: wrap; }
 .graph-card { position: absolute; left: 24px; bottom: 46px; width: min(54ch, calc(100% - 48px)); background: var(--card);
-              border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 9px 12px 10px; font: 12.5px/1.5 var(--mono); }
+              border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); padding: 9px 12px 10px; font: 12.5px/1.5 var(--mono); }
 .graph-card[hidden] { display: none; }
 .graph-card .h { opacity: .55; font-size: 11.5px; }
 .graph-card .t { font-weight: 700; }
@@ -402,13 +463,13 @@ dialog {
   background: var(--card); color: var(--ink);
   border: var(--thick); border-radius: 26px; padding: 26px 26px 22px;
 }
-dialog::backdrop { background: rgb(28 26 23 / .5); }
+dialog::backdrop { background: rgb(18 16 14 / .58); }
 dialog h2 { font-weight: 900; font-stretch: 125%; font-size: 46px; line-height: .9; letter-spacing: -.03em; }
 dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
 .field { display: grid; gap: 7px; margin-bottom: 14px; }
 .field span { font-weight: 600; }
 .field input {
-  height: 50px; padding: 0 18px; border: var(--thin); border-radius: 999px; background: #fff8ef;
+  height: 50px; padding: 0 18px; border: var(--thin); border-radius: 999px; background: var(--field); color: var(--ink);
   font-size: 15px; letter-spacing: .04em;
 }
 .field input:focus-visible { outline-offset: 2px; }
@@ -417,9 +478,9 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
 .actions .pill-btn { height: 50px; padding: 0 22px; font-size: 16px; font-weight: 500; text-transform: none; letter-spacing: 0; }
 .primary {
   height: 50px; padding: 0 24px; border-radius: 999px;
-  background: var(--ink); color: var(--yellow); font-size: 16px; font-weight: 500;
+  background: var(--panel); color: var(--yellow); font-size: 16px; font-weight: 500;
 }
-.primary:hover { color: var(--card); }
+.primary:hover { color: var(--on-panel); }
 .saved { margin-right: auto; font-weight: 600; font-size: 14px; }
 
 /* ===================================================================
@@ -482,6 +543,15 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 17 17 7M8.5 7H17v8.5"/>
   </symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+    <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/>
+  </symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>
+  </symbol>
+  <symbol id="i-glass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+    <circle cx="10" cy="10" r="6.2"/><path d="m14.6 14.6 6 6"/><path d="M7.2 8.4a3.2 3.2 0 0 1 2.4-1.9" opacity=".7"/>
+  </symbol>
 </svg>
 
 <div class="frame">
@@ -497,7 +567,9 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
         <li><span class="dot" id="memDot"></span><span id="memText">Memory</span></li>
         <li title="What's left on your Luminal account (checked once a minute)"><span class="dot" id="rateDot"></span><span id="rateText">Luminal</span></li>
       </ul>
+      <button class="pill-btn" id="openGlass" type="button" title="The looking glass: what's loading into memory, what the mind is doing, how it's going (/glass)">Glass <svg class="icon"><use href="#i-glass"/></svg></button>
       <button class="pill-btn" id="openMemory" type="button" title="Look inside Avy's memory (/memory)">Memory <svg class="icon"><use href="#i-arrow"/></svg></button>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Dark mode" title="Dark mode (/theme: auto follows your system)"><svg class="icon"><use href="#i-moon"/></svg></button>
     </div>
     <button class="round-btn" id="openKeys" type="button" aria-label="Keys" title="Keys"><svg class="icon"><use href="#i-key"/></svg></button>
   </header>
@@ -753,6 +825,7 @@ async function loadSettings() {
 
 // Returns an error message, or null if it worked.
 async function changeSetting(name, value) {
+  if (name === "theme") applyTheme(value, true);      // at once, not after the round trip
   const res = await fetch("/api/settings", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, value }),
   });
@@ -768,6 +841,7 @@ async function changeSetting(name, value) {
 function renderSystem() {
   const v = settings.values;
   if (!settings.brain) return;
+  applyTheme(v.theme);
   // the card keeps the important settings; every setting is also a / command
   $("sysRows").replaceChildren(...Object.keys(settings.schema).filter((name) => settings.schema[name].card).map((name) => {
     const row = document.createElement("button");
@@ -892,6 +966,7 @@ async function send() {
   input.value = ""; grow(); drawCursor(); showHow();
   clearTray();
   interruptAvy();
+  sound("send");
 
   const yourLine = addLine("you", text);
   if (sending.length) yourLine.append(el("div", "chips", sending.map((i) => fileChip(i.record))));
@@ -930,7 +1005,7 @@ async function send() {
         return;
       }
       const delta = chunk.choices?.[0]?.delta || {};
-      if (delta.reasoning_content && !thought) thought = thinkingLine(avyLine);
+      if (delta.reasoning_content) (thought ||= thoughtBlock(avyLine)).add(delta.reasoning_content);
       if (delta.content) {
         thought?.finish();
         reply += delta.content;
@@ -952,6 +1027,7 @@ async function send() {
   if (reply) words.innerHTML = renderMarkdown(reply);
 
   if (reply && stopped) avyLine.classList.add("cut");     // saved as cut off, too
+  if (reply && !stopped && !failed) sound("receive");
   if (!reply) {
     avyLine.remove(); trace?.remove(); thought?.line.remove();
     if (!turn) {          // nothing reached the log: undo this turn and put your message (and files) back
@@ -1011,21 +1087,48 @@ function searchingLine(before) {
   };
 }
 
-// While the model thinks (only when thinking isn't off): a dim line with a running timer.
-function thinkingLine(before) {
-  const line = document.createElement("div");
-  line.className = "line note";
+// Her thinking (only when /thinking: isn't none), folded above the reply: "▸ thinking… 3.2s" while it
+// streams, "▸ thought for 12.4s" after. Click (or Enter) to open it and read what she thought; it keeps
+// streaming in while open. The same block is drawn for replies from history (it's saved with the reply).
+function thoughtBlock(before, saved = null) {
+  const line = el("div", "line thought");
+  const head = el("button", "thought-head");
+  const body = el("div", "thought-body");
+  head.type = "button";
+  head.setAttribute("aria-expanded", "false");
+  body.hidden = true;
+  line.append(head, body);
   log.insertBefore(line, before);
+  const label = (text) => { head.replaceChildren(el("span", "caret", body.hidden ? "▸" : "▾"), " " + text); };
+  head.onclick = (e) => {
+    e.stopPropagation();
+    body.hidden = !body.hidden;
+    head.setAttribute("aria-expanded", String(!body.hidden));
+    label(head.dataset.text);
+    if (!body.hidden && pinned) scrollDown();
+  };
+  const show = (text) => { head.dataset.text = text; label(text); };
+  if (saved) {
+    body.textContent = saved.text;
+    show(saved.seconds != null ? `thought for ${Number(saved.seconds).toFixed(1)}s` : "thought");
+    head.title = `what avy thought before answering${saved.effort ? ` (thinking: ${saved.effort})` : ""}`;
+    return { line };
+  }
   const started = performance.now();
-  const tick = () => (line.textContent = `thinking… ${((performance.now() - started) / 1000).toFixed(1)}s`);
+  const tick = () => show(`thinking… ${((performance.now() - started) / 1000).toFixed(1)}s`);
   tick();
   const timer = setInterval(tick, 100);
+  head.title = "what avy is thinking (click to watch)";
   return {
     line,
+    add(text) {
+      body.textContent += text;
+      if (!body.hidden) { body.scrollTop = body.scrollHeight; if (pinned) scrollDown(); }
+    },
     finish() {
-      if (!timer) return;
       clearInterval(timer);
-      line.textContent = `thought for ${((performance.now() - started) / 1000).toFixed(1)}s`;
+      show(`thought for ${((performance.now() - started) / 1000).toFixed(1)}s`);
+      head.title = "what avy thought before answering";
       this.finish = () => {};
     },
   };
@@ -1125,6 +1228,7 @@ function addLine(kind, text, before = prompt) {
   }
   log.insertBefore(line, before);
   if (before === prompt) scrollDown();
+  if (kind === "error" && before === prompt) sound("error");
   return line;
 }
 
@@ -1155,6 +1259,7 @@ function showMessage(m, before) {
   }
   else {
     line = addLine("avy", "", before);
+    if (m.thinking) thoughtBlock(line, m.thinking);           // what she thought, folded above what she said
     line.innerHTML = renderMarkdown(m.text);
     if (m.meta.cut) line.classList.add("cut");
     if (m.recalled) addTrace(line, m.recalled);
@@ -1460,6 +1565,7 @@ let panel = { items: [], selected: 0, stage: "name", command: null };
 function updateCommands() {
   const text = input.value;
   const open = text.startsWith("/") && !controller;
+  if (open !== $("cmds").classList.contains("open")) sound(open ? "open" : "close");
   $("cmds").classList.toggle("open", open);
   $("chat").classList.toggle("commanding", open);
   if (!open) return;
@@ -1657,6 +1763,7 @@ function listenToMind() {
     if (!m) return;
     mindNow = m.state === "start" ? `${words[m.job] || m.job}${m.job === "write" ? " " + m.focus.replace("-", " on") : m.job === "think" ? ": " + m.focus.toLowerCase() : ""}…` : "";
     if (m.state !== "start") refreshMemory();
+    if (m.state === "done" && m.applied > 0 && !document.hidden) sound("mind");
     renderSystem();
     window.graphHears?.(m);
   };
@@ -1957,7 +2064,7 @@ function onVoiceMessage(m) {
       if (reply.line) reply.trace = addTrace(reply.line, m);
       return;
     case "thinking":
-      if (reply && !reply.thought) reply.thought = thinkingLine(prompt);
+      if (reply) (reply.thought ||= thoughtBlock(prompt)).add(m.text || "");
       return;
     case "say":              // a caption for the audio that comes next
       if (!reply) return;
@@ -2171,6 +2278,7 @@ document.addEventListener("keydown", (e) => {
   if (menu && e.key === "Enter") { e.preventDefault(); pickMenu(menu.active); }
 });
 
+sendBtn.dataset.sound = "custom";
 sendBtn.onclick = () => (controller ? controller.abort() : send());
 
 // Clicking anywhere in the conversation puts you back at the prompt
@@ -2247,6 +2355,7 @@ const insp = { stack: [] };
 // mem: which memory a view reads ("main" or "incognito"). Left out, it's the one you were
 // already looking at, or else the conversation you're in now.
 function inspect(view, arg, extra, mem = insp.stack.at(-1)?.mem) {
+  if (!insp.stack.length) sound("open");
   insp.stack.push({ view, arg, extra, mem });
   drawInspector();
 }
@@ -2258,6 +2367,7 @@ function api(path, mem) {                       // add ?memory= when a view read
   return mem ? path + (path.includes("?") ? "&" : "?") + `memory=${mem}` : path;
 }
 function closeInspector() {
+  if (insp.stack.length) sound("close");
   insp.stack = [];
   $("insp").classList.remove("open");
   $("chat").classList.remove("inspecting");
@@ -2528,7 +2638,8 @@ const VIEWS = {
            m.episode ? [" · ", go(`ep${m.episode}`, "episode", m.episode, null, mem)] : " · not written yet",
            m.cited_by.length ? [" · cited by ", m.cited_by.map((c, i) => [i ? " " : "", go(c, "node", Number(c.slice(1)), null, c[0] === "x" ? "incognito" : mem)])] : null,
            m.recalled ? [" · ", go("recall", "recall", m.recalled.id, null, mem)] : null),
-        el("div", "text", text)));
+        el("div", "text", text),
+        m.thinking ? toggle(`what she thought${m.thinking.seconds != null ? ` (${m.thinking.seconds}s)` : ""}`, m.thinking.text) : null));
     }
     if (messages.length && messages[messages.length - 1].id < last) nodes.push(button("later", () => inspectInstead("log", messages[messages.length - 1].id + 7)));
     return [`log #${id}`, nodes];
@@ -2557,7 +2668,8 @@ const VIEWS = {
              s.open?.length ? el("div", "dim", "read: " + s.open.join(" ")) : null,
              s.follow?.length ? el("div", "dim", "followed: " + s.follow.join(" ")) : null,
              s.search?.length ? el("div", "dim", "searched: " + s.search.map((q) => `"${q}"`).join(", ")) : null,
-             s.keep?.length ? el("div", "dim", "keeping: " + s.keep.join(" ")) : null))] : null,
+             s.keep?.length ? el("div", "dim", "keeping: " + s.keep.join(" ")) : null,
+             s.thinking ? toggle("what she thought this round", s.thinking) : null))] : null,
       sec(`nodes it brought (${t.nodes.length})`),
       t.nodes.length ? t.nodes.map((n) => el("div", "",
         row([["n", n.score.toFixed(2)], ["k", n.shape.padEnd(12)], ["g", n.title + (n.version > 1 ? `  v${n.version}` : "")],
@@ -2793,11 +2905,13 @@ function graphFrame(now) {
 
 function openGraph() {
   closeInspector();
+  sound("open");
   graph.open = true;
   $("graph").hidden = false;
   loadGraph();
 }
 function closeGraph() {
+  if (graph.open) sound("close");
   graph.open = false; graph.selected = graph.hover = null;
   $("graph").hidden = true; $("graphCard").hidden = true; $("graphTip").hidden = true;
   input.focus();
@@ -2826,9 +2940,13 @@ function nodeAt(x, y) {
       if (Math.abs(dx) + Math.abs(dy) > 3) { down.moved = true; graph.dragging = true; c.classList.add("dragging"); }
       graph.yaw = down.yaw + dx * 0.006;
       graph.pitch = Math.max(-1.4, Math.min(1.4, down.pitch + dy * 0.006));
+      const dt = Math.max(8, e.timeStamp - (down.t || e.timeStamp - 16));      // how fast it's turning -> the swish
+      swish(Math.hypot(e.clientX - (down.px ?? e.clientX), e.clientY - (down.py ?? e.clientY)) / dt * 0.35);
+      Object.assign(down, { px: e.clientX, py: e.clientY, t: e.timeStamp });
       return;
     }
     const hit = nodeAt(e.clientX - box.left, e.clientY - box.top);
+    if (hit && hit.p.chain !== graph.hover) sound("node", { degree: hit.p.degree });
     graph.hover = hit ? hit.p.chain : null;
     const tip = $("graphTip");
     if (!hit) { tip.hidden = true; return; }
@@ -2844,12 +2962,18 @@ function nodeAt(x, y) {
     if (down && !down.moved) {
       const hit = nodeAt(e.clientX - box.left, e.clientY - box.top);
       graph.selected = hit ? hit.p.chain : null;
+      if (hit) sound("node", { degree: hit.p.degree, strong: true });
       showGraphCard(hit && hit.p);
     }
+    swish(0);
     down = null; graph.dragging = false; c.classList.remove("dragging");
   });
   c.addEventListener("pointerleave", () => { graph.hover = null; $("graphTip").hidden = true; });
-  c.addEventListener("wheel", (e) => { e.preventDefault(); graph.zoom = Math.max(0.4, Math.min(6, graph.zoom * Math.exp(-e.deltaY * 0.0012))); }, { passive: false });
+  c.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    graph.zoom = Math.max(0.4, Math.min(6, graph.zoom * Math.exp(-e.deltaY * 0.0012)));
+    swish(Math.min(0.7, Math.abs(e.deltaY) / 260));
+  }, { passive: false });
 })();
 
 async function showGraphCard(p) {
@@ -3074,6 +3198,159 @@ async function importExport(f) {
     }
   }
 }
+
+
+/* ===================================================================
+   14. Light and dark (/theme: auto, light, dark)
+       The colors are tokens on :root (section 1 of the styles); this only says which set is on.
+       auto follows the system and changes with it.
+   =================================================================== */
+const darkSystem = matchMedia("(prefers-color-scheme: dark)");
+const isDark = () => document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && darkSystem.matches);
+
+function applyTheme(value = settings.values?.theme || "auto", ease = false) {
+  const root = document.documentElement;
+  if (ease) {                                   // everything eases over together, then the transitions are taken off again
+    root.classList.add("theming");
+    clearTimeout(applyTheme.timer);
+    applyTheme.timer = setTimeout(() => root.classList.remove("theming"), 500);
+  }
+  if (value === "light" || value === "dark") root.dataset.theme = value; else delete root.dataset.theme;
+  try { localStorage.setItem("avy.theme", value); } catch {}
+  const dark = isDark(), b = $("themeBtn");
+  b.querySelector("use").setAttribute("href", dark ? "#i-sun" : "#i-moon");
+  b.setAttribute("aria-label", dark ? "Light mode" : "Dark mode");
+  b.title = `${dark ? "Light" : "Dark"} mode (now: ${value}${value === "auto" ? ", following your system" : ""}; /theme: auto follows the system)`;
+}
+darkSystem.addEventListener("change", () => applyTheme(settings.values?.theme || "auto"));
+$("themeBtn").dataset.sound = "custom";
+$("themeBtn").onclick = async () => {
+  const next = isDark() ? "light" : "dark";
+  sound(next);
+  const problem = await changeSetting("theme", next);
+  if (problem) addLine("error", problem);
+};
+
+
+/* ===================================================================
+   15. Sounds (/sounds: on, soft, off)
+       Made on the spot with the browser's own synthesizer, nothing downloaded: a paper-soft click for
+       buttons, a whoosh-and-pluck when you send, two marimba notes when Avy's reply lands, a glassy tink
+       when you touch a node (lower for bigger hubs), and a swish that follows how fast you turn the graph.
+   =================================================================== */
+const sfx = { ctx: null, out: null, noise: null, swish: null, last: {}, still: null };
+const soundLevel = () => ({ on: 1, soft: 0.4, off: 0 })[settings.values?.sounds || "on"] ?? 1;
+
+function audio() {
+  if (!soundLevel()) return null;
+  if (!sfx.ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    sfx.ctx = new AC();
+    const squash = sfx.ctx.createDynamicsCompressor();      // many sounds at once never get loud
+    squash.threshold.value = -20; squash.ratio.value = 6;
+    sfx.out = sfx.ctx.createGain();
+    sfx.out.connect(squash); squash.connect(sfx.ctx.destination);
+  }
+  sfx.out.gain.value = 0.55 * soundLevel();
+  if (sfx.ctx.state === "suspended") sfx.ctx.resume().catch(() => {});
+  return sfx.ctx;
+}
+function noiseBuffer(ctx) {
+  if (!sfx.noise) {
+    sfx.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = sfx.noise.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return sfx.noise;
+}
+function envelope(ctx, t, peak, attack, decay) {
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+  g.connect(sfx.out);
+  return g;
+}
+function tone(ctx, t, { freq, to = null, type = "sine", peak = 0.1, attack = 0.004, decay = 0.15 }) {
+  const o = ctx.createOscillator();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t + attack + decay);
+  o.connect(envelope(ctx, t, peak, attack, decay));
+  o.start(t); o.stop(t + attack + decay + 0.05);
+}
+function hiss(ctx, t, { peak = 0.1, attack = 0.002, decay = 0.03, kind = "highpass", freq = 2500, to = null, q = 0.7 }) {
+  const src = ctx.createBufferSource(), f = ctx.createBiquadFilter();
+  src.buffer = noiseBuffer(ctx);
+  f.type = kind; f.Q.value = q;
+  f.frequency.setValueAtTime(freq, t);
+  if (to) f.frequency.exponentialRampToValueAtTime(to, t + attack + decay);
+  src.connect(f); f.connect(envelope(ctx, t, peak, attack, decay));
+  src.start(t, Math.random() * 0.5); src.stop(t + attack + decay + 0.05);
+}
+const SOUNDS = {
+  click(ctx, t) { hiss(ctx, t, { peak: 0.2, decay: 0.016, freq: 3000 }); tone(ctx, t, { freq: 1700, type: "triangle", peak: 0.025, decay: 0.02 }); },
+  tick(ctx, t) { hiss(ctx, t, { peak: 0.1, decay: 0.01, freq: 4200 }); },
+  send(ctx, t) {
+    hiss(ctx, t, { peak: 0.07, attack: 0.01, decay: 0.09, kind: "bandpass", freq: 800, to: 3600, q: 1.2 });
+    tone(ctx, t + 0.03, { freq: 587.3, to: 880, type: "triangle", peak: 0.09, decay: 0.13 });
+  },
+  receive(ctx, t) {                                   // two soft marimba notes, falling a fourth
+    for (const [dt, f] of [[0, 1318.5], [0.12, 987.8]]) {
+      tone(ctx, t + dt, { freq: f, peak: 0.075, decay: 0.34 });
+      tone(ctx, t + dt, { freq: f * 3.98, peak: 0.01, decay: 0.07 });
+    }
+  },
+  node(ctx, t, o = {}) {                              // glassy; bigger hubs ring lower
+    const f = 1760 * Math.pow(2, -Math.min(14, o.degree || 0) / 14);
+    tone(ctx, t, { freq: f, peak: o.strong ? 0.09 : 0.035, decay: o.strong ? 0.5 : 0.2 });
+    tone(ctx, t, { freq: f * 2.76, peak: o.strong ? 0.018 : 0.007, decay: 0.08 });
+  },
+  open(ctx, t) { hiss(ctx, t, { peak: 0.06, attack: 0.03, decay: 0.12, kind: "bandpass", freq: 700, to: 2600, q: 0.9 }); },
+  close(ctx, t) { hiss(ctx, t, { peak: 0.05, attack: 0.02, decay: 0.11, kind: "bandpass", freq: 2400, to: 600, q: 0.9 }); },
+  error(ctx, t) {
+    tone(ctx, t, { freq: 196, type: "triangle", peak: 0.11, decay: 0.12 });
+    tone(ctx, t + 0.13, { freq: 155.6, type: "triangle", peak: 0.11, decay: 0.18 });
+  },
+  mind(ctx, t) {                                      // the mind wrote something: barely there
+    tone(ctx, t, { freq: 1568, peak: 0.02, attack: 0.02, decay: 0.5 });
+    tone(ctx, t + 0.09, { freq: 2093, peak: 0.014, attack: 0.02, decay: 0.6 });
+  },
+  dark(ctx, t) { tone(ctx, t, { freq: 660, to: 330, peak: 0.06, attack: 0.01, decay: 0.35 }); hiss(ctx, t, { peak: 0.025, attack: 0.05, decay: 0.3, kind: "lowpass", freq: 3000, to: 400 }); },
+  light(ctx, t) { tone(ctx, t, { freq: 330, to: 660, peak: 0.06, attack: 0.01, decay: 0.35 }); hiss(ctx, t, { peak: 0.025, attack: 0.05, decay: 0.3, kind: "lowpass", freq: 400, to: 3000 }); },
+};
+function sound(name, opts) {
+  const ctx = audio();
+  if (!ctx || !SOUNDS[name]) return;
+  const now = performance.now();
+  if (now - (sfx.last[name] || 0) < 40) return;        // a burst of the same sound is one sound
+  sfx.last[name] = now;
+  try { SOUNDS[name](ctx, ctx.currentTime + 0.003, opts); } catch { /* sound is a nicety */ }
+}
+// The swish while you turn (or zoom) the graph: a band of noise whose loudness and brightness follow the speed.
+function swish(speed) {
+  const ctx = speed > 0 ? audio() : sfx.ctx;
+  if (!ctx) return;
+  if (!sfx.swish) {
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = noiseBuffer(ctx); src.loop = true;
+    f.type = "bandpass"; f.Q.value = 1.1; f.frequency.value = 600;
+    g.gain.value = 0;
+    src.connect(f); f.connect(g); g.connect(sfx.out); src.start();
+    sfx.swish = { f, g };
+  }
+  const level = Math.max(0, Math.min(1, speed));
+  sfx.swish.g.gain.setTargetAtTime(level * 0.14, ctx.currentTime, level ? 0.03 : 0.12);
+  sfx.swish.f.frequency.setTargetAtTime(450 + level * 2600, ctx.currentTime, 0.06);
+  clearTimeout(sfx.still);
+  if (level) sfx.still = setTimeout(() => swish(0), 90);      // stopped moving: it fades
+}
+// Every button, row and option clicks, unless it makes a sound of its own (data-sound="custom").
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, [role=option], .row, .sys-row, .chip a, .menu li, .cmds-list li");
+  if (t && !t.closest("[data-sound=custom]")) sound("click");
+}, true);
 
 
 /* ===================================================================

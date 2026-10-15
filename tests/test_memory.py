@@ -78,6 +78,15 @@ for sql in ("UPDATE messages SET text = 'changed' WHERE id = 1", "DELETE FROM me
     except sqlite3.DatabaseError as e:
         ok(f"log refuses: {sql.split()[0]}", "append-only" in str(e))
 ok("messages are numbered", (m1, m2) == (1, 2))
+r1 = mem.add_reasoning("He's telling me a birthday; worth keeping. A gift idea fits.", message=m2, asked=m1, effort="high", seconds=3.2)
+ok("her reasoning is kept next to the reply it led to", mem.reasoning_of(m2)["text"].startswith("He's telling") and mem.reasoning_of(m2)["seconds"] == 3.2)
+ok("...and nothing is kept when there was no thinking", mem.add_reasoning("   ", message=m2) is None)
+for sql in (f"UPDATE reasoning SET text = 'changed' WHERE id = {r1}", f"DELETE FROM reasoning WHERE id = {r1}"):
+    try:
+        mem.db.execute(sql)
+        ok(f"reasoning refuses: {sql.split()[0]}", False)
+    except sqlite3.DatabaseError as e:
+        ok(f"reasoning refuses: {sql.split()[0]}", "append-only" in str(e))
 
 # --- 2. finding quotes --------------------------------------------------------------------------
 text = "Okay so, my friend Rohan's birthday is March 3rd — don't forget!"

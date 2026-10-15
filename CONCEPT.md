@@ -404,7 +404,7 @@ The latest results are in [tests/bench/RESULTS.md](tests/bench/RESULTS.md).
 | shape | thing, information, or idea |
 | origin | you said, Avy said, or inferred (Avy said shows as "Claude said" for imported conversations) |
 | imported | a message from the Claude history (`via = claude`) |
-| effort | how hard the model thinks: none, low, medium, high, xhigh, ultra, max |
+| effort | how hard the model thinks: none, low, high, max (DeepSeek's three levels, plus off) |
 | evidence | the exact words a said node came from |
 | basis | the nodes an inference rests on |
 | support | one reason to believe (or doubt) a connection |

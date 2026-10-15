@@ -193,6 +193,9 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
                     kept.append({"item": f"#{mid}", "why": str(k.get("why") or "")})
         step = {"round": rnd, "task": notes["task"], "questions": notes["questions"], "open": [], "follow": [],
                 "search": [], "keep": [k["item"] for k in kept], "done": bool(answer.get("done"))}
+        thinking = (((reply.get("choices") or [{}])[0].get("message") or {}).get("reasoning_content") or "").strip()
+        if thinking:                     # with /thinking: on, what she thought while choosing her moves (the inspector shows it)
+            step["thinking"] = thinking[:8000]
         if answer.get("done") or rnd == rounds_allowed:
             rec["rounds"].append(step)
             if progress:

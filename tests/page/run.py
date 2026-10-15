@@ -30,6 +30,7 @@ TESTS = {
     "ui": "t_ui.py",             # the command panel, /index, footnotes, the inspector, explore, the graph, incognito citing
     "errands": "t_errands.py",   # the two dials, incognito end to end, dictation vs live voice (needs the voice models)
     "files": "t_files.py",       # attaching, dropping, pasting, what reaches the model, chips, save, /export, /files, import
+    "look": "t_look.py",         # light and dark (contrast everywhere, hovers too), her thinking folded under replies, sounds
 }
 
 

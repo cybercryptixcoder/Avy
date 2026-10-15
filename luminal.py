@@ -4,7 +4,9 @@ her search, and the background mind.
 
 The rules, from probing Luminal (docs/LUMINAL.md has the evidence):
   - Always send reasoning_effort. Left out, the model thinks by default and the hidden thinking eats
-    the output budget. "none" = no thinking (fast); low, medium, high, xhigh, ultra, max = more.
+    the output budget. "none" = no thinking (fast); low, high and max are DeepSeek's three real levels.
+    Luminal also accepts minimal, medium, xhigh and ultra, but DeepSeek routes those onto the three
+    (minimal -> low, medium and xhigh -> high, ultra -> max), so Avy only offers the real ones.
   - Always send max_tokens. Left out, there's a silent 8,192-token cap. With thinking on, it has to
     cover the thinking too.
   - Stream. Non-streamed generations longer than about 20 seconds can be cut off.
@@ -36,7 +38,10 @@ DEFAULT_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash"
 KEY_NAME = "LUMINAL_API_KEY"
 CONTEXT_TOKENS = 163_840
 MAX_OUTPUT = 393_216
-EFFORTS = ["none", "low", "medium", "high", "xhigh", "ultra", "max"]
+EFFORTS = ["none", "low", "high", "max"]   # off, and DeepSeek's three thinking levels (api-docs.deepseek.com, thinking mode)
+# Names DeepSeek accepts but routes onto the three real levels; a saved setting or an old command line with one
+# of these still works, and means exactly what DeepSeek would have done with it.
+EFFORT_ALIASES = {"off": "none", "minimal": "low", "medium": "high", "xhigh": "high", "ultra": "max"}
 THINKING_ROOM = 24_000          # extra output tokens allowed for thinking when it's on
 MAX_PARALLEL = 8                # Luminal starts refusing somewhere past 8 calls at once
 RETRIES = 4
@@ -86,6 +91,13 @@ class LuminalError(Exception):
         self.status, self.message, self.retryable = status, message, retryable
 
 
+def effort_level(value):
+    """One of EFFORTS: the level itself, the real level an alias is routed to, or none for anything unknown."""
+    value = str(value or "none").strip().lower()
+    value = EFFORT_ALIASES.get(value, value)
+    return value if value in EFFORTS else "none"
+
+
 def prepare(payload, effort=None):
     """Fill in what Luminal needs on every request: the model, an explicit max_tokens and reasoning_effort.
     effort overrides whatever the payload says. With thinking on, a forced tool call becomes "auto"
@@ -93,9 +105,7 @@ def prepare(payload, effort=None):
     p = dict(payload)
     p["model"] = model()
     p.pop("thinking", None)                      # DeepSeek's own switch; Luminal goes by reasoning_effort
-    p["reasoning_effort"] = effort or p.get("reasoning_effort") or "none"
-    if p["reasoning_effort"] not in EFFORTS:
-        p["reasoning_effort"] = "none"
+    p["reasoning_effort"] = effort_level(effort or p.get("reasoning_effort") or "none")
     p["max_tokens"] = int(p.get("max_tokens") or 8000)
     if p["reasoning_effort"] != "none":
         if isinstance(p.get("tool_choice"), dict):
@@ -214,18 +224,25 @@ def assemble(lines):
     return {"choices": [{"index": 0, "message": message, "finish_reason": finish}], "usage": usage or {}}
 
 
-def stream_text(line):
-    """The answer's words and the token counts in one line of a streamed reply: (text, usage or None).
-    Thinking (reasoning_content) isn't part of the answer."""
+def stream_parts(line):
+    """One line of a streamed reply: (the answer's words, the thinking's words, usage or None)."""
     line = line.decode(errors="replace").strip() if isinstance(line, bytes) else line.strip()
     if not line.startswith("data:") or line == "data: [DONE]":
-        return "", None
+        return "", "", None
     try:
         chunk = json.loads(line[5:])
     except json.JSONDecodeError:
-        return "", None
-    text = "".join((c.get("delta") or {}).get("content") or "" for c in chunk.get("choices") or [])
-    return text, chunk.get("usage")
+        return "", "", None
+    deltas = [c.get("delta") or {} for c in chunk.get("choices") or []]
+    return ("".join(d.get("content") or "" for d in deltas), "".join(d.get("reasoning_content") or "" for d in deltas),
+            chunk.get("usage"))
+
+
+def stream_text(line):
+    """The answer's words and the token counts in one line of a streamed reply: (text, usage or None).
+    Thinking (reasoning_content) isn't part of the answer (stream_parts has it)."""
+    text, _, usage = stream_parts(line)
+    return text, usage
 
 
 def cost(usage):

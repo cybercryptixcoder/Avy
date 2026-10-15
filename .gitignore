@@ -12,3 +12,7 @@ data/
 # benchmark runs: keep the reports, not the throwaway memories or logs
 tests/bench/results/*.memory/
 tests/bench/results/*.log
+
+# live test runs: keep the reports, not the throwaway memories or logs
+tests/live/results/*.memory/
+tests/live/results/*.log

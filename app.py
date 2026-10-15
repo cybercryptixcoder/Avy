@@ -114,7 +114,7 @@ ENGLISH_VOICES = [
 SETTINGS = {   # short: the few words under its name in the / panel. card: shown on the system card too.
     "thinking": {"short": "how hard Avy thinks", "card": True,
                  "about": "how hard Avy thinks before answering (and while she searches her memory): none is fastest; "
-                          "low to max think longer and cost more (DeepSeek-V4.1-Flash's reasoning, through Luminal)",
+                          "low, high and max think longer and cost more (DeepSeek's three levels). Her thinking shows under each reply",
                  "options": luminal.EFFORTS, "default": "none"},
     "window":   {"short": "recent messages read verbatim", "card": True,
                  "about": "how many recent messages Avy reads word for word; the rest comes from memory (all: an ordinary chat)",
@@ -137,6 +137,12 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
     "footnotes": {"short": "mark what came from memory", "card": False,
                   "about": "Avy marks what came from memory with small footnotes you can hover and click",
                   "options": ["on", "off"], "default": "on"},
+    "theme":    {"short": "light, dark, or the system's", "card": False,
+                 "about": "how the page looks: light (paper and ink), dark (the same at night), or auto (follow the system)",
+                 "options": ["auto", "light", "dark"], "default": "auto"},
+    "sounds":   {"short": "little sounds as you go", "card": False,
+                 "about": "small sounds for sending, Avy's reply arriving, clicks, touching a node and turning the graph (soft: quieter)",
+                 "options": ["on", "soft", "off"], "default": "on"},
     "mind":     {"short": "how hard the mind thinks", "card": False,
                  "about": "how hard the background mind thinks while it writes memory, connects and reflects "
                           "(none is fastest and cheapest; higher levels think before every answer)",
@@ -166,6 +172,9 @@ def current_settings():
             saved = json.loads(SETTINGS_FILE.read_text())
         except json.JSONDecodeError:
             pass
+    for name in ("thinking", "mind"):        # a level saved before there were only four (medium, xhigh, ultra) means what DeepSeek routes it to
+        if saved.get(name) in luminal.EFFORT_ALIASES:
+            saved[name] = luminal.effort_level(saved[name])
     return {name: saved.get(name) if saved.get(name) in spec["options"] else spec["default"]
             for name, spec in SETTINGS.items()}
 
@@ -174,6 +183,8 @@ def change_setting(name, value):
     """Save one choice. Returns an error message, or None if it worked."""
     if name not in SETTINGS:
         return f"There's no setting called '{name}'."
+    if name in ("thinking", "mind") and value in luminal.EFFORT_ALIASES:
+        value = luminal.effort_level(value)          # /thinking: medium -> high, as DeepSeek would
     if value not in SETTINGS[name]["options"]:
         return f"'{value}' isn't an option for {name}. Options: {', '.join(SETTINGS[name]['options'])}"
     values = current_settings()
@@ -406,6 +417,32 @@ class Turn:
         self.messages = briefing(shown, self.recall["briefing"], text, self.incognito, core=self.searching,
                                  attached=self.attached)
         self.user_id = self.recall_id = self.reply_id = None
+        self.effort = choice["thinking"]
+        self.thought, self.think_started, self.think_seconds = [], None, None   # what she thinks before answering
+
+    def stream(self, line):
+        """Read one line of the model's stream: keeps her thinking (and how long it took), returns
+        (the answer's words, usage or None)."""
+        import time as _time
+        words, thinking, usage = luminal.stream_parts(line)
+        if thinking:
+            self.think(thinking)
+        if words:
+            self.answered()
+        return words, usage
+
+    def answered(self):
+        """The first words of the answer arrived: the thinking (if any) is over."""
+        import time as _time
+        if self.think_started and self.think_seconds is None:
+            self.think_seconds = round(_time.time() - self.think_started, 1)
+
+    def think(self, piece):
+        """A piece of her reasoning, as it streams (voice.py calls this too)."""
+        import time as _time
+        if self.think_started is None:
+            self.think_started = _time.time()
+        self.thought.append(piece)
 
     def ask(self):
         upstream = ask_model(self.messages)                 # if this fails, nothing is saved
@@ -425,16 +462,35 @@ class Turn:
 
     def finish(self, text, usage=None, cut=False):
         """Save Avy's reply (only what was actually sent or heard). Returns its number."""
-        if self.reply_id or not self.user_id or not text.strip() or self.mem.closed:
+        if self.reply_id or not self.user_id or self.mem.closed:
+            return self.reply_id
+        if not text.strip():
+            self.keep_thinking(None, usage)      # stopped while thinking: what she'd thought is still kept
             return self.reply_id
         meta = {"model": self.model, "recall": self.recall_id}
         if usage:
             meta["usage"] = usage
         if cut:
             meta["cut"] = True
+        if self.thought:
+            meta["thought"] = True       # the page knows to offer the thinking under it
         self.reply_id = self.mem.add("assistant", text.strip(), self.via, meta)
+        self.keep_thinking(self.reply_id, usage)
         worker.nudge()                 # the mind writes in the background once an episode's worth is waiting
         return self.reply_id
+
+    def keep_thinking(self, reply_id, usage):
+        """Save her reasoning (if she thought at all) next to the reply it led to: the log says what she said,
+        this says why. The first concrete step toward the thought graph (ARCHITECTURE.md)."""
+        if not self.thought or getattr(self, "thought_saved", False):
+            return
+        import time as _time
+        seconds = self.think_seconds if self.think_seconds is not None else (
+            round(_time.time() - self.think_started, 1) if self.think_started else None)
+        tokens = ((usage or {}).get("completion_tokens_details") or {}).get("reasoning_tokens")
+        self.mem.add_reasoning("".join(self.thought), message=reply_id, asked=self.user_id, effort=self.effort,
+                               seconds=seconds, tokens=tokens)
+        self.thought_saved = True
 
 
 FILE_CHARS = 240_000     # all the files in one briefing together, at most (about 60,000 tokens)
@@ -651,7 +707,7 @@ class Handler(BaseHTTPRequestHandler):
                         break
                     self.wfile.write(line)
                     self.wfile.flush()
-                    words, counts = stream_text(line)
+                    words, counts = turn.stream(line)      # keeps her thinking too, to save with the reply
                     reply += words
                     usage = counts or usage
         except (BrokenPipeError, ConnectionResetError):
@@ -706,6 +762,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_download_bytes(body, f"avy-memory-{mem.name}-{day}.json", "application/json")
         msgs = mem.messages_between(1, mem.last_id())
         if fmt == "json":
+            for m in msgs:
+                thought = mem.reasoning_of(m["id"]) if m["meta"].get("thought") else None
+                if thought:
+                    m["thinking"] = {k: thought[k] for k in ("text", "seconds", "effort", "tokens")}
             body = json.dumps({"exported": memory.stamp(), "memory": mem.name, "messages": msgs}, indent=1, ensure_ascii=False)
             return self.send_download_bytes(body.encode(), f"avy-conversation-{mem.name}-{day}.json", "application/json")
         self.send_download_bytes(conversation_markdown(mem, msgs).encode(), f"avy-conversation-{mem.name}-{day}.md",
@@ -829,6 +889,10 @@ def conversation_markdown(mem, msgs):
         who = memory.who(m["role"], m.get("via"))
         out.append(f"**{who}** · {at:%I:%M %p}" + (" · spoken" if m.get("via") == "voice" else "")
                    + (" · cut off" if m["meta"].get("cut") else ""))
+        thought = mem.reasoning_of(m["id"]) if m["meta"].get("thought") else None
+        if thought:
+            out += ["<details><summary>" + (f"thought for {thought['seconds']}s" if thought["seconds"] else "thought") + "</summary>",
+                    "", thought["text"].strip(), "", "</details>", ""]
         if m["text"]:
             out.append(m["text"])
         names = [f["name"] if isinstance(f, dict) else f for f in m["meta"].get("files") or []]

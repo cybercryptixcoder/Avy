@@ -49,10 +49,19 @@ HELIX_FLASH_MODEL=deepseek-ai/DeepSeek-V4.1-Flash      # optional, the default
 ## Thinking, now that Flash is the only model
 
 DeepSeek's Pro model isn't on Luminal, so where Avy used to pick Flash or Pro, she now picks how hard
-Flash thinks: `none`, `low`, `medium`, `high`, `xhigh`, `ultra`, `max`.
+Flash thinks: `none` (off), `low`, `high` or `max`.
+
+DeepSeek has exactly three thinking levels. Luminal accepts seven names, but DeepSeek routes the extra four
+onto the three ([DeepSeek's thinking-mode guide](https://api-docs.deepseek.com/guides/thinking_mode/)):
+`minimal` → low, `medium` → high, `xhigh` → high, `ultra` → max. So Avy offers only `none`, `low`, `high`
+and `max` (Oct 15). A setting saved under one of the old names, or `--effort medium` on a command line,
+still works and means what DeepSeek would have done with it (`luminal.effort_level`). (The Oct 14 probe
+that saw `ultra` refused with 503 all night fits this: it's not a level of its own.)
 
 - **`/thinking:`** (on the system card): how hard Avy thinks before answering, and while she searches her
   memory. Default none: fast (about a second to start). Higher levels think for several seconds first.
+  What she thought shows under her reply, folded: `▸ thought for 12.4s` opens it (it's saved with the
+  reply, so it's there after a reload too).
 - **`/mind:`** (a command): how hard the background mind thinks while it writes memory, connects and
   reflects. Default none. Its tool calls stay forced with none; with thinking on they're offered instead.
 - **The benchmark's judge** thinks at `high` (it used to be Pro).
