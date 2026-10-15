@@ -158,3 +158,7 @@ same ones aren't made twice. (When a cause was outside Claude's control, it says
     score at face value. Fixed; run 3 replays them. Lesson: a simulator has to share the script's ground truth.
 49. **The same pkill mistake twice** (see 43): `pkill -f mock_luminal.py` matched the command running it and
     ended it. Kill by PID, always.
+50. **A new view that forgot its old state.** The time slider rebuilt the graph without letting go of the
+    selected node, which might not exist on the date chosen. Caught by the last full page-test pass, which
+    is why that pass is never skipped. Lesson: anything that swaps the data under a view must reset what
+    points into the old data.

@@ -330,6 +330,13 @@ First run: 12 minutes at max on run 3's life memory, 2 jobs, $0.19, one inferenc
 broken. Measured: 6–9 minutes and ~$0.10 per job at max, so 8 hours ≈ 60 jobs, $5–8. Its one inference was
 about the record rather than his life (RESULTS.md), the same thing finding 4 says about daytime Think.
 
+**16. A graph bug the final test pass caught.** With a node selected (its card open), dragging the time
+slider to a date before that node existed left the selection pointing at nothing, and every frame threw
+("reading 'map'" in drawGraph). Intermittent in the test because it depended on whether the selected node
+was written in memory's first batch. Fixed: a reload of the graph lets go of a hovered or selected node
+that isn't there, and the drawing tolerates one anyway; `tests/page/t_ui.py` now selects a node that can't
+exist and slides back (deterministic), and page errors are recorded with their stack.
+
 ### State of things (end of session 3)
 
 **Everything below is on `main`, in his name, and tested** (offline suites: memory, luminal, files, import,

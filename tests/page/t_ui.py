@@ -44,7 +44,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=[*PROXY])
     ctx = b.new_context(viewport={"width": 1440, "height": 900})
     pg = ctx.new_page(); errs = []
-    pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
+    pg.on("pageerror", lambda e: errs.append((getattr(e, "stack", None) or str(e))[:400])); pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
     pg.goto("http://localhost:8000"); time.sleep(2)
 
     rows = pg.evaluate("[...document.querySelectorAll('.sys-row .k')].map(k => k.textContent)")
@@ -182,8 +182,10 @@ with sync_playwright() as p:
     pg.click("#graphShow button[data-show=all]"); time.sleep(0.3)
 
     # memory as it stood on a date: the slider at its start shows memory as it was first written
+    pg.evaluate("graph.selected = 99999")      # a node that isn't there once memory is rebuilt as of another date
     pg.evaluate("(() => { const s = document.getElementById('graphWhen'); s.value = 0; s.dispatchEvent(new Event('input')); })()")
     time.sleep(1.5)
+    check("...a selected node that isn't there then is let go (nothing breaks)", pg.evaluate("graph.selected") is None, pg.evaluate("graph.selected"))
     then = pg.evaluate("graph.nodes.length")
     check("the time slider rebuilds memory as it stood then", pg.evaluate("graph.asOf") and 0 < then <= total
           and "as it stood" in pg.inner_text("#graphStats") and pg.inner_text("#graphWhenLabel") != "now",

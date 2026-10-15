@@ -2916,6 +2916,8 @@ async function loadGraph() {
     graph.edges = [...d.edges.map((e) => ({ ...e, rests: false })), ...d.rests.map((r) => ({ a: r.a, b: r.b, kind: "rests", strength: 1, rests: true }))]
       .filter((e) => graph.byChain.has(e.a) && graph.byChain.has(e.b));
     graph.adj = new Map(graph.nodes.map((n) => [n.chain, []]));
+    if (graph.hover && !graph.byChain.has(graph.hover)) graph.hover = null;     // gone (memory as of an earlier date)
+    if (graph.selected && !graph.byChain.has(graph.selected)) { graph.selected = null; $("graphCard").hidden = true; }
     for (const e of graph.edges) { graph.adj.get(e.a).push(e); graph.adj.get(e.b).push(e); }
     for (const n of graph.nodes) {                   // a newcomer starts next to something it's connected to
       const e = graph.born.has(n.chain) && graph.adj.get(n.chain)[0];
@@ -3008,7 +3010,7 @@ function drawGraph(canvas, full, now) {
   const shown = graph.nodes.map((p) => ({ p, q: project(p, w, h, scale, now) }));
   const at = new Map(shown.map((s) => [s.p.chain, s.q]));
   const focus = full && (graph.hover || graph.selected);
-  const near = new Set(focus ? [focus, ...graph.adj.get(focus).map((e) => (e.a === focus ? e.b : e.a))] : []);
+  const near = new Set(focus ? [focus, ...(graph.adj.get(focus) || []).map((e) => (e.a === focus ? e.b : e.a))] : []);
   const fade = (z) => Math.max(0.2, Math.min(1, 0.6 - z * 0.4));            // farther is fainter
   const busy = Math.min(1, 260 / Math.max(1, graph.edges.length));           // many lines: each one fainter
   const sifting = full && (graph.show !== "all" || graph.path);              // a filter or a path: the rest stays, faint
@@ -3149,7 +3151,7 @@ function nodeAt(x, y) {
     graph.hover = hit ? hit.p.chain : null;
     const tip = $("graphTip");
     if (!hit) { tip.hidden = true; return; }
-    const p = hit.p, links = graph.adj.get(p.chain).filter((x) => !x.rests).sort((a, b) => b.strength - a.strength).slice(0, 3);
+    const p = hit.p, links = (graph.adj.get(p.chain) || []).filter((x) => !x.rests).sort((a, b) => b.strength - a.strength).slice(0, 3);
     tip.replaceChildren(el("div", "h", `${graph.mem === "incognito" ? "x" : "k"}${p.chain} · ${p.shape}${p.label ? ", " + p.label : ""} · ${standing(p)} · ${plural(p.degree, "connection")}`),
                         el("div", "", p.title), links.length ? el("div", "h", links.map((l) => l.reason).join(" · ")) : null);
     tip.hidden = false;
