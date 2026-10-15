@@ -324,6 +324,12 @@ she talks depends on how much of the test recording gets transcribed (all of it 
 model answers eight times longer), and on this 2-CPU machine 32 spoken sentences outlast a 2-minute wait. The
 test now waits up to 6 minutes.
 
+**15. A live dream.** `tests/live/dream.py` copies a scenario's memory and dreams on the copy through the real
+model, then writes what changed (health before and after, runs, new connections and nodes, revisions, its log).
+First run: 12 minutes at max on run 3's life memory, 2 jobs, $0.19, one inference and two connections, nothing
+broken. Measured: 6–9 minutes and ~$0.10 per job at max, so 8 hours ≈ 60 jobs, $5–8. Its one inference was
+about the record rather than his life (RESULTS.md), the same thing finding 4 says about daytime Think.
+
 ### State of things (end of session 3)
 
 **Everything below is on `main`, in his name, and tested** (offline suites: memory, luminal, files, import,

@@ -68,6 +68,9 @@ harness" below). Run 3 replays these two scenarios with that fixed.
 | life | what's on his plate the next two weeks | 1.0 | 1.0 | 0.67 |
 | life | his age next birthday, and how many days away | **1.0** | **1.0** | **1.0** |
 | life | his sister's husband's name (never said) | 1.0 | 1.0 | 1.0 |
+| persona2 | dinner: vegetarian, exactly two options, a tl;dr line | 1.0 | 0.67 | 0.67 |
+| persona2 | a half marathon's length and heat (metric, tl;dr) | 0.67 | 0.67 | 0.33 |
+| persona2 | the house rules he gave | 1.0 | 1.0 | 0.67 |
 
 With nobody denying the plan, "what's my next step?" goes from 0.33 / 0.5 / 0.0 to 0.92 / 0.83 / 0.83. "The
 whole plan" is still the weak one: the full list of steps is in her day-1 reply, and memory holds it as a
@@ -82,6 +85,12 @@ birth date in run 1 found it in run 3. So that failure is real but intermittent:
 lands on his own facts depends on where the search happens to start (run 1's memory had grown a big hub
 around Rohan's birthday). One run per scenario can't say how often; the structural point (his own facts have
 no home) stands, the evidence for it is weaker than one run made it look.
+
+`persona2` (not spoiled by the harness, run again to see if it holds) **reproduces**: the tl;dr line was
+missing from 5 of the 9 answers, including the app setup's answer to the half-marathon question, and the
+rules setup again gave Fahrenheit and forgot the metric rule when listing his house rules. Explore did pull the
+metric rule in for the half marathon this time, so that answer is in kilometres and Celsius. A preference that
+has to be found by search is kept some of the time; finding 1 stands on two runs.
 
 ## What works
 

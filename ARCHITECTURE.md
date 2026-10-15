@@ -186,6 +186,9 @@ until time is up, the budget is spent, or he wakes her:
 at the end: health measured, and a run record (job "dream") with what it did and cost
 ```
 
+Measured live (tests/live/dream.py, Oct 15): at max thinking a job takes 6–9 minutes and about $0.10, so an
+8-hour dream is roughly 60 jobs and $5–8; a job already thinking finishes past the deadline.
+
 **Planned for dreaming** (decision 5 in VISION.md): *re-reading* old episodes with everything memory holds
 now in view, to write what the first pass missed (a Write variant that adds nodes to an existing episode
 instead of creating one); *merging* near-duplicate nodes (two chains that are the same thing: a new
