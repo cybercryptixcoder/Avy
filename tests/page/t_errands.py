@@ -162,8 +162,10 @@ with sync_playwright() as p:
     check("live mode: the button says [ talk ]", pg.inner_text("#talk") == "[ talk ]")
     pg.click("#input"); pg.keyboard.down("Space"); time.sleep(8.6); pg.keyboard.up("Space")
     check("live: Avy answers out loud", wait(pg, "voiceState === 'speaking'", 60))
-    wait(pg, "voiceState === 'idle'", 120); time.sleep(1)
-    for _ in range(30):                     # the save can trail the audio a little while the mind is busy
+    # How long she talks depends on how much of the recording was transcribed: all of it says "remind", and the
+    # fake Luminal answers "remind" with a reply eight times longer (32 sentences to speak on a slow CPU).
+    wait(pg, "voiceState === 'idle'", 360); time.sleep(1)
+    for _ in range(60):                     # the save can trail the audio a little while the mind is busy
         log = api("/api/log?limit=2")["messages"]
         if [m["via"] for m in log] == ["voice", "voice"]:
             break

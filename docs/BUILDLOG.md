@@ -309,3 +309,46 @@ note); they're saved as `meta.unseen`, sent with the reply (text and voice), and
 a first line in their card: "k21 wasn't in what memory brought for this reply, so this may not be what she
 meant." Also fixed while there: spoken replies read library footnotes out loud ("p41"); `voice.speakable` now
 drops `[p41]` like `[k12]`. Tested in `tests/page/t_ui.py` (the fake Luminal miscites on request).
+
+### Live test run 3 (the harness fixed)
+
+`life` and `plan` replayed with the simulated Shreyas fixed and the new wording for a miss (tests/live/RESULTS.md):
+life is 1.0 almost everywhere (the allergy now comes up unasked in every setup; his age passes in all three,
+so run 1's miss was intermittent, not constant); plan's "next step" goes from 0.33 / 0.5 / 0.0 to
+0.92 / 0.83 / 0.83, and where run 2 invented a different plan when search missed it, run 3 said it couldn't
+find the steps. "The whole plan" stays weak (0.75 / 0.75 / 0.25): her plan lives in one reply, summarized.
+
+A page test (live voice: both sides saved) failed four times in a row and looked like a regression. It wasn't:
+the old commit with the new page passed, and so did the new code once the test waited long enough. How long
+she talks depends on how much of the test recording gets transcribed (all of it says "remind", which the fake
+model answers eight times longer), and on this 2-CPU machine 32 spoken sentences outlast a 2-minute wait. The
+test now waits up to 6 minutes.
+
+### State of things (end of session 3)
+
+**Everything below is on `main`, in his name, and tested** (offline suites: memory, luminal, files, import,
+intake, dream; page tests: basics, ui, errands, files, look, glass; live runs 1–3 against the real model).
+- **Built this session**: DeepSeek's real thinking levels (none/low/high/max, aliases routed); her thinking
+  kept (append-only) and shown folded under each reply; dark mode (audited for contrast, hovers included);
+  synthesized sounds; the library (anything added, any format, folders and zips, Claude/ChatGPT/WhatsApp
+  conversations, pictures described, read into passages searchable by words and meaning, cited [p41]); the
+  looking glass (intake, memory, the mind, the Claude history's build, dreaming, costs, live); dreaming (hours
+  at max, budgeted, wakes itself); the graph's filters, time slider and answer paths; footnotes she wasn't shown
+  marked; VISION.md and ARCHITECTURE.md; the live-test harness and its findings (tests/live/RESULTS.md).
+- **Not built, waiting on his decisions** (VISION.md §16): knowledge written *from* the library; Avy's own
+  words in memory (and now: whose idea vs who said it); search inside the thinking chain; internal memory's
+  first build (slots or the thought graph; the live tests point at slots first); dreaming's scope; forgetting
+  from the library; how much Think writes (new).
+- **His to start**: the Claude history's build into knowledge (the looking glass has [ plan ] and [ build ]);
+  a first dream on his real memory.
+- **Known rough edges**: the voice live-conversation page test is timing-sensitive (the reply's length depends
+  on how much of the recording is transcribed; it now waits up to 6 minutes, see run 3 above); embedding is slow on a 2-CPU
+  container (fast on a laptop), which is why the glass measures the ETA instead of guessing.
+
+### Next
+
+1. **Ask him the §16 decisions**, starting with §16.4 (the live tests' evidence: a preferences note and a
+   core of who he is would fix the two clearest failures; persona2 and life's age probe are ready to measure it).
+2. Then, in the order the tests suggest (tests/live/RESULTS.md, "What to do next"): slots; "what's coming up";
+   Think's volume; her plans as things with steps; whose idea.
+3. Rerun the live scenarios after each, and the benchmark (tests/bench) once something touches recall.

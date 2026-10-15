@@ -323,7 +323,7 @@ Each of these blocks something in §15. The trade-offs are in ARCHITECTURE.md.
    saved reasoning), or the fixed slots first (preferences and character notes)? *Evidence from the live
    tests (tests/live/RESULTS.md):* standing preferences said once (a tl;dr line, metric units) were lost on
    questions whose search didn't bring them up, and his own birth date wasn't found for "how old will I be?"
-   (two of three setups said he'd never told her). Both are what always-shown slots (a preferences note, and
+   in one of two runs (two of three setups said he'd never told her). Both are what always-shown slots (a preferences note, and
    a core of who he is) are for. On the other side, a plan that lived only in her own reply was rebuilt
    wrongly when search missed it, which is what the thought graph (her plans and commitments) is for.
 5. **Dreaming's scope**: also re-read old conversations to write what the first pass missed, and merge

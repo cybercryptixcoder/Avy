@@ -58,13 +58,30 @@ harness" below). Run 3 replays these two scenarios with that fixed.
 |---|---|---|---|---|
 | plan | his next step in a plan she wrote | 0.92 | 0.83 | 0.83 |
 | plan | the whole plan, and where he is in it | 0.75 | 0.75 | 0.25 |
-| life | (running) | | | |
+| life | the advisor meeting now (moved twice) | 1.0 | 1.0 | 1.0 |
+| life | how many times it moved, the original slot | 1.0 | 1.0 | 1.0 |
+| life | a gift for Rohan (two Rohans) | 1.0 | 1.0 | 0.83 |
+| life | will Rohan from work still be around | 1.0 | 1.0 | 1.0 |
+| life | the knee over weeks, and what to do now | 0.88 | 0.88 | 0.94 |
+| life | a satay recipe (his peanut allergy should come up unasked) | **1.0** | **1.0** | 1.0 |
+| life | every book he said he wants to read | 1.0 | 1.0 | 1.0 |
+| life | what's on his plate the next two weeks | 1.0 | 1.0 | 0.67 |
+| life | his age next birthday, and how many days away | **1.0** | **1.0** | **1.0** |
+| life | his sister's husband's name (never said) | 1.0 | 1.0 | 1.0 |
 
 With nobody denying the plan, "what's my next step?" goes from 0.33 / 0.5 / 0.0 to 0.92 / 0.83 / 0.83. "The
 whole plan" is still the weak one: the full list of steps is in her day-1 reply, and memory holds it as a
 summary, so the app setup gave 8 of the 10 steps, and the rules setup didn't find the plan at all. But where
 run 2's rules setup *invented* a different plan, run 3's said "the actual numbered steps aren't in what I can
 find right now" and offered to write it out again: the new wording for a miss, working.
+
+In `life`, with the simulated Shreyas no longer denying his allergy, every setup builds a nut-free satay
+unasked (memory even carried "avoids all nuts, not just peanuts" and her own earlier slip with almonds).
+**His age now passes in all three setups**, with the same messages as run 1: the same search that missed his
+birth date in run 1 found it in run 3. So that failure is real but intermittent: whether a question about him
+lands on his own facts depends on where the search happens to start (run 1's memory had grown a big hub
+around Rohan's birthday). One run per scenario can't say how often; the structural point (his own facts have
+no home) stands, the evidence for it is weaker than one run made it look.
 
 ## What works
 
@@ -89,17 +106,18 @@ find right now" and offered to write it out again: the new wording for a miss, w
    (the app setup) and vanished with no recent messages. → This is exactly what the **fixed slots** are for
    (VISION §9: a preferences note always in view). Evidence for building slots before the thought graph
    (VISION §16.4).
-2. **Facts about him himself have no home** (life, age). His birth date was said on day 1 ("born on 14 March
-   1999"), stored as "Shreyas's birth date and birthplace". "How old will I be on my next birthday?" found
-   Rohan's birthday instead (a big hub, with many inferences around it) and two setups answered "you never told
-   me". The rules forbid a node for Shreyas himself, so his own facts are scattered and found only by luck.
+2. **Facts about him himself have no home** (life, age; intermittent). His birth date was said on day 1 ("born
+   on 14 March 1999"), stored as "Shreyas's birth date and birthplace". In run 1, "how old will I be on my next
+   birthday?" found Rohan's birthday instead (a big hub, with many inferences around it) and two setups answered
+   "you never told me"; in run 3, with the same messages, all three found it. The rules forbid a node for
+   Shreyas himself, so his own facts are scattered and found when the search happens to start near them.
    → A **core of who he is**, always in view (the same slots), and an honest word for a miss: the system
    prompt now says she *can't find* something rather than that he never said it (done, Oct 15).
 3. **What's coming up** (life, coming-up): by rules, the dentist and the lease deadline were missed, and an
    inference carrying an old meeting slot was used. With explore, 1.0. → Confirms LATER.md's "What's coming
    up" (a when-it-happens date, always in view); and see 6.
 4. **Think writes too much, and too broadly** (life). 120 messages became 242 nodes, 75 her own inferences,
-   82 ideas, 1,029 connections. Many inferences are sweeping patterns ("outside-set dates are the ones that
+   82 ideas, 1,029 connections (run 3: 253 nodes, 92 inferences, 107 ideas, 863 connections). Many inferences are sweeping patterns ("outside-set dates are the ones that
    actually get worked to", "having a book is not reading it") that come up in unrelated questions: the age
    question's rules note brought "Shreyas does the dishes while the cold brew brews". → A new open decision
    (VISION §16.7).
