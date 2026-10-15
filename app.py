@@ -1049,10 +1049,22 @@ INTAKE = intake.Intake(tell=lambda event: worker.tell(event))
 MIND = {"now": None, "recent": []}          # what the background mind is doing, as it tells us
 
 
+def describe_picture(jpeg):
+    """What's in a picture, in a few plain sentences, for the library (intake.py): the one brain looks once."""
+    url = files.data_url(jpeg)
+    reply = luminal.complete({"max_tokens": 500, "messages": [
+        {"role": "system", "content": f"Describe this picture for {memory.NAME}'s memory, so it can be found later by what's in it. "
+                                      "Two to four plain sentences: what it shows, any text in it (word for word), people, places, objects, "
+                                      "numbers. No guessing beyond what's visible."},
+        {"role": "user", "content": [{"type": "text", "text": "The picture:"}, {"type": "image_url", "image_url": {"url": url}}]}]})
+    return reply["choices"][0]["message"].get("content") or ""
+
+
 def on_file_read(home, record):
     """A file attached in the chat has been read: it joins the library of the memory it was attached in
-    (an incognito conversation's own, deleted with it). Pictures and files with no words are skipped."""
-    if record.get("status") != "ready" or record.get("kind") in ("image", "binary"):
+    (an incognito conversation's own, deleted with it). Pictures are described once by the model so they can be
+    found by what's in them; files with no words are skipped."""
+    if record.get("status") != "ready" or record.get("kind") == "binary":
         return
     incog = MEMORIES["incognito"] and str(Path(home).resolve()).startswith(str(INCOGNITO_DIR.resolve()))
     mem = MEMORIES["incognito"] if incog else MEMORIES["main"]
@@ -1214,6 +1226,7 @@ if __name__ == "__main__":
         print(f"Memory v2: copied {copied} messages from {V1_MEMORY.name}; knowledge is rebuilt from them in the background.")
     memory.embedder.start(DATA / "models" / "meaning")
     files.hooks["read"] = on_file_read                  # anything attached joins memory's library
+    intake.HOOKS["describe"] = describe_picture          # ...pictures by what's in them
     worker.listeners.append(hear_mind)                   # the looking glass keeps track of the mind
     INTAKE.start()
     DREAM = dream.Dream(main=lambda: MEMORIES["main"], tell=worker.tell)

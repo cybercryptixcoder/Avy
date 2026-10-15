@@ -73,7 +73,11 @@ def read_any(path, name=None, record=None, home=None):
     if kind == "archive":
         return read_archive(path, name)
     if kind in ("image",):
-        return "picture", [], {"format": "picture", "note": "a picture has no words to keep (yet): Avy saw it when it was attached"}
+        described = describe_picture(path, home)
+        if described:
+            return "picture", [{"text": described, "part": "what's in the picture (described when it was added)"}], \
+                {"format": "picture", "described": True}
+        return "picture", [], {"format": "picture", "note": "a picture has no words to keep: Avy saw it when it was attached"}
     if kind == "binary":
         return "binary", [], {"format": "binary", "note": "kept as a file, but there are no words in it to read"}
     if kind in ("audio", "video"):
@@ -97,6 +101,29 @@ def read_any(path, name=None, record=None, home=None):
     if kind == "xlsx" or (kind == "odf" and "## sheet:" in text):
         return "data", chunk_sheets(text), {"format": kind}
     return "document", chunk_document(text), {"format": kind}
+
+
+HOOKS = {"describe": None}    # set by app.py: describe(jpeg path) -> a few sentences, from the model (it can see pictures)
+
+
+def describe_picture(path, home=None):
+    """A picture has no words of its own, so the model looks at it once and says what's in it; that description
+    is what memory can search. Uses the shrunk copy files.py made (home/view/1.jpg) when there is one."""
+    if not HOOKS.get("describe"):
+        return ""
+    shown = Path(home) / "view" / "1.jpg" if home and (Path(home) / "view" / "1.jpg").exists() else None
+    tmp = None
+    try:
+        if not shown:
+            tmp = Path(tempfile.mkdtemp(prefix="avy-pic-"))
+            files.picture(path, tmp / "1.jpg", files.PICTURE_SIDE)
+            shown = tmp / "1.jpg"
+        return (HOOKS["describe"](shown) or "").strip()
+    except Exception:
+        return ""
+    finally:
+        if tmp:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 def reused_text(record, home, full_needed=False):
@@ -447,6 +474,7 @@ def chunk_document(text):
     (PDFs), slide, cell or sheet, and the headings it sits under ("Design › Retries"). A new section starts a
     new passage, so a passage is usually one section (or a piece of a long one)."""
     out, buf, where, path, label = [], [], None, [], None
+    text = headings_apart(text)
 
     def flush():
         if buf:
@@ -482,6 +510,20 @@ def chunk_document(text):
         buf.append(para)
     flush()
     return out
+
+
+def headings_apart(text):
+    """Give every heading line (outside code fences) a paragraph of its own, so a reader that puts a heading
+    directly above its text (Word documents do) still gets its sections labeled."""
+    out, fenced = [], False
+    for line in text.splitlines():
+        if line.strip().startswith("```"):
+            fenced = not fenced
+        if not fenced and HEADING.match(line.strip()):
+            out += ["", line, ""]
+        else:
+            out.append(line)
+    return "\n".join(out)
 
 
 def split_long(text, limit=MAX_PASSAGE):

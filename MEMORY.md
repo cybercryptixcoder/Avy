@@ -18,6 +18,7 @@ memory/                   stores and searches; never calls the model
   search.py               meaning (local model) + words (SQLite FTS5)
   recall.py               what each message brings back, by rules; the memory note
   health.py               the network's shape in numbers
+  library.py              sources and passages: what he added, word for word; searching them
   inspect.py              what the inspector and the graph read
   embed.py                the meaning-search model (bge-small, 384 numbers per text, on the CPU)
 mind/                     where the model comes in (through luminal.py); only ever proposes
@@ -27,6 +28,8 @@ mind/                     where the model comes in (through luminal.py); only ev
   reflect.py              Connect, Think, Check, and how their inputs are chosen
   explore.py              Avy steering her own memory search
   worker.py               when everything runs; the daily budget; live events for the page
+  dream.py                dreaming: hours of reflection at max thinking, by hand, within a budget
+intake.py                 the library's intake: anything read into passages (no model), one job at a time
 app.py                    the server; the Turn (one exchange); settings; endpoints
 ```
 
@@ -43,6 +46,9 @@ that file. The knowledge is then rebuilt from the log by the writer, in the back
 | Table | What it holds | Changes? |
 |---|---|---|
 | `messages` | `#41`: id, time, role, text, typed or spoken, meta | never (database triggers refuse) |
+| `reasoning` | what Avy thought before a reply: the reply it led to, the message it answered, effort, seconds, reasoning tokens, text | never (triggers refuse) |
+| `sources` | `s3`: what he added to the library: name, kind (document, code, data, conversations, recording, picture, mixed), where it came from, a digest of its words, status, what the reader found | status and meta as intake goes; never deleted (a trigger refuses) |
+| `passages` | `p41`: a source's words in order: its place, where in the source (`page 3`, `Design › Retries`, `src/app.py:1-60`, `Trip planning · message 12`), and for conversations the speaker, role and time | never (triggers refuse) |
 | `episodes` | `ep4`: first and last message, headline, the run that wrote it | added in order, never changed |
 | `nodes` | one row per **version**; `chain` is the node (`k12` = chain 12). shape, label, title, text, about (date), origin, certainty, depth, state (active / retracted), why, episode, run | new versions only; `replaces` is UNIQUE, so a chain never forks |
 | `evidence` | node version → message, character span, quote (copied by code), exact | written with the node |
@@ -55,7 +61,7 @@ that file. The knowledge is then rebuilt from the log by the writer, in the back
 | `recalls` | for each message: the trace and the exact memory note | written once |
 | `health` | the network's numbers after each reflection | written once |
 | `marks` | small state: what reflection last looked at | updated |
-| `words`, `vectors` | search: FTS5 rows and 384-number vectors for messages (`m41`), node versions (`v77`), episode headlines (`e4`), edge reasons (`c7`) | rows added (an edge's reason row is replaced when revised) |
+| `words`, `vectors` | search: FTS5 rows and 384-number vectors for messages (`m41`), node versions (`v77`), episode headlines (`e4`), edge reasons (`c7`), library passages (`p41`) | rows added (an edge's reason row is replaced when revised) |
 
 Views:
 - `heads` is the newest version of each node.
@@ -168,14 +174,16 @@ For each message, at the `/recall:` depth (off, light, normal, deep, max):
    normal 12, deep 24, max 50) and a token budget. (Measured: on one finished month, raising normal's
    cap to 24 or 50 brought no more of what questions needed, only noise, and answers got worse. See
    `tests/bench/RESULTS.md`.)
-4. **Safety net**: older messages that match by themselves (not on screen, not next to a message a kept
-   node cites).
+4. **Safety nets**: older messages that match by themselves (not on screen, not next to a message a kept
+   node cites), and library passages that match by themselves (`library_net`: the same bar, up to the depth's
+   `log` count, within the token budget).
 5. **The note**, in tiers:
    - what Shreyas told you (quotes, the full message for the top three)
    - what you said before
    - what you worked out yourself (with certainty and what it rests on)
    - how these connect (edge reasons)
    - older messages
+   - from his library: `[p41] (from "name"; where in it; who said it): the words`
 
    A node that changed hands says who said it first. Versions show their earlier texts. A thing lists
    what belongs to it (its part_of connections, newest first, up to 8, each with a line of its text), the
@@ -200,7 +208,8 @@ Rounds as set by `/recall:` (light 1, normal 2, deep 3, max 4):
 - **Each round**, the model answers `explore_memory {task, questions[], open[], follow[], search[], keep[{item, why}], done}`:
   - `open` reads up to 5 nodes in full: the exact words and every connection
   - `follow` adds up to 4 nodes' neighbors to the frontier
-  - `search` runs up to 3 new searches in its own words (nodes, plus raw log lines it can keep as `#41`)
+  - `search` runs up to 3 new searches in its own words (nodes, plus raw log lines it can keep as `#41`, and
+    library passages it can keep as `p41`; the message's own library matches are shown from round 1)
   - `keep` is its current answer
 - **The last round** only decides what to keep.
 
@@ -225,6 +234,32 @@ stream the reply (/thinking: effort); save both messages (the files in meta); sa
 
 Files: see docs/FILES.md. The log keeps `meta.files` (name, kind, size, what was read); the writer sees
 the names as `[attached: ...]`.
+
+## Her reasoning (`reasoning`)
+
+With `/thinking:` on, the model's reasoning streams before the answer. `Turn.stream()` collects it (and
+`voice.py` the same way), and `Turn.finish()` saves it next to the reply (`meta.thought = true` on the reply).
+Stopped while still thinking: kept with `message = NULL`. It's never sent back to the model; the page shows
+it folded above the reply, the inspector in the log view, explore's rounds keep their own reasoning in the
+trace. It's the raw material for the thought graph (ARCHITECTURE.md §7).
+
+## The library (`memory/library.py`, `intake.py`, docs/FILES.md)
+
+`add_source` → `add_passages` (FTS rows at once) → `embed_passages` (meaning vectors, in batches, with
+progress) → `finish_source`. The digest of a source's passages stops the same words being added twice.
+Intake (one background thread) reads anything into passages without a model, except pictures, which the
+model describes once. Recall and explore bring passages back (above). Knowledge isn't written from passages
+yet (VISION.md §16.1).
+
+## Dreaming (`mind/dream.py`)
+
+Started by hand (`POST /api/dream {action: start, hours, max_dollars, effort}`), on the main memory, in its
+own thread, taking turns with the rest of the mind (`worker.RUN_LOCK`). Rounds: Check everything stale
+(hourly); sweep the next 6 longest-undreamt nodes (`dream.node.<chain>` marks) for partners ≥ 3 steps away
+and Connect them; Think about one focus (wander from a swept node, a hub, or a bridge between two distant
+hubs; never the same view twice); health every 30 minutes. Stops at the time limit, the budget, on waking,
+or after two laps round all of memory that find nothing new. Every job carries `job.effort` (the dream's,
+max by default) instead of `/mind:`. A run of job `dream` records what it did and cost.
 
 ## Imported conversations (docs/IMPORT.md)
 

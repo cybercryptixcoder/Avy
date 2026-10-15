@@ -1,7 +1,9 @@
 # Handoff: everything a builder needs
 
 For whoever picks Avy up next, person or agent. Read in this order:
-1. [../CONCEPT.md](../CONCEPT.md): what Avy is and why. The idea comes first; code serves it.
+1. [../VISION.md](../VISION.md): what we're building and why, what's built, and the open decisions. The idea
+   comes first; code serves it. Then [../ARCHITECTURE.md](../ARCHITECTURE.md) for how it all works.
+   [BUILDLOG.md](BUILDLOG.md) is the running record: read its newest session's *State of things* first.
 2. This file: how it's put together, the contracts, how to run and test it, and the rules of the house.
 3. [../MEMORY.md](../MEMORY.md): memory's technical spec (storage, rules, the mind's jobs, recall,
    search).
@@ -65,11 +67,13 @@ Ports: 8000 (the page and API, this computer only), 8001 (voice WebSocket).
 app.py            the server: page, keys, settings, the Turn (one exchange), endpoints, exports, the page's import
 luminal.py        the only model client (rules in docs/LUMINAL.md)
 files.py          attached files: kept, read into text and pictures, given to the model
+intake.py         the library's intake: anything (files, folders, archives, chat exports) read into passages; one queue
 voice.py          push-to-talk: faster-whisper (ears), Kokoro (mouth), a WebSocket on 8001; transcribing attached recordings
 index.html        the whole page (HTML, CSS, JS in one file, sections numbered)
 memory/           stores and searches; never calls the model (MEMORY.md)
 mind/             where the model works on memory: llm (one strict tool call), jobs (the engine), writer,
-                  reflect (Connect, Think, Check), explore (Avy's own search), worker (when things run)
+                  reflect (Connect, Think, Check), explore (Avy's own search), worker (when things run),
+                  dream (hours of max-thinking reflection, by hand)
 tools/            claude_export.py (reads an export), claude_import.py (inspect/import/plan/run/status),
                   copy_log.py (carry a log between memory files)
 tests/            test_memory, test_luminal, test_import, test_files (offline); bench/ (the benchmark);
@@ -117,7 +121,7 @@ written by the worker, only by `tools/claude_import.py run`.
 | `GET /api/settings`, `POST /api/settings {name, value}` | the settings schema, values, prices, brain (model, provider, balance, context), files, memory stats |
 | `POST /api/keys {LUMINAL_API_KEY}` | save to `.env` |
 | `POST /api/chat {text, files}` | SSE: `{"avy": {"searching": ...}}` rounds, `{"avy": {"turn": summary}}`, the model's own chunks, `{"avy": {"saved": id}}`, `[DONE]`; or `{"avy": {"error": msg}}` |
-| `GET /api/events` | SSE: `{"hello": true, "page": version}`, then `{"mind": {...}}` for every run |
+| `GET /api/events` | SSE: `{"hello": true, "page": version}`, then `{"mind": {...}}` for every run, `{"intake": job}`, `{"dream": status}`, `{"history": progress}` |
 | `POST /api/files` | the file as the body; `X-File-Name` (URL-encoded); returns its record (`status: reading`) |
 | `GET /api/files` | every file's record, newest first |
 | `GET /api/files/<id>` | one record: `{id, name, size, mime, kind, status (reading/ready/problem), what, chars, pictures, details}` |
@@ -125,6 +129,14 @@ written by the worker, only by `tools/claude_import.py run`.
 | `GET /api/files/<id>/text` | what Avy read from it |
 | `POST /api/files/<id>/import` | import a Claude export (into `data/memory-claude.db`); `GET /api/import` for progress |
 | `GET /api/export?what=conversation&format=md\|json` or `what=memory` | downloads |
+| `GET /api/library`, `/api/source?id=&after=`, `/api/passage?id=` | the library: sources, a source's passages, one passage (`?memory=`) |
+| `POST /api/library/upload` | one file of a folder: the body; `X-Batch` (b + letters) and `X-File-Path` (URL-encoded) |
+| `POST /api/library/folder {batch, name}` | the folder has arrived: read it into the library |
+| `POST /api/library/add {file}` | an attached file, added to the library by hand |
+| `POST /api/intake {pause}` or `{cancel: job}` | control the intake queue |
+| `GET /api/glass` | everything the looking glass shows, in one answer |
+| `POST /api/history {action: plan\|run\|stop, effort, max_dollars, max_stretches}` | the Claude history's build, as a separate process |
+| `POST /api/dream {action: start\|stop, hours, max_dollars, effort}` | dreaming |
 | `GET /api/log, /api/memory, /api/node, /api/edge, /api/episode, /api/run, /api/recall, /api/search, /api/graph, /api/journal, /api/health` | the inspector and the graph (`?memory=main\|incognito`) |
 | `POST /api/index`, `POST /api/reflect` | write now / reflect now (409 while imported messages wait) |
 | `POST /api/incognito {on}` | start or end an incognito conversation |
@@ -160,28 +172,34 @@ python3 tests/test_memory.py      # every memory rule and job with a scripted mo
 python3 tests/test_luminal.py     # the provider rules: request shape, streams, retries, costs
 python3 tests/test_import.py      # a made-up Claude export in every shape, end to end
 python3 tests/test_files.py       # every kind of file, made and read; what the model gets
+python3 tests/test_intake.py      # the library: every format into passages, the queue, recall and explore finding them
+python3 tests/test_dream.py       # dreaming with a scripted model: sweeps, focuses, its own thinking level, budget, waking
 ```
 
 In a browser, against a fake Luminal (`tests/page/README.md`): the page's basics, memory views and the
-graph, the errands (dials, incognito, dictation and live voice), and files.
+graph, the errands (dials, incognito, dictation and live voice), files, the look (light and dark with a
+contrast audit of every visible text, hovers and menus included; her thinking; sounds), and the glass (the
+library, a dropped folder, the looking glass, dreaming). `run.py` first checks that the page's script parses.
 
 With the real model (costs money; synthetic data only):
 
 ```
 python3 tests/bench/run.py --key .env            # the benchmark: a scripted month, ~30-60 min, see RESULTS.md
 python3 tests/bench/run.py --until 2             # a quick try
+python3 tests/live/run.py --all                  # live scenarios (tests/live/scenarios.py), side by side, graded
+python3 tests/live/run.py files --until 2 --probe-anyway   # a quick try of one
 ```
 
 ## Where things stand
 
 Built: chat, voice, memory v2 (log, knowledge, living network, the mind, Avy's own search), the
 inspector, footnotes, chapters, the living graph, incognito, dials, Luminal, files, exports, the Claude
-import. Measured: RESULTS.md.
+import; and (Oct 15) her thinking kept and shown, the library (anything added becomes searchable passages),
+the looking glass, dreaming, dark mode, sounds. Measured: RESULTS.md, tests/live/results.
 
 Waiting on Shreyas: the import's mind run (`tools/claude_import.py run`), which is his to start.
 
-Next (LATER.md): what's coming up (future dates), files' contents into memory, ask-to-confirm, beliefs
-over time, then proactivity.
+Next: VISION.md §15–16 (the open decisions first), then LATER.md.
 
 ## Gotchas
 

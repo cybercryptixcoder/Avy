@@ -30,13 +30,12 @@ not race day). What it needs:
   for Avy's answers and her search
 - dates that pass quietly turn into history (done, or an open question: did it happen?)
 
-## What files say, into memory
+## What files say, into knowledge
 
-*Next after the history run.* Today the log keeps which files went with a message and the writer sees their
-names, so memory knows a file was shared and what was said about it, but not what the file itself says.
-A document he shares is often the thing he wants remembered. What it needs: the writer reads a file's
-text (within a budget) and writes knowledge from it, with evidence pointing into the file (a page, a
-line, a time in a recording) the way it points into messages.
+*Half done (Oct 15).* Every file now joins memory's **library** as passages, searchable and cited as they
+are (docs/FILES.md). What's left is writing *knowledge* from them: nodes citing passage spans the way they
+cite message spans. It waits on decisions (VISION.md §16.1: who "said" a paper's words, a second kind of
+evidence, when it's written).
 
 ## Proactivity
 
@@ -70,6 +69,9 @@ The idle game, the swipe cards, the narrator who keeps you company while agents 
 interface are kept in docs/IDEAS.md, in case any of them comes back.
 
 ## Done (moved here from this list)
+
+- **Her thinking kept and shown** (Oct 15), **the library** (Oct 15), **the looking glass** (Oct 15),
+  **dreaming**, first version (Oct 15), **dark mode** and **sounds** (Oct 15).
 
 - **Your Claude export, imported** (the reader, the import, the page's `[ import ]`, the run's tooling).
 - **Files**: attach anything, read it, download, export.

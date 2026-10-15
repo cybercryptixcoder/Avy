@@ -4,9 +4,15 @@ A personal agent built from scratch, one small piece at a time, so every line is
 a memory that never forgets and never summarizes anything away: one endless conversation, turned into a
 living network of knowledge that she thinks about when it's quiet.
 
-- **[CONCEPT.md](CONCEPT.md)**: what Avy is and why, in plain words. Start here.
+- **[VISION.md](VISION.md)**: what we're building: the whole idea, what's built, what's next, and the open
+  decisions. Start here.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: how it works and how the unbuilt parts are meant to work: what kind of
+  graph, every store, the jobs, search, dreaming, internal memory.
+- **[CONCEPT.md](CONCEPT.md)**: what Avy is today, in plain words: the experience.
 - **[MEMORY.md](MEMORY.md)**: how memory is built: storage, rules, the mind's jobs, the algorithms.
 - **[docs/HANDOFF.md](docs/HANDOFF.md)**: everything a builder needs: the map, the contracts, running and testing.
+- **[docs/BUILDLOG.md](docs/BUILDLOG.md)**: the running record of the build: what was done, learned and tried, the
+  state of the code, what's next. A new session picks up from here.
 - **[docs/LUMINAL.md](docs/LUMINAL.md)**: the model provider and its rules.
 - **[docs/FILES.md](docs/FILES.md)**: attaching files of any kind, and getting things out.
 - **[docs/IMPORT.md](docs/IMPORT.md)**: bringing in your Claude history.
@@ -60,13 +66,25 @@ old file is left exactly as it was.
   - `/explore:` on (the default) lets Avy search her memory herself, step by step: a few seconds slower,
     and much better at finding what a message really needs. You'll see what she's looking at while she
     does. Off searches by rules, instantly.
-- **How hard Avy thinks:** `/thinking:` none (the default, fastest) up to max, for her answers and her
-  search; `/mind:` the same for the background mind. The top bar shows your Luminal balance; the
-  "spent" tile is an estimate.
+- **How hard Avy thinks:** `/thinking:` none (the default, fastest), low, high or max (DeepSeek's three
+  levels), for her answers and her search; `/mind:` the same for the background mind. When she thinks, her
+  thinking shows folded above her reply (`▸ thought for 12.4s`: click to read it); it's kept with the reply.
+  The top bar shows your Luminal balance; the "spent" tile is an estimate.
 - **Files:** `[ attach ]`, drop, or paste anything: documents, spreadsheets, slides, PDFs, code, pictures
   (she sees them), audio and video (she hears them, and sees frames). Ask her for a file and `[ save ]`
   on it downloads it. `/files` lists what you've attached; `/export` downloads the conversation
   (`/export: json`, `/export: memory`). See docs/FILES.md.
+- **The library: anything you add becomes memory.** Every file you attach also joins memory's library, read
+  into passages that memory can search from then on (so "what did that doc say about retries?" works days
+  later). Drop whole folders (a codebase, a project) or more files in the looking glass. Any format: documents,
+  code, data, recordings, pictures (described once), and conversations from anywhere (Claude or ChatGPT
+  exports, WhatsApp, transcripts). `/library` shows what's in it. See docs/FILES.md.
+- **The looking glass:** `/glass` (or the Glass button) shows everything loading into memory (with how long
+  it'll take), memory's numbers, what the mind is doing and what went wrong, your Claude history's build
+  (plan, build with a budget, stop), dreaming, and what it costs.
+- **Dreaming:** `/dream` opens the looking glass, where you start a dream: hours of reflection at max
+  thinking over all of memory, within a budget (8 hours and $10 by default). Wake her any time.
+- **Look and sound:** `/theme:` auto, light or dark (or the sun/moon button), `/sounds:` on, soft or off.
 - **Your Claude history:** attach the export and press `[ import ]`, or `python3 tools/claude_import.py`
   (docs/IMPORT.md). It goes into its own memory, `data/memory-claude.db`; open it with
   `python3 app.py --memory data/memory-claude.db`. Turning it into knowledge is a separate, longer run
@@ -102,6 +120,7 @@ Everything stays in this folder:
   The newest 50 (up to 300 MB) are kept; older ones are deleted. `/retry` re-transcribes the newest one.
 - `data/files/`: files you attached, each as it came, with what Avy read from it.
 - `data/memory-claude.db`: your imported Claude history, if you imported it.
+- `data/library/`: folders you added to memory, kept as they came (files attached in the chat stay in `data/files/`).
 - `data/incognito/`: an incognito conversation's memory, recordings and files, only while it's going.
 
 `data/` and `.env` are never committed.
@@ -111,16 +130,20 @@ Everything stays in this folder:
 - `app.py`: the server: the page, keys, settings, files, exports, and every exchange with the model (typed or spoken).
 - `luminal.py`: the only model client, and the rules it follows (docs/LUMINAL.md).
 - `files.py`: attached files: kept as they came, read into text and pictures for the model.
+- `intake.py`: the library's intake: anything (files, folders, codebases, chat exports) read into passages.
 - `memory/`: the log, knowledge, the network, the rules, search, recall. Never calls the model.
-- `mind/`: where the model works on memory: writing, connecting, thinking, re-checking, and searching.
+- `mind/`: where the model works on memory: writing, connecting, thinking, re-checking, searching, dreaming.
 - `voice.py`: push-to-talk. faster-whisper writes down what you said; in live mode Kokoro speaks the
   answer sentence by sentence. Started by app.py when the voice packages are installed.
 - `index.html`: the page.
 - `tools/copy_log.py`: carry the log from one memory file to another (see VERSIONS.md).
 - `tools/claude_export.py`, `tools/claude_import.py`: read a Claude export; import it and run the mind over it.
-- `tests/test_memory.py`, `test_luminal.py`, `test_import.py`, `test_files.py`: offline checks
-  (`python3 tests/test_memory.py`, and so on).
+- `tests/test_memory.py`, `test_luminal.py`, `test_import.py`, `test_files.py`, `test_intake.py`, `test_dream.py`:
+  offline checks (`python3 tests/test_memory.py`, and so on).
 - `tests/page/`: the page in a real browser against a fake Luminal (`python3 tests/page/run.py`).
 - `tests/bench/`: the benchmark: a month of conversation replayed through the real Avy, questions that need
   memory, a judge. `python3 tests/bench/run.py` (under an hour and well under a dollar; a throwaway memory, never yours).
+- `tests/live/`: live scenarios (interference, corrections, files, preferences, whose idea, a plan, an old
+  Claude history...) played through the real Avy with a simulated you, graded by a judge:
+  `python3 tests/live/run.py --all` (about 20 minutes and 30 cents a scenario, side by side).
 - `requirements.txt` / `requirements-voice.txt`: packages. Add new ones here and the run command installs them.

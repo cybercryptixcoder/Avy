@@ -147,6 +147,64 @@ ok("a Claude export through the same door: conversations, Shreyas's words as his
    and not any("THINKING-XYZ" in p["text"] or "ABANDONED-BRANCH-XYZ" in p["text"] for p in ps), meta)
 ok("...oldest conversation first", ps[0]["part"].startswith("Ant colonies"), ps[0]["part"])
 
+# documents read by files.py's readers: a PDF (pages), a Word file (headings)
+def pdf(lines):
+    """A small real PDF with a line of text per page (the same maker test_files.py uses)."""
+    objects = ["<< /Type /Catalog /Pages 2 0 R >>", None, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    kids = []
+    for line in lines:
+        stream = f"BT /F1 18 Tf 72 720 Td ({line}) Tj ET".encode()
+        objects.append(f"<< /Length {len(stream)} >>\nstream\n{stream.decode()}\nendstream")
+        objects.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> "
+                       f"/Contents {len(objects)} 0 R >>")
+        kids.append(f"{len(objects)} 0 R")
+    objects[1] = f"<< /Type /Pages /Kids [{' '.join(kids)}] /Count {len(kids)} >>"
+    out, offsets = io.BytesIO(), []
+    out.write(b"%PDF-1.4\n")
+    for i, body in enumerate(objects, 1):
+        offsets.append(out.tell())
+        out.write(f"{i} 0 obj\n{body}\nendobj\n".encode())
+    xref = out.tell()
+    out.write(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
+    for o in offsets:
+        out.write(f"{o:010} 00000 n \n".encode())
+    out.write(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode())
+    return out.getvalue()
+
+
+try:
+    import pypdf  # noqa: F401
+    kind, ps, meta = intake.read_any(write("paper.pdf", pdf(["Abstract: graphs as memory for agents.", "Results: 85 percent with exploration."])))
+    ok("a PDF: a passage per page, labeled with its page", kind == "document" and [p["part"] for p in ps] == ["page 1", "page 2"]
+       and "85 percent" in ps[1]["text"], ps)
+except ImportError:
+    print("skip  a PDF (pypdf isn't installed)")
+W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+docx = io.BytesIO()
+with zipfile.ZipFile(docx, "w") as z:
+    z.writestr("[Content_Types].xml", "<Types/>")
+    z.writestr("word/document.xml", f'<w:document {W}><w:body>'
+               '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Pump plan</w:t></w:r></w:p>'
+               '<w:p><w:r><w:t>Use a peristaltic pump so it never siphons.</w:t></w:r></w:p></w:body></w:document>')
+kind, ps, meta = intake.read_any(write("plan.docx", docx.getvalue()))
+ok("a Word file: its text, under its headings", kind == "document" and ps[0]["part"] == "Pump plan" and "peristaltic" in ps[0]["text"], ps)
+
+# a picture: described once by the model (a scripted one here), so it can be found by what's in it
+try:
+    from PIL import Image
+    img = io.BytesIO()
+    Image.new("RGB", (64, 48), "white").save(img, "PNG")
+    kind, ps, meta = intake.read_any(write("whiteboard.png", img.getvalue()))
+    ok("a picture with no one to describe it: nothing to keep, and it says so", kind == "picture" and not ps and meta.get("note"), meta)
+    seen = []
+    intake.HOOKS["describe"] = lambda jpeg: seen.append(jpeg) or "A whiteboard that says 'ship it friday' in red marker."
+    kind, ps, meta = intake.read_any(write("whiteboard.png", img.getvalue()))
+    ok("a picture: the model's description becomes its passage", kind == "picture" and "ship it friday" in ps[0]["text"]
+       and meta.get("described") and str(seen[0]).endswith(".jpg"), (ps, meta))
+    intake.HOOKS["describe"] = None
+except ImportError:
+    print("skip  pictures (Pillow isn't installed)")
+
 # --- 2. the queue: stored, searchable, duplicates refused --------------------------------------------
 mem = memory.Memory(tmp / "mem.db")
 events = []

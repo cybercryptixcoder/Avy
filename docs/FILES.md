@@ -51,11 +51,28 @@ Speech in attached recordings is heard in English with the default speech models
 - Avy's instructions say how files arrive, to say so when a file couldn't be read or is only partly
   shown, and never to guess at the rest.
 
-## Memory and files
+## Memory and files: the library
 
-The log keeps which files went with each message (name, kind, size, what was read). The writer sees the
-names, so memory knows a file was shared and what was said about it. What the file itself says isn't
-written into knowledge yet (LATER.md).
+**Every file you attach also joins memory's library** (intake.py), in the memory it was attached in (an
+incognito conversation's own library is deleted with it). The library keeps what a file *says*, word for
+word, as passages in order (the way the log keeps what was said), and memory can search them from then on:
+days later, "what's the retry policy in that design doc?" brings back the doc's own words, cited `[p41]`.
+(Before Oct 15 only a file's name reached memory, and the live tests caught Avy confidently saying a doc
+didn't contain what it did.)
+
+- **Any format, no schema**: documents (by section, labeled with the page/slide and heading path), code (by
+  file and lines), data (30 rows at a time, header repeated), recordings (the transcript), pictures (the
+  model describes each once, so it can be found by what's in it), and conversations in any common shape:
+  Claude and ChatGPT exports, any JSON with speaker and text, WhatsApp exports, labeled transcripts.
+- **Whole folders and codebases**: drop a folder on the page (or use [ add a folder ] in the looking glass).
+  It's uploaded file by file into `data/library/<batch>/`, then read as one source: every file by its own
+  kind; node_modules, .git, build folders, lockfiles, minified bundles and binaries are left out and counted.
+  A zip or tar of a project works the same way.
+- **Watch it load** in the looking glass (`/glass`): each source's progress, how fast, how long it'll take,
+  and any problem. Meaning vectors are the slow part; words are searchable at once.
+- **See what's in it**: `/library`, then a source, then any passage, word for word.
+- **Not yet**: knowledge (nodes and connections) written *from* the library. Passages are searchable and
+  cited as they are; writing knowledge from them waits on decisions (VISION.md §16.1).
 
 ## Getting things out
 
@@ -88,8 +105,11 @@ and deleted when it ends.
 ## Code
 
 - `files.py`: keeping and reading files (one reader per kind), and what goes to the model.
+- `intake.py`: the library: anything (a file, a folder, an archive, a chat export) read into passages; the queue.
+- `memory/library.py`: sources and passages in the memory file; searching them; what recall shows of them.
 - `app.py`: `/api/files` (upload, list, a file, its download, its text), `/api/export`, `/api/import`,
   and the briefing (`with_files`).
 - `voice.py`: `transcribe_file()` for attached recordings.
 - `index.html`: the attach button, dropping, pasting, the tray, chips, `[ save ]`, `/files`, `/export`.
 - `tests/test_files.py`: every kind of file, made and read offline, and what the model is given.
+- `tests/test_intake.py`: every format into passages, the queue, duplicates, recall and explore bringing passages back.

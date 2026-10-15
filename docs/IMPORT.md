@@ -23,7 +23,15 @@ python3 app.py --memory data/memory-claude.db                           # talk t
 ```
 
 Or in the page: attach the export (the zip or the JSON) with `[ attach ]`, and press `[ import ]` on it.
-That does step 1 and says what to run for step 2.
+That does step 1. Step 2 can be started from the page too: the looking glass (`/glass`) has a "your claude
+history" panel with [ plan ] (the table below), [ build ] (with how hard the mind thinks, a dollar budget
+and an optional trial number of stretches) and [ stop ], and shows the build's progress, cost and time left.
+It runs `tools/claude_import.py run` as its own process (it sets memory's clock to each conversation's time,
+which must never touch the conversation you're having).
+
+Attaching the export also puts it in the main memory's **library** (docs/FILES.md): every message becomes a
+passage, searchable at once, without writing any knowledge. So questions about your old conversations get
+their words back right away; the build above is what turns them into knowledge, hubs and a network.
 
 ## What the export looks like
 

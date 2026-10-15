@@ -4,7 +4,9 @@ Avy is a personal agent built from scratch, in small pieces, so that every line 
 core idea is **memory**: one endless conversation that never forgets, never summarizes anything away,
 and turns what it hears into a living network of knowledge, the way a mind does. This document is
 the idea in plain words: what she is, why each part exists, how the parts fit, what's built, and
-what's next. [MEMORY.md](MEMORY.md) is the technical spec; [README.md](README.md) is how to run and use
+what's next. The full vision (including what isn't built yet: internal memory, the thought graph, the self
+model, search inside her thinking) is [VISION.md](VISION.md); how it all works is
+[ARCHITECTURE.md](ARCHITECTURE.md). [MEMORY.md](MEMORY.md) is the technical spec; [README.md](README.md) is how to run and use
 her; [VERSIONS.md](VERSIONS.md) is how to go back; [LATER.md](LATER.md) is what's decided but not built
 yet. In `docs/`: the story ([HISTORY.md](docs/HISTORY.md)), every idea ([IDEAS.md](docs/IDEAS.md)),
 every mistake ([MISTAKES.md](docs/MISTAKES.md)), a builder's handoff ([HANDOFF.md](docs/HANDOFF.md)),
@@ -109,8 +111,10 @@ all of Avy's memory but leaves nothing in it.
 ### How hard she thinks
 
 DeepSeek-V4.1-Flash is the only model on Luminal, so instead of choosing a bigger model, you choose how
-hard it thinks: `/thinking:` for her answers and her search (none by default, up to max), and `/mind:`
-for the background mind. More thinking is slower and costs more, and can make up for not having Pro.
+hard it thinks: `/thinking:` for her answers and her search (none by default, then DeepSeek's three
+levels: low, high, max), and `/mind:` for the background mind. More thinking is slower and costs more, and
+can make up for not having Pro. When she thinks, her thinking is kept with her reply and shown folded above
+it: `▸ thought for 12.4s`, click to read what she thought.
 
 ### Files of any kind
 
@@ -118,6 +122,22 @@ Attach anything (button, drop, paste): documents, spreadsheets, slides, PDFs, co
 pictures she actually sees, audio and video she hears (with frames she sees). What she read is always
 one click away, and anything can go back out: the files themselves, code blocks she writes as files,
 the whole conversation, and the whole of memory. ([docs/FILES.md](docs/FILES.md))
+
+### The library: anything you add becomes memory
+
+Everything you attach joins memory's **library**, and so can whole folders and codebases you drop in: read
+into passages, kept word for word like the log, and searchable from then on. Any format: documents,
+papers, code, data, recordings, pictures (described once), and conversations from anywhere (Claude or
+ChatGPT exports, WhatsApp, transcripts). Weeks later, a question brings back what the document actually
+said, cited `[p41]`. `/library` shows it all. Writing knowledge *from* the library is next.
+
+### The looking glass, and dreaming
+
+`/glass` is one live view of everything loading into memory (with how long it'll take), what the mind is
+doing and what went wrong, your Claude history's build (start, stop, budget), dreaming, and costs.
+**Dreaming** (`/dream`) is hours of reflection at max thinking over all of memory, within a budget: she
+re-checks, sweeps every corner for connections to distant things, and thinks about her biggest hubs and
+about pairs of them side by side. It's what lets week 1 meet week 10.
 
 ### Your Claude history
 
@@ -379,13 +399,23 @@ The latest results are in [tests/bench/RESULTS.md](tests/bench/RESULTS.md).
 | Your Claude history: reader, import (done: 503 conversations, 6,561 messages), the mind's run | built; the run is yours to start |
 | Page tests in a real browser against a fake Luminal | built |
 | Concept, history, ideas, mistakes, handoff docs | written |
+| Thinking levels none/low/high/max; her thinking kept and shown folded | built (Oct 15) |
+| The library: anything added (any format, folders, codebases) becomes searchable passages | built (Oct 15) |
+| The looking glass (`/glass`); the Claude history's build from the page | built (Oct 15) |
+| Dreaming (`/dream`) | built (Oct 15, first version) |
+| Dark mode, sounds | built (Oct 15) |
+| Live scenario tests with a simulated user (`tests/live/`) | built (Oct 15) |
+| Vision and architecture docs; the build log | written (Oct 15) |
 
 ## What's next
 
 - **Run the mind over the imported Claude history** (`tools/claude_import.py run`), then look: do his
   ideas form hubs? (docs/IMPORT.md)
 - **What's coming up**: future dates always in view (LATER.md).
-- **What files say, into memory**, not only their names.
+- **Knowledge from the library**: nodes and connections written from what files say (they're searchable now).
+- **Search inside her thinking**: she looks things up as she reasons, instead of before.
+- **Internal memory**: the thought graph, the working frontier, preferences and character notes, the self
+  model (VISION.md §7–8).
 - **Tune reflection** with the benchmark: how bold inferences should be, how sparse the network should
   stay, when to ask him to confirm something.
 - **Beliefs over time.** Nothing is deleted, so "what did you believe a month ago" is answerable;
@@ -405,6 +435,7 @@ The latest results are in [tests/bench/RESULTS.md](tests/bench/RESULTS.md).
 | origin | you said, Avy said, or inferred (Avy said shows as "Claude said" for imported conversations) |
 | imported | a message from the Claude history (`via = claude`) |
 | effort | how hard the model thinks: none, low, high, max (DeepSeek's three levels, plus off) |
+| `p41`, `s3` | a library passage, a library source |
 | evidence | the exact words a said node came from |
 | basis | the nodes an inference rests on |
 | support | one reason to believe (or doubt) a connection |
