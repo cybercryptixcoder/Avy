@@ -313,12 +313,25 @@ Each of these blocks something in §15. The trade-offs are in ARCHITECTURE.md.
 2. **Avy's own words in memory.** In idea-heavy conversations her elaborations outnumber his ideas (live
    tests: 29 "Avy said" nodes to 25 of his), crowd retrieval, and her ideas can come back phrased as his
    threads. Options: cap her nodes per stretch, keep only what he engaged with, weigh them down in recall, or
-   keep them as they are and fix it at answer time.
+   keep them as they are and fix it at answer time. *Also from the live tests:* an idea of hers that he
+   took up is stored as his ("Shreyas will try Sunday batch cooking", because he said those words), so "which
+   ideas were mine?" can list it as his. Who *said* something and whose *idea* it was are different, and
+   only the first is recorded.
 3. **Search in thinking**: replace the pre-search entirely, or keep a quick pre-search as a starting point
    and let thinking search further?
 4. **Internal memory's first build**: the thought graph first (conclusions/commitments/suspicions from her
-   saved reasoning), or the fixed slots first (preferences and character notes)?
+   saved reasoning), or the fixed slots first (preferences and character notes)? *Evidence from the live
+   tests (tests/live/RESULTS.md):* standing preferences said once (a tl;dr line, metric units) were lost on
+   questions whose search didn't bring them up, and his own birth date wasn't found for "how old will I be?"
+   (two of three setups said he'd never told her). Both are what always-shown slots (a preferences note, and
+   a core of who he is) are for. On the other side, a plan that lived only in her own reply was rebuilt
+   wrongly when search missed it, which is what the thought graph (her plans and commitments) is for.
 5. **Dreaming's scope**: also re-read old conversations to write what the first pass missed, and merge
    near-duplicate nodes? (Changes existing knowledge more aggressively.)
 6. **Forgetting from the library**: the library keeps what it's given. Should he be able to take a source
    back out (something added by mistake), against "never lose the original"?
+7. **How much Think writes.** Six weeks of conversation (120 messages) became 242 nodes, 75 of them her own
+   inferences, and 1,029 connections. Many inferences are broad patterns ("outside-set dates are the ones
+   that actually get worked to") that turn up in unrelated questions and crowd the note when search is by
+   rules. Options: Think writes less and only what's useful for something coming up; inferences count for less
+   in recall unless asked for; dreaming merges and retires them; or keep them and let explore filter.

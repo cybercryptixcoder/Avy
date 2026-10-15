@@ -279,6 +279,8 @@ button { cursor: pointer; background: none; border: 0; }
            font: 12.5px/1.5 var(--mono); pointer-events: none; }
 .fn-card .h { opacity: .55; font-size: 11.5px; }
 .fn-card .t { font-weight: 700; margin-top: 1px; }
+.line .fn.unseen::after { content: "?"; }
+.fn-card .warn { font-weight: 700; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1.5px dashed var(--ink); }
 .fn-card .q { margin-top: 5px; padding-left: 9px; border-left: 1.5px solid var(--ink); opacity: .85; }
 
 /* Chapters: the endless conversation, marked where each sitting begins (with what it was about, once written) */
@@ -450,6 +452,21 @@ button { cursor: pointer; background: none; border: 0; }
 .graph-card .c { margin-top: 5px; opacity: .8; font-size: 12px; }
 .graph-card button { font: inherit; font-weight: 700; margin-top: 6px; }
 .graph-card button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.graph-bar { position: absolute; top: 42px; left: 24px; right: 24px; display: grid; gap: 1px; font: 12.5px/1.7 var(--mono);
+             pointer-events: none; }
+.graph-bar .row { display: flex; gap: 1.2ch; align-items: center; flex-wrap: wrap; }
+.graph-bar .row[hidden] { display: none; }
+.graph-bar .k { opacity: .55; min-width: 6ch; }
+.graph-bar .opts { display: flex; gap: .4ch 1.2ch; flex-wrap: wrap; }
+.graph-bar button { pointer-events: auto; font: inherit; color: var(--ink); opacity: .72; }
+.graph-bar button:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+.graph-bar button.on { opacity: 1; font-weight: 700; }
+.graph-bar input[type="range"] { pointer-events: auto; -webkit-appearance: none; appearance: none; width: min(46ch, 42vw); height: 2px;
+                                 margin: 0; background: color-mix(in srgb, var(--ink) 70%, transparent); cursor: pointer; }
+.graph-bar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px;
+                                                      background: var(--card); border: 2px solid var(--ink); border-radius: 0; }
+.graph-bar input[type="range"]::-moz-range-thumb { width: 9px; height: 9px; background: var(--card); border: 2px solid var(--ink); border-radius: 0; }
+.graph-bar input[type="range"]:focus-visible { outline: 1.5px dashed var(--ink); outline-offset: 5px; }
 .graph-tip { position: absolute; pointer-events: none; font: 12px/1.45 var(--mono); background: var(--card); border: 1.5px solid var(--ink);
              padding: 5px 9px 6px; max-width: 44ch; }
 .graph-tip[hidden] { display: none; }
@@ -726,6 +743,12 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   <canvas id="graphCanvas"></canvas>
   <div class="graph-head"><span class="t">── memory, as a network</span><span class="n" id="graphStats"></span>
     <button id="graphClose" type="button">[ close ]</button></div>
+  <div class="graph-bar" id="graphBar">
+    <div class="row"><span class="k">show</span><span class="opts" id="graphShow"></span></div>
+    <div class="row"><span class="k">as of</span><input type="range" id="graphWhen" min="0" max="1000" value="1000" step="1"
+      aria-label="memory as it stood on a date"><span id="graphWhenLabel">now</span><button id="graphNow" type="button" hidden>[ back to now ]</button></div>
+    <div class="row" id="graphPath" hidden></div>
+  </div>
   <div class="graph-tip" id="graphTip" hidden></div>
   <div class="graph-card" id="graphCard" hidden></div>
   <div class="graph-foot"><span>● thing · information ○ idea ◌ inferred &nbsp; line weight: how strong</span>
@@ -1042,7 +1065,7 @@ async function send() {
   setBusy(true);
 
   // Only your message goes to the server: it builds the rest from memory.
-  let reply = "", usage = null, failed = null, thought = null, turn = null, trace = null, stopped = false, searching = null;
+  let reply = "", usage = null, failed = null, thought = null, turn = null, trace = null, stopped = false, searching = null, unseen = null;
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -1061,6 +1084,7 @@ async function send() {
           lightUp([...(chunk.avy.searching.open || []), ...(chunk.avy.searching.follow || []), ...(chunk.avy.searching.keep || [])]);
         }
         if (chunk.avy.error) failed = chunk.avy.error;
+        if (chunk.avy.unseen) unseen = chunk.avy.unseen;
         if (chunk.avy.turn) { searching?.done(); turn = chunk.avy.turn; trace = addTrace(avyLine, turn); lightUp(turn.kept); }
         return;
       }
@@ -1084,7 +1108,7 @@ async function send() {
   block.remove();
   setBusy(false);
   countUsage(usage);
-  if (reply) words.innerHTML = renderMarkdown(reply);
+  if (reply) { words.innerHTML = renderMarkdown(reply); markUnseen(words, unseen); }
 
   if (reply && stopped) avyLine.classList.add("cut");     // saved as cut off, too
   if (reply && !stopped && !failed) sound("receive");
@@ -1215,6 +1239,15 @@ function footnotes(html) {
   });
 }
 
+// A footnote to something that wasn't in what she was shown for that reply (the server checks): marked with a
+// "?", and its card says so first, so it never quietly points at the wrong thing.
+function markUnseen(container, unseen) {
+  if (!container || !unseen?.length) return;
+  container.querySelectorAll("sup.fn").forEach((s) => {
+    if (unseen.includes(s.dataset.h)) { s.classList.add("unseen"); s.dataset.unseen = "1"; }
+  });
+}
+
 function renderMarkdown(text, streaming = false) {
   if (streaming) text = text.replace(/\[[kxp]?\d*$/, "");   // a footnote still arriving: wait for all of it
   return footnotes(renderParts(text));
@@ -1321,6 +1354,7 @@ function showMessage(m, before) {
     line = addLine("avy", "", before);
     if (m.thinking) thoughtBlock(line, m.thinking);           // what she thought, folded above what she said
     line.innerHTML = renderMarkdown(m.text);
+    markUnseen(line, m.meta.unseen);
     if (m.meta.cut) line.classList.add("cut");
     if (m.recalled) addTrace(line, m.recalled);
   }
@@ -1370,29 +1404,30 @@ async function showFootnote(sup) {
   fnCard = el("div", "fn-card", el("div", "h", `${h} · looking…`));
   document.body.append(fnCard);
   placeCard(sup);
+  const warn = sup.dataset.unseen ? el("div", "warn", `${h} wasn't in what memory brought for this reply, so this may not be what she meant.`) : null;
   if (h[0] === "p") {                     // a passage from his library
     try {
       const p = fnCache[h] ||= await getJSON(api(`/api/passage?id=${h.slice(1)}`, incognito ? "incognito" : null));
       if (!fnCard) return;
-      fnCard.replaceChildren(el("div", "h", `${h} · from his library · ${p.source_kind}`), el("div", "t", p.source_name),
+      fnCard.replaceChildren(warn || "", el("div", "h", `${h} · from his library · ${p.source_kind}`), el("div", "t", p.source_name),
         p.part ? el("div", "h", p.part + (p.speaker ? ` · ${p.role === "user" ? "you" : p.speaker}` : "")) : null,
         el("div", "q", p.text.length > 320 ? p.text.slice(0, 320) + "…" : p.text));
       placeCard(sup);
-    } catch { fnCard?.replaceChildren(el("div", "h", `${h} · not in the library any more`)); }
+    } catch { fnCard?.replaceChildren(warn || "", el("div", "h", `${h} · not in the library` + (warn ? "" : " any more"))); }
     return;
   }
   try {
     const r = fnCache[h] ||= await getJSON(api(`/api/node?id=${h.slice(1)}`, mem));
     if (!fnCard) return;
     const n = r.node, said = r.versions[0].evidence[0], rests = r.versions[0].basis;
-    fnCard.replaceChildren(
+    fnCard.replaceChildren(warn || "",
       el("div", "h", `${h} · ${n.shape}${n.label ? ", " + n.label : ""} · ${n.standing}${said ? " · " + day(said.at) : ""}`),
       el("div", "t", n.title),
       el("div", "", n.text),
       said ? el("div", "q", `"${said.quote}"`) : rests.length ? el("div", "q", "rests on: " + rests.map((b) => b.title).join("; ")) : null);
     placeCard(sup);
   } catch {
-    fnCard?.replaceChildren(el("div", "h", `${h} · not in memory any more`));
+    fnCard?.replaceChildren(warn || "", el("div", "h", warn ? `${h} · not in memory` : `${h} · not in memory any more`));
   }
 }
 function placeCard(sup) {
@@ -2158,6 +2193,7 @@ function onVoiceMessage(m) {
       countUsage(m.usage);
       reply.done = true;
       reply.fullText = m.text;
+      reply.unseen = m.unseen;
       if (!voice.playing.length) finishReply(m.text);
       return;
     case "error":
@@ -2235,6 +2271,7 @@ function queueCaption(text, at) {
 function finishReply(text) {
   if (!reply) return;
   showReply(text);   // make sure the whole reply is on screen
+  markUnseen(reply.line, reply.unseen);
   voice.ws?.send(JSON.stringify({ type: "heard", sentences: null, cut: false }));   // she finished: save it all
   reply = null;
   refreshMemory();
@@ -2740,6 +2777,7 @@ const VIEWS = {
                  (x ? " · avy searched" : "");
     return [`recall for #${r.message}`, [
       el("div", "", `"${t.query}"`),
+      t.nodes.length ? button("see its path in the graph", () => { closeInspector(); showPath(id, mem); }) : null,
       el("div", "dim", `${mode} · looked at ${t.searched.nodes} nodes and ${t.searched.log} older messages · ~${t.tokens} tokens · ${t.seconds}s`),
       x ? [sec(`avy's search: ${plural(x.rounds.length, "round")}${x.fell_back ? " (couldn't reach the model; fell back to rules)" : ""}`),
            x.task ? el("div", "para", `she took this to need: ${x.task}`) : null,
@@ -2854,14 +2892,18 @@ const graph = {
   data: null, nodes: [], edges: [], byChain: new Map(), adj: new Map(),
   yaw: 0.6, pitch: -0.35, zoom: 1, panX: 0, panY: 0, open: false,
   hover: null, selected: null, lit: new Map(), born: new Map(), settle: 0, loadedAt: 0, mem: null,
+  show: "all", asOf: null, span: null, path: null,      // what's shown: a filter, memory as of a date, the path an answer took
 };
 
 async function loadGraph() {
   try {
-    const d = await getJSON(api("/api/graph", incognito ? "incognito" : "main"));
+    const asOf = graph.open ? graph.asOf : null;
+    const d = await getJSON(api("/api/graph" + (asOf ? `?as_of=${encodeURIComponent(asOf)}` : ""), incognito ? "incognito" : "main"));
+    if (asOf !== (graph.open ? graph.asOf : null)) return;           // the slider moved on while this was loading
     const known = new Map(graph.nodes.map((n) => [n.chain, n]));
     const now = performance.now();
     graph.mem = d.memory;
+    graph.span = d.span;
     graph.nodes = d.nodes.map((n) => {
       const old = known.get(n.chain);
       if (old) return Object.assign(old, n);
@@ -2884,7 +2926,9 @@ async function loadGraph() {
     graph.loadedAt = Date.now();
     $("mini").hidden = graph.nodes.length < 3;
     $("scope").hidden = graph.nodes.length >= 3;
-    $("graphStats").textContent = `${plural(graph.nodes.length, "node")} · ${plural(d.edges.length, "connection")} · ${d.memory === "incognito" ? "incognito" : "main memory"}`;
+    $("graphStats").textContent = `${plural(graph.nodes.length, "node")} · ${plural(d.edges.length, "connection")} · ${d.memory === "incognito" ? "incognito" : "main memory"}` +
+                                  (asOf ? ` · as it stood ${day(asOf)}` : "");
+    drawGraphBar();
   } catch { /* the graph is a nicety; the conversation never waits for it */ }
 }
 
@@ -2967,6 +3011,9 @@ function drawGraph(canvas, full, now) {
   const near = new Set(focus ? [focus, ...graph.adj.get(focus).map((e) => (e.a === focus ? e.b : e.a))] : []);
   const fade = (z) => Math.max(0.2, Math.min(1, 0.6 - z * 0.4));            // farther is fainter
   const busy = Math.min(1, 260 / Math.max(1, graph.edges.length));           // many lines: each one fainter
+  const sifting = full && (graph.show !== "all" || graph.path);              // a filter or a path: the rest stays, faint
+  const keep = sifting ? graphKept() : null;
+  const pathEdge = (e) => graph.path && e.id && graph.path.edges.has(e.id);
 
   // connections first, faint; the ones around what you're pointing at, darker
   ctx.lineCap = "round";
@@ -2976,9 +3023,12 @@ function drawGraph(canvas, full, now) {
     const lit = Math.min(isLit(e.a, now), isLit(e.b, now));
     let alpha = (e.rests ? 0.08 : 0.08 + 0.2 * Math.min(1, e.strength / 3)) * fade((a.z + b.z) / 2) * (full ? 1 : 0.8) * (0.35 + 0.65 * busy);
     if (focus) alpha = around ? 0.75 : alpha * 0.45;
+    if (sifting && !(keep.has(e.a) && keep.has(e.b))) alpha *= 0.15;
+    const walked = pathEdge(e);
+    if (walked) alpha = 0.85;
     ctx.globalAlpha = Math.max(alpha, lit * 0.8);
-    ctx.strokeStyle = lit > 0.05 ? TEAL : ink;
-    ctx.lineWidth = (full ? 0.6 + Math.min(3, e.strength) * 0.35 : 0.5) * (around || lit ? 1.6 : 1);
+    ctx.strokeStyle = lit > 0.05 || walked ? TEAL : ink;
+    ctx.lineWidth = (full ? 0.6 + Math.min(3, e.strength) * 0.35 : 0.5) * (around || lit || walked ? 1.6 : 1);
     ctx.setLineDash(e.rests ? [2, 3] : []);
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
@@ -2992,14 +3042,20 @@ function drawGraph(canvas, full, now) {
     let r = ((p.shape === "thing" ? 2.4 : 1.7) + Math.min(4.5, Math.sqrt(p.degree) * 0.75)) * q.s * (full ? 1.2 : 0.6) * grow;
     let alpha = fade(q.z) * grow;
     if (focus) alpha *= near.has(p.chain) ? 1 : 0.35;
+    if (sifting && !keep.has(p.chain)) alpha *= 0.12;
+    const kept = graph.path?.kept.has(p.chain);
     ctx.globalAlpha = alpha;
+    if (graph.path?.landing.has(p.chain)) {             // where her search started: a square around it
+      ctx.strokeStyle = TEAL; ctx.lineWidth = 1.2; const s = r * 1 + 6;
+      ctx.globalAlpha = Math.max(alpha, 0.8); ctx.strokeRect(q.x - s, q.y - s, 2 * s, 2 * s); ctx.globalAlpha = alpha;
+    }
     if (lit > 0.02) {                                   // Avy is looking here: a soft teal halo
       ctx.globalAlpha = lit * 0.35;
       ctx.fillStyle = TEAL;
       ctx.beginPath(); ctx.arc(q.x, q.y, r + 6 * lit + 2, 0, 6.283); ctx.fill();
       ctx.globalAlpha = Math.max(alpha, lit);
     }
-    ctx.strokeStyle = ctx.fillStyle = lit > 0.3 ? TEAL : ink;
+    ctx.strokeStyle = ctx.fillStyle = lit > 0.3 || kept ? TEAL : ink;
     ctx.lineWidth = full ? 1.2 : 0.8;
     ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.6, r), 0, 6.283);
     if (p.origin === "inferred") { ctx.setLineDash([1.6, 1.6]); ctx.stroke(); ctx.setLineDash([]); }
@@ -3011,7 +3067,9 @@ function drawGraph(canvas, full, now) {
   // light labels: the biggest things (what was said, not inferred), or whatever you're pointing at and
   // what it connects to. Nearest first, and never on top of one another.
   if (full) {
-    const hubs = new Set(graph.nodes.filter((n) => n.degree >= 3 && n.origin !== "inferred" && n.shape === "thing")
+    const hubs = new Set(graph.path ? [...graph.path.kept]
+      : sifting ? graph.nodes.filter((n) => keep.has(n.chain)).sort((a, b) => b.degree - a.degree).slice(0, 14).map((n) => n.chain)
+      : graph.nodes.filter((n) => n.degree >= 3 && n.origin !== "inferred" && n.shape === "thing")
       .sort((a, b) => b.degree - a.degree).slice(0, 10).map((n) => n.chain));
     ctx.font = "11px 'Space Mono', monospace";
     ctx.textBaseline = "middle";
@@ -3051,7 +3109,9 @@ function openGraph() {
 }
 function closeGraph() {
   if (graph.open) sound("close");
-  graph.open = false; graph.selected = graph.hover = null;
+  const wasPast = graph.asOf;
+  graph.open = false; graph.selected = graph.hover = null; graph.asOf = null; graph.path = null;
+  if (wasPast) loadGraph();                          // the corner shows memory as it is now
   $("graph").hidden = true; $("graphCard").hidden = true; $("graphTip").hidden = true;
   input.focus();
 }
@@ -3122,15 +3182,18 @@ async function showGraphCard(p) {
   card.hidden = false;
   card.replaceChildren(el("div", "h", "…"));
   try {
-    const r = await getJSON(api(`/api/node?id=${p.chain}`, mem));
-    const n = r.node, said = r.versions[0].evidence[0];
+    const then = graph.asOf && p.version;                 // looking at the past: the version that stood then
+    const r = await getJSON(api(`/api/node?id=${p.chain}` + (then ? `&version=${p.version}` : ""), mem));
+    const n = r.node, shown = (then && r.versions.find((v) => v.version === p.version)) || r.versions[0];
+    const said = shown.evidence[0];
     const links = r.links.filter((l) => l.live).slice(0, 4);
     const open = el("button", "", "[ open in the inspector ]");
     open.type = "button";
     open.onclick = () => { closeGraph(); inspect("node", p.chain, null, mem); };
     card.replaceChildren(
-      el("div", "h", `${n.handle} · ${n.shape}${n.label ? ", " + n.label : ""} · ${n.standing} · ${day(n.at)}`),
-      el("div", "t", n.title), el("div", "", n.text),
+      el("div", "h", `${n.handle} · ${n.shape}${n.label ? ", " + n.label : ""} · ${n.standing} · ${day(shown.at)}` +
+                     (r.versions.length > 1 ? ` · v${shown.version} of ${r.versions.length}` : "") + (then ? ` · as it stood ${day(graph.asOf)}` : "")),
+      el("div", "t", shown.title), el("div", "", shown.text),
       said ? el("div", "c", `"${said.quote}"`) : null,
       links.length ? el("div", "c", links.map((l) => `${ARROW[l.kind][l.direction === "in" ? 1 : 0]} ${l.other.title}`).join(" · ")) : null,
       open);
@@ -3138,7 +3201,103 @@ async function showGraphCard(p) {
 }
 
 // The mind tells the page what it's doing; new knowledge appears in the graph as it's written.
-window.graphHears = (m) => { if (m.state === "done" && m.new_chains?.length) loadGraph(); };
+window.graphHears = (m) => { if (m.state === "done" && m.new_chains?.length && !graph.asOf) loadGraph(); };
+
+// What the full graph shows: everything, or one kind (the rest stays, faint, so the shape doesn't jump);
+// memory as it stood on any date (nothing is ever deleted, so the past can be rebuilt exactly); and the path
+// one answer's search took through it.
+const GRAPH_SHOWS = [
+  ["all", "everything", () => true],
+  ["ideas", "ideas", (n) => n.shape === "idea"],
+  ["his", "your words", (n) => n.origin === "user"],
+  ["hers", "avy's words", (n) => n.origin === "avy"],
+  ["inferred", "inferred", (n) => n.origin === "inferred"],
+  ["week", "new or changed that week", (n) => new Date(n.at) > graphNow() - 7 * 864e5],
+];
+function graphKept() {                            // the nodes the filter or path keeps (worked out once per change, not per frame)
+  const key = `${graph.show}|${graph.loadedAt}|${graph.nodes.length}|${graph.path ? graph.path.message : ""}`;
+  if (graph.keptKey !== key) { graph.keptKey = key; graph.kept = new Set(graph.nodes.filter(graphShows).map((n) => n.chain)); }
+  return graph.kept;
+}
+function graphNow() { return new Date(graph.asOf || graph.span?.now || Date.now()).getTime(); }
+function graphShows(n) {
+  if (graph.path) return graph.path.kept.has(n.chain) || graph.path.seen.has(n.chain) || graph.path.landing.has(n.chain);
+  return (GRAPH_SHOWS.find((s) => s[0] === graph.show) || GRAPH_SHOWS[0])[2](n);
+}
+function isoLocal(ms) {                           // a time in the page's own zone, the way memory writes them
+  const d = new Date(ms), off = -d.getTimezoneOffset(), a = Math.abs(off), z = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}` +
+         `${off >= 0 ? "+" : "-"}${z(Math.floor(a / 60))}:${z(a % 60)}`;
+}
+function graphRange() {                            // the slider runs from the first thing memory wrote to the last
+  const first = new Date(graph.span?.first || Date.now()).getTime(), last = new Date(graph.span?.last || Date.now()).getTime();
+  return [first, Math.max(last, first + 60e3)];
+}
+function drawGraphBar() {
+  const opts = GRAPH_SHOWS.map(([key, label, test]) => {
+    const n = key === "all" ? graph.nodes.length : graph.nodes.filter(test).length;
+    const b = el("button", key === graph.show && !graph.path ? "on" : "", key === graph.show && !graph.path ? `[ ${label} ${n} ]` : `${label} ${n}`);
+    b.type = "button"; b.dataset.show = key;
+    b.onclick = () => { graph.show = key; graph.path = null; drawGraphBar(); };
+    return b;
+  });
+  $("graphShow").replaceChildren(...opts);
+  const slider = $("graphWhen");
+  if (!graph.asOf) slider.value = 1000;
+  $("graphWhenLabel").textContent = graph.asOf ? day(graph.asOf) : "now";
+  $("graphNow").hidden = !graph.asOf;
+  const path = $("graphPath");
+  path.hidden = !graph.path;
+  if (graph.path) {
+    const clear = el("button", "on", "[ clear ]");
+    clear.type = "button";
+    clear.onclick = () => { graph.path = null; setGraphTime(null); };
+    path.replaceChildren(el("span", "k", "path"),
+      el("span", "", `how memory was searched for #${graph.path.message}: ` +
+         `□ started at ${graph.path.landing.size} · looked at ${graph.path.seen.size} · ` +
+         `${graph.path.kept.size} brought to her (teal) · ${plural(graph.path.edges.size, "connection")} followed`), clear);
+  }
+}
+function setGraphTime(iso) {
+  graph.asOf = iso;
+  if (iso) {
+    const [first, last] = graphRange();
+    $("graphWhen").value = Math.round(1000 * Math.min(1, Math.max(0, (new Date(iso).getTime() - first) / (last - first))));
+  }
+  drawGraphBar();
+  loadGraph();
+}
+(function graphTimeControls() {
+  const slider = $("graphWhen");
+  let timer = null, lastDay = "";
+  slider.addEventListener("input", () => {
+    const v = Number(slider.value);
+    const [first, last] = graphRange();
+    const iso = v >= 1000 ? null : isoLocal(first + (last - first) * v / 1000);
+    $("graphWhenLabel").textContent = iso ? day(iso) : "now";
+    const d = iso ? iso.slice(0, 10) : "now";
+    if (d !== lastDay) { lastDay = d; sound("tick"); }
+    clearTimeout(timer);
+    timer = setTimeout(() => { graph.path = null; setGraphTime(iso); }, 160);
+  });
+  slider.addEventListener("keydown", (e) => e.stopPropagation());       // arrows move the slider, not the chat
+  $("graphNow").onclick = () => setGraphTime(null);
+})();
+
+// The path one reply's memory search took: where it started, what it looked at, what it brought, the
+// connections it followed; shown on memory as it stood when the reply was made.
+async function showPath(recallId, mem) {
+  const r = await getJSON(api(`/api/recall?id=${recallId}`, mem));
+  const t = r.trace, x = t.explore || {}, letter = (mem || (incognito ? "incognito" : "main")) === "incognito" ? "x" : "k";
+  const chains = (handles) => new Set((handles || []).filter((h) => String(h)[0] === letter).map((h) => Number(String(h).slice(1))));
+  const kept = new Set(t.nodes.filter((n) => !n.memory || n.memory === (letter === "x" ? "incognito" : "main")).map((n) => n.node));
+  const seen = chains(x.visited);
+  for (const n of t.nodes) if (n.via) seen.add(n.via);
+  graph.path = { message: r.message, kept, seen, landing: chains(x.landing),
+                 edges: new Set([...(t.edges_used || []), ...(t.connections || []).map((c) => c.edge)]) };
+  if (!graph.open) openGraph();
+  setGraphTime(r.at);
+}
 
 
 /* ===================================================================

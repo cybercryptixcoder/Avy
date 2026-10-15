@@ -45,7 +45,7 @@ These come from Shreyas, and they're not negotiable without asking him.
 Python 3.10 to 3.13 (Kokoro doesn't support 3.14 yet). From the folder:
 
 ```
-git pull && python3 -m pip install -q -r requirements-voice.txt && python3 app.py
+git checkout -q main && git fetch origin --prune && git reset --keep origin/main && python3 -m pip install -q -r requirements-voice.txt && python3 app.py
 ```
 
 That installs everything (requirements-voice.txt includes requirements.txt) and opens
@@ -57,6 +57,7 @@ into `data/models/`. Paste the Luminal key in the Keys panel once.
 | `python3 app.py --memory data/memory-claude.db` (or `AVY_MEMORY=...`) | open another memory file (the imported history) |
 | `AVY_NO_BROWSER=1` | don't open a browser tab |
 | `LUMINAL_BASE_URL`, `HELIX_FLASH_MODEL` | point at another endpoint or model name (tests use a fake Luminal) |
+| `LUMINAL_PARALLEL` | calls at once to Luminal from this process (default 8; the live runner splits 8 between its processes) |
 | `python3 luminal.py` | check the key and show the balance |
 
 Ports: 8000 (the page and API, this computer only), 8001 (voice WebSocket).
@@ -96,7 +97,8 @@ app   waits for any attached file still being read
                  + [system: the memory note]
                  + [user: the message + its files in <file> tags + pictures as image parts]
       turn.ask(): opens the stream (luminal.open_stream, /thinking: effort); saves your message (meta.files)
-      streams the model's chunks straight to the page; saves the reply (meta: model, recall, usage, cut)
+      streams the model's chunks straight to the page; saves the reply (meta: model, recall, usage, cut,
+      thought, unseen = footnotes to handles that weren't in anything she was shown; the page marks them)
       worker.nudge(): the mind writes once a sitting's worth is waiting
 ```
 
@@ -138,6 +140,7 @@ written by the worker, only by `tools/claude_import.py run`.
 | `POST /api/history {action: plan\|run\|stop, effort, max_dollars, max_stretches}` | the Claude history's build, as a separate process |
 | `POST /api/dream {action: start\|stop, hours, max_dollars, effort}` | dreaming |
 | `GET /api/log, /api/memory, /api/node, /api/edge, /api/episode, /api/run, /api/recall, /api/search, /api/graph, /api/journal, /api/health` | the inspector and the graph (`?memory=main\|incognito`) |
+| `GET /api/graph?as_of=2026-09-14T10:00:00-04:00` | memory as it stood then (the graph's time slider): versions, connections, strengths, kinds and reasons as of that moment |
 | `POST /api/index`, `POST /api/reflect` | write now / reflect now (409 while imported messages wait) |
 | `POST /api/incognito {on}` | start or end an incognito conversation |
 

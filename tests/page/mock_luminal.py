@@ -144,6 +144,8 @@ class H(BaseHTTPRequestHandler):
         reply = MD_REPLY if "markdown" in last else (f"From memory: {recalled.group(2)}[{recalled.group(1)}]. " + REPLY) if recalled else REPLY
         if seen:
             reply = f"I can see {seen} image{'s' if seen > 1 else ''}. " + reply
+        if "miscite" in last:                    # a footnote to something that wasn't in the note (the page marks it)
+            reply += " And this one too[k999]."
         files = re.findall(r'<file name="([^"]+)"', "\n".join(text_of(m.get("content")) for m in body["messages"][-1:]))
         if files:
             reply = f"I read {', '.join(sorted(set(files)))}. " + reply

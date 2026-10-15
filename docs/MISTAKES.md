@@ -120,3 +120,41 @@ same ones aren't made twice. (When a cause was outside Claude's control, it says
 38. **A live-voice page test is timing-sensitive**: while the import and the benchmark were using the CPU,
     a long spoken reply didn't finish within the test's wait. Not a bug in Avy; worth knowing when reading
     test results on a busy machine.
+
+## The library, the looking glass, dreaming (Oct 15)
+
+39. **Commits carried Claude's name.** Earlier sessions committed with Claude's co-author and session
+    lines, which he never wanted. The whole history was rewritten to his name (BUILDLOG session 3, item 1),
+    and every commit since is his alone. Lesson: his repo, his commits, no attribution lines, ever.
+40. **Reaching for another route when a site was blocked.** With Hugging Face blocked, Claude tried a copy
+    of the meaning model bundled in a third-party npm package. The session's safety check stopped it as
+    untrusted code; it was deleted and not tried again, and he was asked to open the network instead.
+    Lesson: when the network says no, say so and ask; don't look for a way around it.
+41. **Readers that guessed wrong about what a text is.** The first conversation detector took a Markdown
+    document's headings for speakers and missed a real WhatsApp export (it measured coverage by characters,
+    which long messages skew). The first document splitter merged sections and left heading-only passages.
+    Both caught by tests; rewritten (a conversation needs speakers who come back and turns that cover
+    nearly every line; documents split at every heading that has a body).
+42. **Python habits in JavaScript, twice.** Two string literals on separate lines (`"a "` then `"b"`) are
+    joined in Python and a syntax error in JavaScript, and a syntax error kills the whole page silently. The
+    page tests now run `node --check` on the page's script before anything else.
+43. **Killing my own shell.** `pkill -f "app.py$"` matched the command running it. Kill by PID.
+44. **Dreaming ran away on a small memory.** With nothing to connect, the first version went straight back
+    to Think again and again: 331 runs in 15 seconds with the scripted model. Caught by its test before it
+    ever touched Luminal. Fixed: two laps round all of memory with nothing new means wake up, and a view it
+    already thought about isn't thought about again in the same dream.
+45. **A test that couldn't fail.** The fake Luminal's explore never kept library passages, so the page test
+    of "explore keeps passages" passed on the safety net alone. Fixed: the fake keeps two, and the test checks
+    they arrive.
+46. **A live scenario too easy to mean anything.** The first persona test asked for short replies with no
+    lists, which the default prompt already asks for, so it passed with memory off too. Replaced by persona2,
+    whose preferences go against the defaults.
+47. **Phone width broke** after the Glass and theme buttons were added (the top bar was 504 px on a 390 px
+    screen). Caught by the page test; the globe hides and Glass becomes an icon on phones.
+48. **A simulated user who didn't know his own life.** The live tests' filler chats were played by the model
+    as Shreyas without being told what the scripted Shreyas had said, so when Avy brought up his allergy, his
+    pairing with Dev or the swim plan, he denied them, and three scenarios were graded against facts the
+    conversation had taken back. Found by reading the transcripts behind a 0.0 score instead of taking the
+    score at face value. Fixed; run 3 replays them. Lesson: a simulator has to share the script's ground truth.
+49. **The same pkill mistake twice** (see 43): `pkill -f mock_luminal.py` matched the command running it and
+    ended it. Kill by PID, always.

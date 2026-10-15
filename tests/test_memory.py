@@ -550,5 +550,48 @@ ok("the graph has every current node and live connection", len(g["nodes"]) == le
 ok("stats add up", w.stats()["nodes"] == len(w.current_nodes()))
 ok("no scripted answers left over", not queue, queue)
 
+# --- 14. memory as it stood on a date (the graph's time slider) ------------------------------------------------------
+past = memory.Memory(folder / "past.db")
+memory.clock.fixed = datetime(2026, 9, 1, 10, 0).astimezone()
+past.add("user", "I'm training for a half marathon in November. My knee hurts after long runs.")
+past.add("assistant", "Got it. Ice it and keep long runs shorter for a week.")
+r, refs = past.apply_all([
+    {"op": "add_node", "ref": "n1", "shape": "thing", "label": "plan", "title": "Half marathon", "text": "Training for one in November.",
+     "evidence": [(1, 0, 45, 1)]},
+    {"op": "add_node", "ref": "n2", "shape": "information", "label": "health", "title": "Knee pain", "text": "His knee hurts after long runs.",
+     "evidence": [(1, 46, 76, 1)]},
+    {"op": "connect", "a": "n2", "b": "n1", "kind": "part_of", "reason": "the knee is a problem for the race training", "support": {"kind": "inferred"}},
+])
+ok("(the past: written)", all(x["applied"] for x in r), [x["why"] for x in r])
+race, knee = refs["n1"], refs["n2"]
+sept1 = memory.stamp()
+memory.clock.fixed = datetime(2026, 9, 20, 10, 0).astimezone()
+past.add("user", "Knee's fine now, physio said it was my shoes. Also I dropped the half, doing a 10k instead.")
+edge = past.links(knee, live_only=False)[0]["edge"]
+r, _ = past.apply_all([
+    {"op": "add_node", "shape": "information", "label": "health", "title": "Knee pain", "text": "It was his shoes; fine now.",
+     "evidence": [(3, 0, 45, 1)], "replaces": past.current(knee)["id"], "why": "the physio found the cause"},
+    {"op": "revise_edge", "edge": edge, "kind": "related", "reason": "the knee trouble came up during race training", "why": "resolved"},
+])
+ok("(the past: revised)", all(x["applied"] for x in r), [x["why"] for x in r])
+memory.clock.fixed = datetime(2026, 9, 21, 10, 0).astimezone()
+r2 = past.apply({"op": "retract_node", "chain": race, "why": "he dropped the half marathon", "evidence": [(3, 51, 69, 1)]})
+g_then = past.graph_data(sept1)
+g_now = past.graph_data()
+then = {n["chain"]: n for n in g_then["nodes"]}
+ok("as of a date: each node as it stood then (the old version)", then.get(knee, {}).get("text") == "His knee hurts after long runs."
+   and then[knee]["version"] == 1, then.get(knee))
+ok("...including a node retracted since", race in then and race not in {n["chain"] for n in g_now["nodes"]}, [r2, list(then)])
+ok("...with the connection's kind and reason as they were then", g_then["edges"] and g_then["edges"][0]["kind"] == "part_of"
+   and "a problem" in g_then["edges"][0]["reason"], g_then["edges"])
+ok("now: the newest version, the revised connection gone with the retracted node", {n["chain"]: n for n in g_now["nodes"]}[knee]["version"] == 2
+   and not g_now["edges"], g_now["edges"])
+ok("before anything was said, memory was empty", not past.graph_data("2026-08-01T00:00:00-04:00")["nodes"])
+ok("the graph says when memory starts and ends, for the slider", g_now["span"]["first"].startswith("2026-09-01")
+   and g_now["span"]["last"].startswith("2026-09-21"), g_now["span"])
+ok("...and when each node was first written", then[knee]["born"].startswith("2026-09-01"), then[knee])
+past.close()
+
+
 print(f"\n{len(failures)} failed" + (": " + ", ".join(failures) if failures else ""))
 sys.exit(1 if failures else 0)

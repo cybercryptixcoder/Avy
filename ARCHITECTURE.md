@@ -111,7 +111,10 @@ live (followed by search) when strength ≥ 0.5; each node follows at most its 1
 ```
 
 Because supports are timestamped and never deleted, the network **as it stood on any date** can be
-reconstructed: "what did you believe a month ago?" is answerable (a view for it is planned).
+reconstructed: "what did you believe a month ago?" is answerable. Built (Oct 15) as the graph's time slider
+(`graph_data(as_of)`): each node's newest version written by then (unless retracted by then), the edges that
+existed then with their strength recomputed from the supports up to then (fading measured to then), and each
+edge's kind and reason as they were then, replayed from the journal. A "then vs now" page is still planned.
 
 **Implicit neighbors** (never stored): an inference ↔ what it rests on; nodes written from the same
 message; nodes from the same episode. They let search move between things that belong together without
@@ -377,7 +380,7 @@ Context is 163,840 tokens; the log the writer sees at once is capped at 480,000 
 | `↳ searched memory, kept 3 nodes · 2 passages` | the recall for that reply: everything brought, how it was reached, explore's rounds (with her thinking per round), the exact note |
 | `▸ thought for 12.4s` | her reasoning before that reply |
 | inspector (`/memory`) | nodes as wiki pages, connections and their support history, episodes, runs (prompt, replies, problems), the journal, health, **the library** (sources, passages) |
-| the living graph (`/graph`) | the whole network in 3D; what she's looking at lights up |
+| the living graph (`/graph`) | the whole network in 3D; what she's looking at lights up; show only one kind (ideas, his words, hers, inferred, new or changed that week; the rest stays faint so the shape doesn't jump); a time slider for memory as it stood on any date; the path one reply's search took (where it started, what it looked at, what it brought, the connections followed) |
 | **the looking glass** (`/glass`) | intake jobs (progress, rate, ETA, problems), memory's numbers, the mind now / by job / latest runs / failures, the Claude history's build (plan, build, stop, progress), dreaming (start, wake, progress), costs |
 
 ---
@@ -389,7 +392,7 @@ Context is 163,840 tokens; the log the writer sees at once is capped at 480,000 
 | offline, scripted model | every rule, every job, recall, explore, incognito, Luminal's rules, imports, files, the library, dreaming | `tests/test_*.py` |
 | browser, fake Luminal | the page: basics, commands, inspector, graph, dials, incognito, voice, files, light/dark contrast audit, thinking, sounds, library, looking glass, dreaming | `tests/page/` |
 | the benchmark, real model | a scripted month, 10 probes × 5 search setups, a judge | `tests/bench/` |
-| live scenarios, real model | interference, corrections, enumeration, dates, implicit relevance, a multi-day task, files, preferences, the short-term gap, evolving ideas; a simulated user for filler | `tests/live/` |
+| live scenarios, real model | interference, corrections, enumeration, dates, implicit relevance, a multi-day task, files, preferences (with and against the defaults), the short-term gap, evolving ideas, whose idea was whose, a plan that lives in her replies, an old Claude history through the library; a simulated user for filler who knows what he's said | `tests/live/` (findings: `tests/live/RESULTS.md`) |
 | planned | the fork test (§7.4), interleaved tasks (§9), the real-scale Claude-history build | |
 
 ---

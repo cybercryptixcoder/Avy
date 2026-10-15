@@ -86,6 +86,16 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
   narrator)*
 - **Everything Avy saves stays in her folder.** *(built: data/)*
 - **One command to pull, install new requirements and run.** *(built: README)*
+- **Dark mode, well executed**: the same paper-and-ink aesthetic in the dark (warm near-black paper,
+  cream ink), no contrast failures anywhere, hover states included; follows the system or a toggle.
+  *(built Oct 15: `/theme:`, the moon button; the page tests audit every visible text's contrast in both)*
+- **Sound effects**: a message sent, a button clicked, a node touched, a swish when the graph turns, a
+  reply or notification arriving. *(built Oct 15: synthesized in the page, no audio files; `/sounds:`
+  on, soft or off)*
+- **See her thinking**: the chain of thought behind each reply, collapsible, kept with the message.
+  *(built Oct 15: "thought for Ns" above the reply; saved in its own append-only table; in exports)*
+- **A looking glass**: one place to watch everything loading into memory and the mind working: progress,
+  how many done, ETA, errors, the state of memory. *(built Oct 15: the Glass button, `/glass`)*
 
 ## Voice
 
@@ -139,6 +149,14 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
   `/recall:`)*
 - **Switches for each kind of search**, so keyword matching can't hide what structure does; both off
   means no memory. *(built: `/words:`, `/meaning:`, `/explore:`)*
+- **Internal and external memory; active and passive storage.** What she was told and what she thought
+  privately, kept apart; what's held in mind versus what sits on the shelf until something calls it.
+  *(open: his to design, iteratively; the library is the first passive shelf, and her saved thinking the
+  first record of internal thought, but neither is wired into the network yet. VISION.md §16)*
+- **Dreaming**: long, quiet stretches (about 8 hours, thinking at max) spent forming connections and
+  re-indexing, not answering. *(built Oct 15: `/dream`, from the looking glass; sweeps, wanders, checks
+  health, wakes when nothing's left or the budget's spent; its real behavior on a big memory is still to
+  be watched)*
 
 ## Memory: retrieval
 
@@ -155,15 +173,27 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
 - **Recall depth decided per message** ("what time is it?" shouldn't dig). *(later)*
 - **What's coming up**: dates ahead always in view. *(later)*
 - **Ask to confirm** an inference that matters. *(later)*
-- **Beliefs over time**: what Avy believed a month ago. *(later)*
+- **Beliefs over time**: what Avy believed a month ago. *(half built Oct 15: the graph's time slider;
+  a "then vs now" page and Avy answering it herself are later)*
+- **Graph filters**: only ideas, only what he said, only what changed this week; the path one answer
+  took. *(built Oct 15)*
+- **Search driven by her thinking chain**: the reasoning she does before answering decides what to look
+  up next, instead of one search before she starts. *(later: he said not now; the thinking is saved and
+  shown, which is the first piece)*
+- **DeepSeek's real thinking levels**: only off, low, high and max exist; the interface offers only those,
+  and anything else is routed to the nearest. *(built Oct 15)*
 
 ## Memory: real data
 
 - **His whole Claude history as the real-scale test**: do his ideas form distinct hubs? *(built: the
   import; the mind's run is his to start)*
 - **Conversations only, not Claude's memories**: memory is built from scratch. *(built)*
-- **Chat exports as a source of a rich user model** generally (ChatGPT too). *(open: the Claude reader
-  is the first)*
+- **Chat exports as a source of a rich user model** generally (ChatGPT too). *(built Oct 15 as library
+  input: Claude exports, ChatGPT exports, WhatsApp and labeled transcripts are read as conversations with
+  who said what; building knowledge from them is his decision, VISION.md §16)*
+- **Claude conversations go the same route as everything else**: one door for anything he adds.
+  *(built Oct 15: a Claude export dropped in the looking glass goes into the library like any file; the
+  older import into the log is still there, his to run)*
 - **A US provider for the data's safety**: Luminal. *(built)*
 - **Probe big files only through code**: shapes and counts, never the text. *(rule, followed)*
 
@@ -175,13 +205,18 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
 - **Export and downloads**: files as they came, what Avy read from them, the conversation, memory,
   code blocks as files. *(built)*
 - **Upload the Claude export in the page** instead of the command line. *(built)*
-- **Memory of what files said**, not just their names. *(later)*
+- **Memory of what files said**, not just their names. *(half built Oct 15: every file's words are
+  passages in the library, searchable by words and meaning and footnoted [p41]; turning them into
+  knowledge nodes is held until he decides how, VISION.md §16)*
+- **Upload anything, no schema**: conversations, papers, codebases, whole projects, archives, pictures;
+  each read by what it is. *(built Oct 15: folders and zips in the looking glass; code by function-sized
+  pieces, documents by heading, tables by rows, pictures described)*
 
 ## Proactivity (the next pillar)
 
 - **Proactive, reaching out with what he could do now.** *(later)*
 - **Structured awakening**: plan, schedule, stop; wake on triggers or every few hours; no model running
-  constantly, dreaming. *(later)*
+  constantly, dreaming. *(later; dreaming itself is built, started by hand)*
 - **Every task is a cron**; the system triggers and executes, maybe with fresh sub-agents. *(later)*
 - **Fixed rules plus model-written rules he approves.** *(later)*
 - **Planning ahead beats acting on the spot.** *(the principle for it)*

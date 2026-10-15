@@ -59,11 +59,16 @@ def main():
     stamp = args.stamp or datetime.now().strftime("%Y-%m-%d_%H-%M")
     if args.all:
         procs = []
-        for name in (args.only.split(",") if args.only else scenarios.SCENARIOS):
+        names = args.only.split(",") if args.only else list(scenarios.SCENARIOS)
+        # one key, one limit: Luminal refuses past ~8 calls at once per key, so the side-by-side processes split
+        # it (run 1 ran five at 8 each, and one probe's answer was a 429)
+        env = dict(os.environ, LUMINAL_PARALLEL=str(max(2, 8 // max(1, len(names)))))
+        for name in names:
             cmd = [sys.executable, "-u", __file__, name, "--stamp", stamp, "--mind", args.mind, "--until", str(args.until),
                    "--key", args.key, "--models", args.models, "--out", args.out] + (["--no-explore-play"] if args.no_explore_play else [])
             Path(args.out).mkdir(parents=True, exist_ok=True)
-            procs.append((name, subprocess.Popen(cmd, stdout=open(Path(args.out) / f"{stamp}_{name}.log", "w"), stderr=subprocess.STDOUT)))
+            procs.append((name, subprocess.Popen(cmd, env=env, stdout=open(Path(args.out) / f"{stamp}_{name}.log", "w"),
+                                                 stderr=subprocess.STDOUT)))
             time.sleep(2)
         for name, p in procs:
             print(f"{name}: exit {p.wait()}", flush=True)
@@ -103,6 +108,7 @@ class Live:
                              explore="off" if args.no_explore_play else "on")
         app.current_settings = lambda: self.settings
         self.tags, self.cost, self.started = {}, {"replies": 0.0, "sim": 0.0, "probes": 0.0, "judge": 0.0}, time.time()
+        self.said = []      # his scripted lines so far: the simulated Shreyas is told them, so he never contradicts the script
         self.logf = open(self.out / f"{self.stamp}.trace.log", "w")
         self.day1 = datetime.fromisoformat(self.sc["start"] + "T00:00").astimezone()
         self.say(f"live {self.stamp}: memory in {self.work}, meaning search {memory.embedder.status}")
@@ -165,6 +171,7 @@ class Live:
         if s.get("sim"):
             return self.simulate(s)
         lines = list(s["lines"])
+        self.said += [f"(day {s['day']}) {line[1]}" for line in lines if line[0] == "user"]
         i = 0
         while i < len(lines):
             speaker, text = lines[i][0], lines[i][1]
@@ -188,7 +195,15 @@ class Live:
             system = (scenarios.PERSONA + f"\n\nRight now you're chatting about: {s['sim']}. "
                       + ("Start the conversation with one message." if not history else "Write your next message: react to what Avy said, or add something about the topic.")
                       + f"\nNever bring up any of these: {self.sc['avoid']}. Don't invent new people, dates or plans beyond the topic."
-                      " One or two short sentences. Write only the message itself.")
+                      " One or two short sentences. Write only the message itself."
+                      # Run 1's lesson: Avy brought up his peanut allergy in a filler chat about pasta, and the simulated
+                      # Shreyas, who didn't know about it, denied it ("i don't have that lol"); memory then correctly
+                      # recorded that he has no allergy, and the probe that needed it was graded against a fact the
+                      # conversation itself had retracted. So he's told what he's said, and never to deny the unknown.
+                      + ("\n\nThings you've told Avy before (all true about you; never contradict them):\n"
+                         + "\n".join(self.said[-60:]) if self.said else "")
+                      + "\nIf Avy mentions something about you that you don't recognize, don't deny or correct it: "
+                        "skip past it and stay on the topic.")
             convo = [{"role": "system", "content": system}]
             convo += [{"role": "assistant" if who == "user" else "user", "content": t} for who, t in history]
             if not history:

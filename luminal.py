@@ -23,6 +23,7 @@ HELIX_FLASH_MODEL (both have defaults). The key is entered once in the Keys pane
 never committed.
 """
 
+import email.utils
 import json
 import os
 import random
@@ -43,8 +44,10 @@ EFFORTS = ["none", "low", "high", "max"]   # off, and DeepSeek's three thinking 
 # of these still works, and means exactly what DeepSeek would have done with it.
 EFFORT_ALIASES = {"off": "none", "minimal": "low", "medium": "high", "xhigh": "high", "ultra": "max"}
 THINKING_ROOM = 24_000          # extra output tokens allowed for thinking when it's on
-MAX_PARALLEL = 8                # Luminal starts refusing somewhere past 8 calls at once
+MAX_PARALLEL = int(os.environ.get("LUMINAL_PARALLEL") or 8)   # Luminal starts refusing somewhere past 8 calls at once
+                                # (per key: several processes sharing one key split it; the live tests do)
 RETRIES = 4
+LONGEST_WAIT = 60               # seconds: the most a retry waits, even when Luminal asks for longer
 UNITS_PER_USD = 1e10
 
 # Luminal publishes no per-token price. These are DeepSeek's own list prices for V4.1-Flash (dollars per
@@ -86,9 +89,24 @@ SSL_CONTEXT, SSL_SOURCE = make_ssl_context()
 
 class LuminalError(Exception):
     """A failure with a message that's safe and useful to show on the page."""
-    def __init__(self, status, message, retryable=False):
+    def __init__(self, status, message, retryable=False, wait=None):
         super().__init__(message)
-        self.status, self.message, self.retryable = status, message, retryable
+        self.status, self.message, self.retryable, self.wait = status, message, retryable, wait
+
+
+def retry_after(headers):
+    """Seconds Luminal asked us to wait (a 429's Retry-After: seconds, or an HTTP date), or None."""
+    value = (headers.get("Retry-After") or "").strip() if headers else ""
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        try:
+            when = email.utils.parsedate_to_datetime(value)
+            return max(0.0, when.timestamp() - time.time())
+        except (TypeError, ValueError):
+            return None
 
 
 def effort_level(value):
@@ -136,7 +154,8 @@ def _open(path, body=None, timeout=180):
         if e.code == 402:
             raise LuminalError(402, "Your Luminal balance is empty. Top it up, then send again.")
         retry = e.code in (429, 500, 502, 503, 504)
-        raise LuminalError(e.code, f"Luminal returned an error ({e.code}): {detail}", retryable=retry)
+        raise LuminalError(e.code, f"Luminal returned an error ({e.code}): {detail}", retryable=retry,
+                           wait=retry_after(e.headers) if e.code in (429, 503) else None)
     except urllib.error.URLError as e:
         if isinstance(e.reason, ssl.SSLCertVerificationError):
             raise LuminalError(502, "Python can't check Luminal's security certificate on this computer. "
@@ -147,14 +166,16 @@ def _open(path, body=None, timeout=180):
 
 
 def _with_retries(attempt):
-    """Run attempt() until it works, retrying what Luminal says is temporary (backoff with jitter)."""
+    """Run attempt() until it works, retrying what Luminal says is temporary (backoff with jitter; when it says how
+    long to wait, as a rate limit does, at least that long, up to LONGEST_WAIT)."""
     for i in range(RETRIES):
         try:
             return attempt()
         except LuminalError as e:
             if not e.retryable or i == RETRIES - 1:
                 raise
-            time.sleep(min(20, 2 * 2 ** i) + random.random())
+            backoff = min(20, 2 * 2 ** i) if e.status != 429 else min(40, 5 * 2 ** i)
+            time.sleep(min(LONGEST_WAIT, max(backoff, e.wait or 0)) + random.random())
 
 
 def open_stream(payload, effort=None):

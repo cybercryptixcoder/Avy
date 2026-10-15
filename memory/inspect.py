@@ -1,10 +1,18 @@
 """Looking under the hood: what the page's inspector (and the graph view) ask for."""
 
 import json
+from datetime import datetime
 
-from .common import clip
+from .common import clip, now
 from .embed import embedder
 from .network import LIVE
+
+
+def _when(at):
+    """A time (ISO; a stored one has its offset, a given one may end in Z or have none) as something comparable
+    across offsets. One with no offset is taken as local time."""
+    t = datetime.fromisoformat(str(at).strip().replace("Z", "+00:00"))
+    return t if t.tzinfo else t.astimezone()
 
 
 class Inspect:
@@ -165,22 +173,72 @@ class Inspect:
                                "how": msgs[item]["how"], "score": round(msgs[item]["score"], 3)})
         return {"nodes": nodes, "messages": found_msgs}
 
-    def graph_data(self):
-        """Every current node and live connection, for the graph view."""
-        nodes = self.current_nodes()
-        edges = self.live_edges()
+    def graph_data(self, as_of=None):
+        """Every current node and live connection, for the graph view.
+
+        as_of (an ISO time): memory as it stood then, built from what's kept (nothing is ever deleted): each
+        node's newest version written by that time, unless it had been retracted by then; the connections that
+        existed and were strong enough then (strength recomputed from the supports up to then, with the fading
+        measured to then), with the kind and reason they had then (replayed from the journal)."""
+        when = _when(as_of) if as_of else None
+        if when:
+            heads = {}
+            for n in self.rows("SELECT * FROM nodes ORDER BY chain, version"):
+                if _when(n["at"]) <= when:
+                    heads[n["chain"]] = n
+            nodes = [n for n in heads.values() if n["state"] == "active"]
+            alive = {n["chain"] for n in nodes}
+            edges = [e for e in self.rows("SELECT * FROM edges") if _when(e["at"]) <= when and e["a"] in alive and e["b"] in alive]
+            edges = [e for e in self._with_strength(edges, when) if e["strength"] >= LIVE]
+            self._edges_as_of(edges, when)
+            ids = [n["id"] for n in nodes]
+            basis = self.rows(f"""SELECT n.chain, b.rests_on FROM basis b JOIN nodes n ON n.id = b.node
+                                  WHERE b.node IN ({",".join("?" * len(ids))}) AND n.origin = 'inferred'""", *ids) if ids else []
+            basis = [b for b in basis if b["rests_on"] in alive]
+        else:
+            nodes = self.current_nodes()
+            edges = self.live_edges()
+            basis = self.rows("""SELECT c.chain, b.rests_on FROM current c JOIN basis b ON b.node = c.id WHERE c.origin = 'inferred'""")
         degree = {}
         for e in edges:
             degree[e["a"]] = degree.get(e["a"], 0) + 1
             degree[e["b"]] = degree.get(e["b"], 0) + 1
-        basis = self.rows("""SELECT c.chain, b.rests_on FROM current c JOIN basis b ON b.node = c.id WHERE c.origin = 'inferred'""")
+        born = {r["chain"]: r["at"] for r in self.rows("SELECT chain, at FROM nodes WHERE version = 1")}
+        times = [r["at"] for r in self.rows("SELECT at FROM nodes UNION ALL SELECT at FROM supports")]
+        first = min(times, key=_when) if times else None
+        last = max(times, key=_when) if times else None
         return {
-            "memory": self.name, "letter": self.letter,
-            "nodes": [{**self.node_brief(n), "text": n["text"][:240], "degree": degree.get(n["chain"], 0), "at": n["at"]} for n in nodes],
+            "memory": self.name, "letter": self.letter, "as_of": as_of,
+            "span": {"first": first, "last": last, "now": now().isoformat(timespec="seconds")},
+            "nodes": [{**self.node_brief(n), "text": n["text"][:240], "degree": degree.get(n["chain"], 0), "at": n["at"],
+                       "born": born.get(n["chain"], n["at"])} for n in nodes],
             "edges": [{"id": e["id"], "a": e["a"], "b": e["b"], "kind": e["kind"], "reason": e["reason"],
                        "strength": e["strength"]} for e in edges],
             "rests": [{"a": r["chain"], "b": r["rests_on"]} for r in basis],
         }
+
+    def _edges_as_of(self, edges, when):
+        """Give each edge the kind and reason it had at `when`. An edge's kind and reason can be rewritten later
+        (Check revises them; something he says outright overrides the model), and the journal keeps every
+        applied change with its arguments, so replaying it up to `when` gives what it said then."""
+        if not edges:
+            return
+        targets = [f"c{e['id']}" for e in edges]
+        said = {}
+        for j in self.rows(f"""SELECT * FROM journal WHERE result = 'applied' AND op IN ('connect', 'revise_edge')
+                               AND target IN ({",".join("?" * len(targets))}) ORDER BY id""", *targets):
+            if _when(j["at"]) > when:
+                continue
+            a = json.loads(j["args"])
+            eid = int(j["target"][1:])
+            was = said.get(eid)
+            if j["op"] == "connect" and (was is None or (a.get("support") or {}).get("kind") in ("stated", "confirmed")):
+                said[eid] = (a.get("kind") or (was or ("related", ""))[0], " ".join(str(a.get("reason") or "").split()) or (was or ("", ""))[1])
+            elif j["op"] == "revise_edge" and was is not None:
+                said[eid] = (a.get("kind") or was[0], " ".join(str(a.get("reason") or "").split()) or was[1])
+        for e in edges:
+            if e["id"] in said:
+                e["kind"], e["reason"] = said[e["id"]]
 
     def journal_list(self, limit=200):
         found = self.rows("SELECT * FROM journal ORDER BY id DESC LIMIT ?", limit)

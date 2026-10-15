@@ -32,10 +32,26 @@ living network of knowledge that she thinks about when it's quiet.
 
 ## Running it
 
-From this folder, every time (it pulls updates and installs anything new; already-installed packages are skipped):
+From this folder, every time (it brings the code up to date with GitHub, installs anything new, and runs;
+already-installed packages are skipped):
 
 ```
-git pull && python3 -m pip install -q -r requirements-voice.txt && python3 app.py
+git checkout -q main && git fetch origin --prune && git reset --keep origin/main && python3 -m pip install -q -r requirements-voice.txt && python3 app.py
+```
+
+`reset --keep` moves the code to what's on GitHub even if the history was rewritten (it was, once, on Oct 15,
+so every commit is in Shreyas's name). It never touches `data/` (memory, files, recordings) or `.env` (keys),
+which git doesn't track, and if a code file was edited locally it stops with a message instead of overwriting.
+
+If a plain `git pull` once said "divergent branches" (a copy cloned before Oct 15), this fixes it, once:
+
+```
+cp -R data "../Avy-data-backup-$(date +%Y%m%d-%H%M)"; cp .env "../Avy-env-backup-$(date +%Y%m%d-%H%M)" 2>/dev/null
+git branch -f old-claude-history
+git stash push -m "local edits before the history rewrite"
+git fetch origin --prune
+git checkout -q main && git reset --hard origin/main
+git config pull.ff only
 ```
 
 Your browser opens http://localhost:8000. Paste your Luminal key in the Keys panel once (the orange key

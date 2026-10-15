@@ -259,7 +259,7 @@ def take_sentences(buffer, first):
 def speakable(text):
     """What Kokoro should actually say: no code, no markdown symbols."""
     text = re.sub(r"```.*?```", " (code on screen) ", text, flags=re.S)
-    text = re.sub(r"\[[kx]\d+\]", "", text)                       # memory footnotes are for the eyes only
+    text = re.sub(r"\[[kxp]\d+\]", "", text)                      # memory footnotes are for the eyes only
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
     text = re.sub(r"^\s*[-•*]\s+", "", text, flags=re.M)
     text = re.sub(r"[*_`#>]+", "", text)
@@ -328,7 +328,7 @@ async def reply(ws, text, state):
             spoken.settle()
             state["spoken"] = None
         # otherwise it's saved when the page says how much you heard ("heard")
-        await ws.send(json.dumps({"type": "done", "text": spoken.text, "usage": spoken.usage}))
+        await ws.send(json.dumps({"type": "done", "text": spoken.text, "usage": spoken.usage, "unseen": turn.unseen_in(spoken.text)}))
     finally:
         cancel.set()          # stop reading the model if we were cut off
         mouth.cancel()

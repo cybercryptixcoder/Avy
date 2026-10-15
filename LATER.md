@@ -51,17 +51,17 @@ view of tasks, calendar and what Avy plans would come with it.
   deep; today one dial (`/recall:`) sets the rounds and Avy chooses each round.
 
 - **"Keep this" from incognito.** Before ending an incognito conversation, promote chosen messages
-  into the main memory, so nothing is lost by accident.
-- **Beliefs over time.** Nothing is deleted, and connection strength can be read as it stood on any
-  date, so "what did you believe about my sleep a month ago?" and "how has your picture of this project
-  changed?" are answerable. They need a view: a time slider on the graph, and a "then vs now" page.
+  into the main memory, so nothing is lost by accident. *Needs a decision first:* the main log is in time
+  order and append-only, so a promoted message either arrives now (with a note of when it was really said)
+  or the log stops being strictly in order.
+- **Beliefs over time.** *Half done (Oct 15): the graph's time slider shows memory exactly as it stood on
+  any date.* Still to do: a "then vs now" page for one node or hub, and letting Avy answer "what did you
+  believe a month ago?" herself (her search reading memory as of a date).
 - **Ask to confirm.** When an inference matters to an answer and is only "possible", Avy could ask you
   in passing, and turn your answer into evidence.
 - **Recall depth decided per message.** With Avy searching herself, `/recall:` could become the most she
   may dig, with her deciding how much each message needs ("what time is it?" shouldn't trigger a deep
   search).
-- **Graph filters.** Show only ideas, only what you said, only what's changed this week; the path a
-  particular answer took.
 
 ## Parked ideas
 
@@ -70,6 +70,8 @@ interface are kept in docs/IDEAS.md, in case any of them comes back.
 
 ## Done (moved here from this list)
 
+- **Graph filters and the path an answer took** (Oct 15): show only ideas, your words, hers, inferences,
+  or what changed that week; a reply's recall drawn as a path through the graph.
 - **Her thinking kept and shown** (Oct 15), **the library** (Oct 15), **the looking glass** (Oct 15),
   **dreaming**, first version (Oct 15), **dark mode** and **sounds** (Oct 15).
 

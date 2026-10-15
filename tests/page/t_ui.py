@@ -78,8 +78,18 @@ with sync_playwright() as p:
     st = api("/api/memory?episodes=0")["stats"]
     check("knowledge exists now", st["nodes"] >= 4 and st["episodes"] == 1, st)
 
-    say(pg, "what do you know about Rohan?")
-    fn = pg.query_selector_all(".line.avy .fn")
+    say(pg, "what do you know about Rohan? (miscite)")
+    odd = pg.query_selector_all(".line.avy .fn.unseen")
+    check("a footnote to something she wasn't shown is marked", len(odd) == 1 and odd[0].get_attribute("data-h") == "k999"
+          and pg.evaluate("getComputedStyle(document.querySelector('.fn.unseen'), '::after').content").strip('"') == "?",
+          pg.evaluate("[...document.querySelectorAll('.line.avy')].pop().innerHTML"))
+    if odd:
+        odd[0].hover(); time.sleep(1.2)
+        card = pg.evaluate("document.querySelector('.fn-card')?.innerText || ''")
+        check("...and its card says so first", "wasn't in what memory brought" in card, card)
+        pg.mouse.move(5, 5); time.sleep(0.3)
+        errs[:] = [e for e in errs if "404" not in e]    # k999 doesn't exist: the server's honest 404 for it
+    fn = pg.query_selector_all(".line.avy .fn:not(.unseen)")
     check("a reply that used memory has a footnote", len(fn) >= 1, pg.evaluate("[...document.querySelectorAll('.line.avy')].pop().innerHTML"))
     if fn:
         fn[-1].hover(); time.sleep(1.2)
@@ -99,6 +109,8 @@ with sync_playwright() as p:
             body = pg.inner_text("#inspBody")
             check("a connection page: its reason, strength and supports", "supports" in body and "strength" in body, body[:300])
         pg.click("#inspClose")
+    pg.reload(); time.sleep(2.5)
+    check("...still marked after a reload", len(pg.query_selector_all(".line.avy .fn.unseen")) == 1)
     trace = pg.query_selector_all(".line.trace")
     check("the reply says what memory brought", trace and "node" in trace[-1].inner_text(), trace and trace[-1].inner_text())
     chapters = pg.evaluate("[...document.querySelectorAll('.chapter')].map(c => c.innerText)")
@@ -155,8 +167,47 @@ with sync_playwright() as p:
     pg.screenshot(path=f"{S}/shots/v2-graph-card.png")
     pg.mouse.move(700, 450); pg.mouse.down(); pg.mouse.move(820, 470, steps=6); pg.mouse.up()
     pg.mouse.wheel(0, -400); time.sleep(0.5)
+
+    # filters: one kind shown, the rest faint (the layout doesn't jump)
+    total = pg.evaluate("graph.nodes.length")
+    ideas = pg.evaluate("graph.nodes.filter(n => n.shape === 'idea').length")
+    pg.click("#graphShow button[data-show=ideas]"); time.sleep(0.6)
+    check("the graph can show only ideas", pg.evaluate("graph.show") == "ideas" and pg.evaluate("graphKept().size") == ideas
+          and pg.evaluate("graphShown.length") == total, [ideas, pg.evaluate("graphKept().size")])
+    check("...and says how many of each there are", f"ideas {ideas}" in pg.inner_text("#graphShow"), pg.inner_text("#graphShow"))
+    pg.screenshot(path=f"{S}/shots/v2-graph-ideas.png")
+    pg.click("#graphShow button[data-show=his]"); time.sleep(0.4)
+    his = pg.evaluate("graph.nodes.filter(n => n.origin === 'user').length")
+    check("...or only what you said", pg.evaluate("graphKept().size") == his, his)
+    pg.click("#graphShow button[data-show=all]"); time.sleep(0.3)
+
+    # memory as it stood on a date: the slider at its start shows memory as it was first written
+    pg.evaluate("(() => { const s = document.getElementById('graphWhen'); s.value = 0; s.dispatchEvent(new Event('input')); })()")
+    time.sleep(1.5)
+    then = pg.evaluate("graph.nodes.length")
+    check("the time slider rebuilds memory as it stood then", pg.evaluate("graph.asOf") and 0 < then <= total
+          and "as it stood" in pg.inner_text("#graphStats") and pg.inner_text("#graphWhenLabel") != "now",
+          [then, total, pg.inner_text("#graphStats")])
+    pg.screenshot(path=f"{S}/shots/v2-graph-then.png")
+    pg.click("#graphNow"); time.sleep(1.2)
+    check("...and back to now", not pg.evaluate("graph.asOf") and pg.evaluate("graph.nodes.length") == total, pg.evaluate("graph.nodes.length"))
     pg.keyboard.press("Escape"); time.sleep(0.4)
     check("Esc closes the graph", not pg.is_visible("#graph"))
+
+    # the path one reply's search took
+    searched = [l for l in pg.query_selector_all(".line.trace") if "searched memory" in l.inner_text()]
+    if searched:
+        searched[-1].click(); time.sleep(1)
+        pg.locator("#inspBody button", has_text="see its path in the graph").first.click(); time.sleep(2)
+        path = pg.evaluate("graph.path && {kept: graph.path.kept.size, seen: graph.path.seen.size, landing: graph.path.landing.size}")
+        check("a reply's search, drawn as a path through the graph", pg.is_visible("#graph") and path and path["kept"] > 0
+              and "how memory was searched" in pg.inner_text("#graphPath"), [path, pg.inner_text("#graphBar")])
+        pg.screenshot(path=f"{S}/shots/v2-graph-path.png")
+        pg.locator("#graphPath button", has_text="clear").click(); time.sleep(1)
+        check("...cleared back to the whole of memory now", not pg.evaluate("graph.path") and not pg.evaluate("graph.asOf"))
+        pg.keyboard.press("Escape"); time.sleep(0.4)
+    else:
+        check("a reply's search, drawn as a path through the graph", False, "no reply with a search to follow")
 
     command(pg, "/incognito")
     time.sleep(1)

@@ -76,7 +76,8 @@ handed you: use their exact words, and only his own words in them are facts abou
 A node that changed shows its earlier versions; the newest is what's true now. The note also lists how
 the nodes connect, with reasons: follow those, because that's how something from weeks ago turns out to
 matter now. Use what's relevant and ignore the rest. If neither the recent messages nor memory covers
-something, say you don't remember it rather than guessing.
+something, say you can't find it in your memory rather than guessing. The note is what a search turned up,
+not everything he ever said, so never tell him he didn't tell you something just because it isn't there.
 
 He can attach files of any kind. Their contents come inside <file> tags in his message: text as text,
 pictures (and frames of a video) as images you can see, recordings as transcripts with times. Use them
@@ -481,10 +482,27 @@ class Turn:
             meta["cut"] = True
         if self.thought:
             meta["thought"] = True       # the page knows to offer the thinking under it
+        unseen = self.unseen_in(text)
+        if unseen:
+            meta["unseen"] = unseen      # footnotes to things that weren't in what she was shown
         self.reply_id = self.mem.add("assistant", text.strip(), self.via, meta)
         self.keep_thinking(self.reply_id, usage)
         worker.nudge()                 # the mind writes in the background once an episode's worth is waiting
         return self.reply_id
+
+    def unseen_in(self, text):
+        """Footnotes in her reply ([k21], [p3]) whose handle wasn't anywhere in what she was shown (her instructions
+        with the core of memory, and the memory note): a slip (a live test caught [k21] written for message #21) or a
+        guess. The page marks them, so a footnote never quietly points at the wrong thing."""
+        cited = list(dict.fromkeys(re.findall(r"\[([kxp]\d+)\]", text or "")))
+        if not cited:
+            return []
+        shown = []
+        for m in self.messages:
+            c = m.get("content")
+            shown += [c] if isinstance(c, str) else [p.get("text", "") for p in c or [] if isinstance(p, dict)]
+        seen = set(re.findall(r"(?<![\w#])([kxp]\d+)\b", "\n".join(shown)))
+        return [h for h in cited if h not in seen]
 
     def keep_thinking(self, reply_id, usage):
         """Save her reasoning (if she thought at all) next to the reply it led to: the log says what she said,
@@ -619,8 +637,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_found(mem.run_record(n))
             elif url.path == "/api/recall":
                 self.send_found(mem.recall_record(n))
-            elif url.path == "/api/graph":
-                self.send_json(200, mem.graph_data())
+            elif url.path == "/api/graph":          # ?as_of=2026-09-14T10:00:00-04:00: memory as it stood then
+                as_of = (q.get("as_of") or [None])[0]
+                try:
+                    self.send_json(200, mem.graph_data(as_of or None))
+                except ValueError:
+                    self.send_json(400, {"error": "as_of should be a time like 2026-09-14T10:00:00-04:00"})
             elif url.path == "/api/journal":
                 self.send_json(200, {"journal": mem.journal_list(min(number(q, "limit") or 200, 1000))})
             elif url.path == "/api/health":
@@ -777,7 +799,7 @@ class Handler(BaseHTTPRequestHandler):
         saved = turn.finish(reply, usage, cut)
         if not cut:
             try:
-                self.event({"avy": {"saved": saved}})
+                self.event({"avy": {"saved": saved, "unseen": turn.unseen_in(reply)}})
                 self.wfile.write(b"data: [DONE]\n\n")
             except OSError:
                 pass

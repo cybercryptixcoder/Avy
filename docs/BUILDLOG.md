@@ -203,6 +203,19 @@ lives).
 - `pkill -f "app.py$"` matched the shell running it and killed my own command. Kill by PID.
 - New command descriptions must be ≤ 6 words (the `/` panel test checks it).
 
+**11. Pictures go into the library by what's in them; Word documents keep their sections.**
+- A picture has no words, so intake asks the model to look once and describe it (two to four plain sentences:
+  what it shows, any text word for word, people, places, numbers); that description is the picture's passage
+  (`intake.describe_picture`, wired by `app.py` through `intake.HOOKS["describe"]`, using the shrunk copy
+  files.py already made). Chat attachments that are pictures now join the library too. Tried live: a drawn
+  whiteboard came back with every line of its text verbatim in 1.8 s. Without a model (tests, or the hook
+  unset) a picture is stored with a note and no passages, as before.
+- Word documents put a heading directly above its paragraph, so the splitter didn't see sections in them.
+  `headings_apart()` gives every heading (outside code fences) its own paragraph first. Tests in
+  `tests/test_intake.py` (a real .docx, a real PDF, a described picture).
+- Docs updated for all of session 3: README, CONCEPT, LATER, MEMORY, HANDOFF, docs/FILES, docs/IMPORT,
+  docs/IDEAS (this session's ideas and where each stands), docs/MISTAKES (39–47).
+
 ### Live test run 1 (old code: before the library), first findings
 
 Four scenarios, ~16–20 min and ~$0.25 each (life still running). Scores (judge, 0–1):
@@ -237,3 +250,62 @@ What they show:
    commitments, suspicions) aren't exercised by scenarios where he states everything.
 4. The persona test was too easy: the default system prompt already asks for short, plain replies, so
    "short, no lists" holds even without memory. Run 2 uses preferences that go *against* the defaults.
+
+### Live test run 2 (the library in, five new scenarios)
+
+Run from a snapshot at 02:23, five scenarios side by side: `persona2` (preferences against the defaults),
+`files` (a design doc, a zipped codebase, a CSV, a meeting transcript, attached in passing, asked about days
+later), `attribution` (whose idea was whose), `plan` (a plan that lives only in her reply, thinking on),
+`history` (an old Claude export added through the library). Run 1's `life` finished too (62 min, $0.86).
+Full analysis with every probe: [tests/live/RESULTS.md](../tests/live/RESULTS.md). The short of it:
+- **The library works.** Every file question scored 1.0 in every setup (doc, code from the zip, CSV, transcript),
+  where run 1 scored 0.0 on the doc; the old Claude history 3 of 3, with who said what kept ("Claude
+  suggested that title").
+- **Standing preferences fade** when a question doesn't call them up: "how long is a half marathon?" came back
+  in miles and Fahrenheit (the metric rule wasn't searched for), and the tl;dr line held only while her own
+  recent replies showed it. **Facts about him himself have no home:** "how old will I be?" didn't find his birth
+  date in two of three setups, and both said he'd never told her. These are the slots' job (VISION §16.4).
+- **The harness had a flaw that cost three scenarios:** the simulated Shreyas didn't know the scripted facts,
+  so when Avy brought one up he denied it ("peanut allergy? i don't have that lol"; "no idea who Dev is";
+  "I never agreed to a swim plan"). Memory then did the right thing (a new version: no allergy), and the probes
+  graded her against a fact the conversation had retracted. Fixed: the simulated Shreyas is told what he's said
+  and never to deny what he doesn't recognize. `life` and `plan` were run again (run 3).
+- One probe's answer was a rate-limit error (five processes sharing one key at 8 calls each).
+
+**12. The graph: filters, memory as it stood on any date, and the path an answer took.** (From LATER.md,
+decided items, straightforward.)
+- `memory/inspect.py` `graph_data(as_of)`: memory rebuilt as it stood at any moment from what's kept (nothing
+  is ever deleted): each node's newest version written by then unless retracted by then; edges that existed
+  then, strength recomputed from the supports up to then; each edge's kind and reason as it was then, replayed
+  from the journal (`_edges_as_of`). Plus `span` (first and last change) and each node's `born`.
+  `/api/graph?as_of=…`. Tests in `tests/test_memory.py` §14 (an old version, a node retracted since, an edge
+  revised since, empty before anything was said).
+- The page: under the graph's title, **show** everything · ideas · your words · avy's words · inferred · new or
+  changed that week (with counts; the rest stays faint, so the layout doesn't jump; labels go to what's shown);
+  **as of**: a slider from memory's first change to its last, with the date, rebuilding the graph as you drag
+  (nodes that didn't exist yet fade out, ones written later fade in as you move forward; a node's card shows
+  the version that stood then); **path**: from a reply's recall view, `[ see its path in the graph ]` draws
+  where her search started (squares), what it looked at, what it brought (teal), and the connections it
+  followed (teal lines), on memory as it stood when she answered. Tested in `tests/page/t_ui.py`.
+
+**13. Small fixes from the live tests.**
+- `luminal.py`: a 429 or 503 now waits as long as Luminal's `Retry-After` asks (up to 60 s), with longer
+  backoff for rate limits; `LUMINAL_PARALLEL` sets the per-process limit (the live runner splits 8 between its
+  processes).
+- `tests/live/run.py`: the simulated Shreyas is given his scripted lines so far and told never to deny what he
+  doesn't recognize.
+- The system prompt's line on gaps: instead of "say you don't remember it", she says she *can't find it in
+  memory*, and never tells him he didn't tell her something just because the note doesn't have it (the note
+  is a search, not everything he said). Decided by me, reversible: it changes no structure, only how a miss
+  is worded, and it's the verifiability pillar.
+- README/HANDOFF: the update-and-run command is now `git checkout -q main && git fetch origin --prune && git
+  reset --keep origin/main && …`, which works on a copy cloned before the history rewrite and never touches
+  `data/` or `.env`; plus the one-time fix for a copy that says "divergent branches".
+
+**14. Footnotes that point at something she wasn't shown are marked.** The life run had "You're allergic to
+none of that[k21]" where k21 was his book list: she meant message #21. `Turn.unseen_in(text)` finds cited
+handles that appear nowhere in what she was shown (instructions with the core, the recent messages, the memory
+note); they're saved as `meta.unseen`, sent with the reply (text and voice), and the page gives them a "?" and
+a first line in their card: "k21 wasn't in what memory brought for this reply, so this may not be what she
+meant." Also fixed while there: spoken replies read library footnotes out loud ("p41"); `voice.speakable` now
+drops `[p41]` like `[k12]`. Tested in `tests/page/t_ui.py` (the fake Luminal miscites on request).
