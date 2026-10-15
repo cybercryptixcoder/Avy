@@ -132,6 +132,21 @@ no home) stands, the evidence for it is weaker than one run made it look.
 7. **A citation slip**: "[k21]" (a book list) written for message #21. → Fixed (Oct 15): footnotes to anything
    she wasn't shown are marked with a "?" and their card says so first.
 
+## Dreaming, live (a short one)
+
+`dream.py` ran a 12-minute dream at max thinking on a copy of run 3's life memory (253 nodes, 887 connections):
+[results/2026-10-15_run3_dream.md](results/2026-10-15_run3_dream.md). It works end to end against Luminal: it
+swept the 6 longest-undreamt nodes (33 candidate pairs judged, none worth connecting: the memory is already
+dense, 9 connections per node), then thought from his birth date and wrote one inference and two connections.
+What it says about real dreams:
+- **At max thinking each job takes 6 to 9 minutes** (Connect 382 s, Think 559 s) and about $0.10, so an
+  8-hour dream is roughly 60 jobs and $5–8. The default budget ($10) covers it.
+- **It overruns its time by up to one job**: a job already thinking is allowed to finish (12 minutes asked,
+  15.8 taken). Fine for hours; worth knowing for short ones.
+- **What it thought is the same kind as Think's daytime output**: "Nagpur is the only city his record ever
+  places him in" is an observation about the record, not about his life. Finding 4 again: more reason to
+  decide what Think should write (VISION §16.7) before he starts an 8-hour dream on his real memory.
+
 ## The harness (not Avy)
 
 - **The simulated Shreyas didn't know the script.** In filler chats he's played by the model, which didn't
