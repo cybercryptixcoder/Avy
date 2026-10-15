@@ -357,3 +357,266 @@ IDEAS = {
 }
 
 SCENARIOS = {"life": LIFE, "work": WORK, "persona": PERSONA_SCENARIO, "ideas": IDEAS}
+
+
+# ======================================================================================================
+# Run 2 (Oct 15): harder cases, after the first run. Preferences that go against Avy's defaults, files and a
+# codebase through the library, whose idea was whose, a plan that lives only in Avy's replies, and an old
+# Claude history added through the library.
+# ======================================================================================================
+
+def _zip(members):
+    import io, zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for name, body in members.items():
+            z.writestr(name, body)
+    return buf.getvalue()
+
+
+PERSONA2 = {
+    "start": "2026-09-01",
+    "about": "preferences that go against Avy's defaults (a tl;dr line, exactly two options, metric units, vegetarian), "
+             "said once, tested two weeks and many conversations later",
+    "avoid": "food, recipes, cooking, running distances, temperatures, units, how avy formats replies, options, tl;dr",
+    "sessions": [
+        {"day": 1, "at": "20:00", "thread": "prefs", "lines": [
+            ("user", "ok some house rules for you. end every reply with a one-line summary that starts with 'tl;dr:'"),
+            ("user", "when you suggest things, give me exactly two options. never one, never three. i get decision paralysis"),
+            ("user", "and metric units always, km and celsius, even though i live in the US. my brain just works that way"),
+        ]},
+        {"day": 2, "at": "19:00", "thread": "veg", "lines": [
+            ("user", "also fyi i went vegetarian last month, still figuring out what to cook"),
+        ]},
+        {"day": 2, "at": "21:00", "thread": "filler", "sim": "a podcast about space telescopes", "turns": 3},
+        {"day": 3, "at": "20:00", "thread": "filler", "sim": "learning to juggle", "turns": 3},
+        {"day": 4, "at": "21:00", "thread": "filler", "sim": "a stressful code review at work", "turns": 3},
+        {"day": 5, "at": "19:30", "thread": "filler", "sim": "a weird noise his car makes", "turns": 3},
+        {"day": 6, "at": "20:30", "thread": "filler", "sim": "planning a birthday party for a friend", "turns": 3},
+        {"day": 7, "at": "12:00", "thread": "filler", "sim": "an art exhibit he saw", "turns": 3},
+        {"day": 8, "at": "21:00", "thread": "filler", "sim": "whether to buy a standing desk", "turns": 3},
+        {"day": 9, "at": "19:00", "thread": "filler", "sim": "a sci-fi novel he finished", "turns": 3},
+        {"day": 10, "at": "20:00", "thread": "filler", "sim": "learning some basic spanish", "turns": 3},
+        {"day": 11, "at": "21:00", "thread": "filler", "sim": "a friend moving away", "turns": 3},
+        {"day": 12, "at": "20:00", "thread": "filler", "sim": "organizing his closet", "turns": 3},
+    ],
+    "probes": [
+        {"id": "dinner", "day": 14, "at": "18:30", "ask": "what should i make for dinner tonight? something quick",
+         "points": ["Suggests only vegetarian dishes", "Gives exactly two options", "Ends with a one-line summary starting with 'tl;dr:'"],
+         "needs": ["veg@2", "prefs@1"]},
+        {"id": "race", "day": 14, "at": "19:00", "ask": "how long is a half marathon, and how hot is too hot to run one?",
+         "points": ["Gives the distance in km (21.1 km), not only miles", "Gives temperatures in Celsius, not only Fahrenheit",
+                    "Ends with a one-line summary starting with 'tl;dr:'"],
+         "needs": ["prefs@1"]},
+        {"id": "rules", "day": 15, "at": "09:00", "ask": "remind me, what house rules did i give you for how you reply?",
+         "points": ["End every reply with a tl;dr line", "Exactly two options when suggesting", "Metric units (km, Celsius)"],
+         "needs": ["prefs@1"]},
+    ],
+}
+
+INGESTER_PY = """\"\"\"The ingester's HTTP client.\"\"\"
+import asyncio
+
+RETRIES = 3
+BACKOFF = [0.5, 1.0, 2.0]       # seconds between attempts
+TIMEOUT = 12                     # seconds per request
+
+
+async def fetch(session, url, partner):
+    \"\"\"Fetch one feed page. Gives up after RETRIES attempts and parks the feed.\"\"\"
+    for attempt in range(RETRIES):
+        try:
+            async with session.get(url, timeout=TIMEOUT) as resp:
+                if resp.status == 429:
+                    await asyncio.sleep(partner.rate_limit_pause)
+                    continue
+                resp.raise_for_status()
+                return await resp.json()
+        except asyncio.TimeoutError:
+            await asyncio.sleep(BACKOFF[attempt])
+    park(partner, reason="three failed fetches")
+
+
+def park(partner, reason):
+    partner.parked = True
+    alert("#ingest-alerts", f"{partner.name} parked: {reason}")
+"""
+PARTNERS_CSV = "partner,region,feed_format,records_per_day\nacme,us-east,json,120000\nglobex,eu-west,csv,45000\ninitech,eu-west,json,8000\numbrella,ap-south,xml,310000\nhooli,us-west,json,72000\nvehement,eu-central,csv,15000\n"
+STANDUP_TXT = """Priya: morning all. ingester status?
+Me: leak's fixed in staging, p99 is still up 30 percent, i think it's the retry path making a new session each time
+Dev: want me to pair on it?
+Me: yes please, thursday afternoon
+Priya: also reminder, globex is switching their feed to json on october 20
+Dev: i'll update the parser config for that
+Priya: great. anything else?
+Me: nope
+"""
+
+FILES = {
+    "start": "2026-09-20",
+    "about": "the library: a design doc, a zipped codebase, a CSV and a meeting transcript, attached in passing; questions "
+             "days later about what they say (not what was said about them)",
+    "avoid": "the ingester, code, partners, feeds, retries, standups, Priya, Dev, design docs",
+    "sessions": [
+        {"day": 1, "at": "10:00", "thread": "doc", "lines": [
+            ("user", "dumping the ingester design doc here so you have it", {"files": ["ingester-design.md"]})]},
+        {"day": 1, "at": "16:00", "thread": "code", "lines": [
+            ("user", "and here's the ingester repo, zipped", {"files": ["ingester.zip"]})]},
+        {"day": 2, "at": "11:00", "thread": "csv", "lines": [
+            ("user", "partner list from the ops sheet", {"files": ["partners.csv"]})]},
+        {"day": 2, "at": "15:30", "thread": "standup", "lines": [
+            ("user", "notes from today's standup", {"files": ["standup-notes.txt"]})]},
+        {"day": 2, "at": "20:00", "thread": "filler", "sim": "dinner with his roommate", "turns": 3},
+        {"day": 3, "at": "19:00", "thread": "filler", "sim": "a long walk by the river", "turns": 3},
+        {"day": 4, "at": "20:30", "thread": "filler", "sim": "a new video game release", "turns": 3},
+        {"day": 5, "at": "21:00", "thread": "filler", "sim": "fixing a squeaky door", "turns": 3},
+    ],
+    "probes": [
+        {"id": "doc-retry", "day": 6, "at": "10:00", "ask": "what's the retry policy in the ingester design doc?",
+         "points": ["3 retries", "Exponential backoff of 0.5 s, 1 s, 2 s", "After the third failure the feed is parked and #ingest-alerts is alerted"],
+         "needs": ["doc@1"]},
+        {"id": "code-timeout", "day": 6, "at": "10:05", "ask": "in the ingester code, what's the per-request timeout, and what happens on a 429?",
+         "points": ["12 seconds per request", "On a 429 it sleeps for the partner's rate_limit_pause and tries again"], "needs": ["code@1"]},
+        {"id": "csv-eu", "day": 6, "at": "10:10", "ask": "which of our partners are in the EU, and which of those send CSV?",
+         "points": ["EU partners: globex, initech, vehement", "Of those, CSV: globex and vehement"], "needs": ["csv@2"]},
+        {"id": "standup", "day": 6, "at": "10:15", "ask": "when is globex switching their feed format, and who's handling it?",
+         "points": ["October 20 (switching to JSON)", "Dev is updating the parser config"], "needs": ["standup@2"]},
+        {"id": "pairing", "day": 6, "at": "10:20", "ask": "who did i say i'd pair with on the latency thing, and when?",
+         "points": ["Dev", "Thursday afternoon"], "needs": ["standup@2"]},
+    ],
+    "files": {"ingester-design.md": DESIGN_DOC,
+              "ingester.zip": _zip({"ingester/README.md": "# ingester\n\nPulls partner feeds. See src/client.py for fetching.\n",
+                                    "ingester/src/client.py": INGESTER_PY,
+                                    "ingester/node_modules/junk/index.js": "module.exports = {}"}),
+              "partners.csv": PARTNERS_CSV, "standup-notes.txt": STANDUP_TXT},
+}
+
+ATTRIBUTION = {
+    "start": "2026-09-05",
+    "about": "whose idea was whose: Avy proposes several things, he takes some up, rejects others, and has his own; "
+             "later questions need the difference",
+    "avoid": "the reading club, the apartment, budgeting, ideas about habits",
+    "sessions": [
+        {"day": 1, "at": "20:00", "thread": "club", "lines": [
+            ("user", "i want to start a reading club with a few friends but these things always fizzle out after a month"),
+            ("avy", "A few things that tend to keep them alive: rotate who picks the book, keep each pick under 250 pages, meet at the same bar on "
+                    "the same night every month, and have a rule that you show up even if you didn't finish."),
+            ("user", "the short books thing is smart, yes. rotating picks no, i want to curate it myself honestly"),
+            ("user", "my own idea: everyone brings one quote they underlined, we start with those"),
+        ]},
+        {"day": 3, "at": "21:00", "thread": "money", "lines": [
+            ("user", "trying to save more. i keep spending on takeout"),
+            ("avy", "Two ideas: a takeout jar where every order means the same amount goes into savings, or batch-cook on Sundays so there's always "
+                    "something ready. Some people also delete the delivery apps."),
+            ("user", "deleting the apps is too extreme, not doing that. the jar is cute but no. i'll try sunday batch cooking"),
+            ("user", "and i'm setting a rule for myself: takeout only on fridays"),
+        ]},
+        {"day": 3, "at": "22:00", "thread": "filler", "sim": "a funny video his friend sent", "turns": 2},
+        {"day": 5, "at": "19:30", "thread": "apt", "lines": [
+            ("user", "my apartment feels cluttered and i can't think in it"),
+            ("avy", "You could try a one-in-one-out rule for anything new, or a 15-minute reset every evening, or move the desk so it faces the window."),
+            ("user", "desk facing the window, love it, did it already. the rest meh"),
+        ]},
+        {"day": 6, "at": "20:00", "thread": "filler", "sim": "a basketball game he watched", "turns": 3},
+        {"day": 7, "at": "20:00", "thread": "filler", "sim": "trying a new coffee shop", "turns": 3},
+        {"day": 8, "at": "21:00", "thread": "filler", "sim": "his weekend plans", "turns": 3},
+        {"day": 9, "at": "20:00", "thread": "filler", "sim": "a documentary about bees", "turns": 3},
+    ],
+    "probes": [
+        {"id": "club-rules", "day": 11, "at": "20:00", "ask": "for the reading club, which ideas were mine and which were yours, and what did i decide?",
+         "points": ["His own idea: everyone brings one underlined quote to start", "He took up Avy's suggestion of short books (under 250 pages)",
+                    "He rejected rotating picks (he'll curate himself)", "Doesn't present Avy's other suggestions (same bar, show up anyway) as decided or as his"],
+         "needs": ["club@1"]},
+        {"id": "money", "day": 11, "at": "20:10", "ask": "what am i doing about the takeout spending again?",
+         "points": ["Sunday batch cooking (he chose it from Avy's suggestions)", "His own rule: takeout only on Fridays",
+                    "Doesn't say he's doing the jar or deleting the apps (he rejected both)"], "needs": ["money@3"]},
+        {"id": "my-ideas", "day": 12, "at": "09:00", "ask": "list the ideas i came up with myself lately, not the ones you suggested",
+         "points": ["The underlined-quote opener for the reading club", "Takeout only on Fridays",
+                    "Doesn't list Avy's suggestions (short books, batch cooking, desk by the window, the jar...) as his own ideas"],
+         "needs": ["club@1", "money@3"]},
+    ],
+}
+
+PLAN = {
+    "start": "2026-09-08",
+    "about": "a plan that lives in Avy's replies: she lays out the steps, he does them over days without restating them; "
+             "can she say what's next? (with thinking on, so her reasoning is kept too)",
+    "avoid": "learning to swim, swimming, pools, lessons, plans",
+    "thinking": "low",
+    "sessions": [
+        {"day": 1, "at": "19:00", "thread": "swim", "lines": [
+            ("user", "i'm 27 and i can't swim. embarrassing. can you give me a step by step plan to learn, i'll follow it exactly. number the steps"),
+        ]},
+        {"day": 2, "at": "20:00", "thread": "swim", "lines": [("user", "did step 1 today!")]},
+        {"day": 3, "at": "20:00", "thread": "filler", "sim": "a podcast about economics", "turns": 3},
+        {"day": 4, "at": "20:00", "thread": "swim", "lines": [("user", "step 2 done, harder than i thought but ok")]},
+        {"day": 5, "at": "20:00", "thread": "filler", "sim": "cooking a new soup", "turns": 3},
+        {"day": 6, "at": "20:00", "thread": "filler", "sim": "a movie night with friends", "turns": 3},
+        {"day": 7, "at": "20:00", "thread": "filler", "sim": "his commute being annoying", "turns": 3},
+        {"day": 8, "at": "20:00", "thread": "filler", "sim": "a museum he wants to visit", "turns": 3},
+    ],
+    "probes": [
+        {"id": "next-step", "day": 10, "at": "19:00", "ask": "ok what's my next step with the thing we planned?",
+         "points": ["Knows it's the learn-to-swim plan", "Names step 3 of the plan Avy gave on day 1 (what it actually says)",
+                    "Knows steps 1 and 2 are done"], "needs": ["swim@1", "swim@2", "swim@4"]},
+        {"id": "whole-plan", "day": 10, "at": "19:05", "ask": "remind me of the whole plan, and where i am in it",
+         "points": ["Lists the plan's steps as Avy gave them on day 1 (in substance)", "Marks steps 1 and 2 as done, the rest to go"],
+         "needs": ["swim@1", "swim@2", "swim@4"]},
+    ],
+}
+
+def _claude_export():
+    import json
+    def m(uuid, sender, at, parent, text):
+        return {"uuid": uuid, "sender": sender, "created_at": at, "updated_at": at, "parent_message_uuid": parent, "text": text,
+                "content": [{"type": "text", "text": text}], "attachments": [], "files": []}
+    root = "00000000-0000-4000-8000-000000000000"
+    convs = [
+        {"uuid": "11111111-0000-4000-8000-000000000001", "name": "Thesis title brainstorm", "created_at": "2025-03-04T21:00:00Z",
+         "chat_messages": [
+             m("a1", "human", "2025-03-04T21:00:00Z", root, "help me name my master's thesis, it's about using graph structure to retrieve context for language models"),
+             m("a2", "assistant", "2025-03-04T21:00:30Z", "a1", "Some options: 'Context as a Library', 'Walking the Web of Memory', or 'Retrieval by Exploration'."),
+             m("a3", "human", "2025-03-04T21:02:00Z", "a2", "context as a library is perfect. going with that"),
+         ]},
+        {"uuid": "11111111-0000-4000-8000-000000000002", "name": "Knee rehab exercises", "created_at": "2025-06-11T08:00:00Z",
+         "chat_messages": [
+             m("b1", "human", "2025-06-11T08:00:00Z", root, "physio gave me spanish squats for my patellar tendon, how many sets should i do"),
+             m("b2", "assistant", "2025-06-11T08:00:40Z", "b1", "A common protocol is 5 sets of 45-second holds, once or twice a day, as long as pain stays under 3 out of 10."),
+         ]},
+        {"uuid": "11111111-0000-4000-8000-000000000003", "name": "Sourdough troubleshooting", "created_at": "2025-11-20T18:00:00Z",
+         "chat_messages": [
+             m("c1", "human", "2025-11-20T18:00:00Z", root, "my sourdough starter (i named it gerald) smells like nail polish remover, is it dead"),
+             m("c2", "assistant", "2025-11-20T18:00:30Z", "c1", "Not dead, just hungry: that acetone smell means it needs feeding more often. Try feeding it twice a day at a 1:1:1 ratio."),
+             m("c3", "human", "2025-11-20T18:05:00Z", "c2", "ok twice a day it is. gerald lives"),
+         ]},
+    ]
+    return _zip({"conversations.json": json.dumps(convs), "users.json": json.dumps([{"uuid": "u1", "full_name": "S"}])})
+
+
+HISTORY = {
+    "start": "2026-09-15",
+    "about": "an old Claude history added through the library (a synthetic export): questions about what was said there, "
+             "months before Avy existed, mixed with what was said to Avy since",
+    "avoid": "thesis titles, knees, physio, sourdough, starters, claude",
+    "sessions": [
+        {"day": 1, "at": "21:00", "thread": "export", "lines": [
+            ("user", "here's my old claude history, so you know the stuff i talked about before you existed", {"files": ["claude-export.zip"]})]},
+        {"day": 2, "at": "19:00", "thread": "starter", "lines": [
+            ("user", "gerald is thriving btw, baked my best loaf yet this weekend")]},
+        {"day": 2, "at": "20:00", "thread": "filler", "sim": "a long day of meetings", "turns": 3},
+        {"day": 3, "at": "20:00", "thread": "filler", "sim": "a hike he's planning", "turns": 3},
+        {"day": 4, "at": "21:00", "thread": "filler", "sim": "a podcast about chess", "turns": 3},
+    ],
+    "probes": [
+        {"id": "title", "day": 6, "at": "10:00", "ask": "what did i end up calling my thesis, and who suggested it?",
+         "points": ["'Context as a Library'", "Claude suggested it (in a conversation in March 2025), and he chose it"], "needs": ["export@1"]},
+        {"id": "gerald", "day": 6, "at": "10:05", "ask": "who's gerald and how often am i supposed to feed him?",
+         "points": ["Gerald is his sourdough starter", "Feed it twice a day (1:1:1), per the earlier advice"], "needs": ["export@1", "starter@2"]},
+        {"id": "squats", "day": 6, "at": "10:10", "ask": "how many sets of those knee squats was i supposed to do?",
+         "points": ["5 sets of 45-second holds (Spanish squats), once or twice a day", "Mentions the pain limit (under 3/10) or that it came from the earlier conversation"],
+         "needs": ["export@1"]},
+    ],
+    "files": {"claude-export.zip": _claude_export()},
+}
+
+SCENARIOS.update({"persona2": PERSONA2, "files": FILES, "attribution": ATTRIBUTION, "plan": PLAN, "history": HISTORY})

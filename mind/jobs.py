@@ -33,6 +33,7 @@ class Job:
     model = llm.MODEL
     max_tokens = 8000
     focus = ""
+    effort = None          # how hard to think for this job; None: the /mind: setting (dreaming sets max)
 
     def prompt(self):
         raise NotImplementedError
@@ -55,7 +56,7 @@ def run(mem, job):
 
     for attempt in range(1, REPAIRS + 2):
         try:
-            reply = llm.call(convo, job.tool, job.model, job.max_tokens)
+            reply = llm.call(convo, job.tool, job.model, job.max_tokens, effort=job.effort)
         except Exception as e:
             run_id = save(mem, job, "error", attempt, started, asked, replies,
                           problem_log + [[f"couldn't reach the model: {getattr(e, 'message', e)}"]], used)

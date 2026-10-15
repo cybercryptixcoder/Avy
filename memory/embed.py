@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"   # 384 numbers per text, about 65 MB, runs on the CPU
-KINDS = "mvec"                           # what gets vectors: messages, node versions, episodes, connections
+KINDS = "mvecp"                          # what gets vectors: messages, node versions, episodes, connections, library passages
 
 
 class Shelf:

@@ -31,6 +31,7 @@ TESTS = {
     "errands": "t_errands.py",   # the two dials, incognito end to end, dictation vs live voice (needs the voice models)
     "files": "t_files.py",       # attaching, dropping, pasting, what reaches the model, chips, save, /export, /files, import
     "look": "t_look.py",         # light and dark (contrast everywhere, hovers too), her thinking folded under replies, sounds
+    "glass": "t_glass.py",       # the library (attach, a dropped folder), the looking glass, dreaming, passages in the memory note
 }
 
 
@@ -98,6 +99,15 @@ def main():
     unknown = [t for t in args.tests if t not in TESTS]
     if unknown:
         parser.error(f"no such test: {', '.join(unknown)} (there are: {', '.join(TESTS)})")
+    if shutil.which("node"):                     # a syntax error in the page's script breaks everything at once: say so first
+        import re
+        page = (ROOT / "index.html").read_text()
+        script = page[page.rindex("<script>") + 8:page.rindex("</script>")]
+        check = Path(tempfile.mkdtemp()) / "page.js"
+        check.write_text(script)
+        done = subprocess.run(["node", "--check", str(check)], capture_output=True, text=True)
+        if done.returncode:
+            raise SystemExit("The page's script doesn't parse:\n" + done.stderr[:1500])
     work = Path(args.work or tempfile.mkdtemp(prefix="avy-page-"))
     work.mkdir(parents=True, exist_ok=True)
     avy, failed = Avy(work, args.python, args.models), []

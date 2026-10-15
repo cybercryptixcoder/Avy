@@ -44,6 +44,9 @@ DEPTHS = {
 
 PARTS_SHOWN = 8     # when a thing is shown, this many of its newest parts are listed under it
 
+LIBRARY_HEADING = ("From his library (things he added: documents, papers, code, data, conversations he had elsewhere; "
+                   "their exact words, with where each comes from. Only his own words are facts about him):")
+
 # How strongly one step carries relevance, by kind of connection and direction.
 # "out" follows a part_of / builds_on edge as written (a birthday -> Rohan); "in" goes backwards (Rohan -> his birthday).
 STEP = {
@@ -146,11 +149,12 @@ class Recall:
             cited |= msgs
             picked.append(self.trace_item(c, reached[c], block, msgs))
 
-        # 4. The safety net: older messages that match by themselves.
+        # 4. The safety net: older messages that match by themselves, and passages from his library.
         log_lines, used, skipped2, log_hits = self.log_net(queries, picked, shown_from, level, words, use_meaning, floor, used)
+        library, used, skipped3, _ = self.library_net(queries, level, words, use_meaning, floor, used)
 
         trace.update({
-            "nodes": picked, "log": log_lines, "skipped": skipped + skipped2, "tokens": used,
+            "nodes": picked, "log": log_lines, "library": library, "skipped": skipped + skipped2 + skipped3, "tokens": used,
             "searched": {"nodes": len(found), "log": log_hits}, "walked": len(reached) - len(seeds),
             "best": round(best, 3), "bar": round(bar, 3), "seconds": round(time.time() - started, 3),
         })
@@ -162,7 +166,7 @@ class Recall:
     def empty_trace(self, text, depth, words, meaning):
         return {"query": text, "depth": depth, "memory": self.name, "letter": self.letter, "words": bool(words),
                 "meaning": bool(meaning), "meaning_model": embedder.status, "explore": None,
-                "nodes": [], "log": [], "connections": [], "edges_used": [], "skipped": 0, "tokens": 0,
+                "nodes": [], "log": [], "library": [], "connections": [], "edges_used": [], "skipped": 0, "tokens": 0,
                 "searched": {"nodes": 0, "log": 0}, "walked": 0, "best": 0, "bar": 0, "seconds": 0, "messages": []}
 
     def land(self, queries, words=True, meaning=True, k=40):
@@ -262,6 +266,8 @@ class Recall:
             lines.append(f"[{self.handle(c['a'])}] {a['title']} {arrow} [{self.handle(c['b'])}] {b['title']}: {c['reason']}")
         out.append((f"How these connect{label}:", lines))
         out.append((f"From older parts of the conversation{label}:", [l["block"] for l in trace["log"]]))
+        out.append((LIBRARY_HEADING.replace(":", f"{label}:", 1) if label else LIBRARY_HEADING,
+                    [l["block"] for l in trace.get("library") or []]))
         return out
 
     def node_block(self, chain, full=False, shown_from=None):
@@ -341,6 +347,7 @@ class Recall:
         kept = {k: v for k, v in trace.items() if k not in ("briefing",)}
         kept["nodes"] = [{k: v for k, v in x.items() if k != "block"} for x in trace["nodes"]]
         kept["log"] = [{k: v for k, v in x.items() if k != "block"} for x in trace["log"]]
+        kept["library"] = [{k: v for k, v in x.items() if k != "block"} for x in trace.get("library") or []]
         with self.tx() as db:
             return db.execute("INSERT INTO recalls (message, at, trace, briefing) VALUES (?, ?, ?, ?)",
                               (mid, now().isoformat(timespec="seconds"), json_dumps(kept), trace["briefing"])).lastrowid
@@ -356,6 +363,7 @@ def combine(main_mem, main, own_mem, own):
     main and own are traces from Memory.recall, each from its own memory."""
     trace = {**own,
              "nodes": own["nodes"] + main["nodes"], "log": own["log"] + main["log"],
+             "library": (own.get("library") or []) + (main.get("library") or []),
              "connections": own["connections"] + main["connections"],
              "edges_used": own["edges_used"], "main_edges_used": main["edges_used"],
              "tokens": own["tokens"] + main["tokens"], "skipped": own["skipped"] + main["skipped"],
@@ -364,5 +372,5 @@ def combine(main_mem, main, own_mem, own):
              "main_messages": main["messages"]}
     sections = main_mem.sections(main, " (from the main conversation; read-only here)") + \
         own_mem.sections(own, " (from earlier in this incognito conversation)")
-    trace["briefing"] = briefing(sections) if trace["nodes"] or trace["log"] else own["briefing"]
+    trace["briefing"] = briefing(sections) if trace["nodes"] or trace["log"] or trace["library"] else own["briefing"]
     return trace

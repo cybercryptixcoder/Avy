@@ -8,7 +8,7 @@ alone can't say that):
 
 Either half can be switched off (/meaning: and /words:), to see what each one contributes.
 
-Items: m41 a message, v77 a node version, e4 an episode headline, c7 a connection's reason.
+Items: m41 a message, v77 a node version, e4 an episode headline, c7 a connection's reason, p41 a library passage.
 """
 
 import math
@@ -33,6 +33,7 @@ class Search:
         todo += [(f"v{r['id']}", self.node_words(r)) for r in self.rows("SELECT * FROM nodes")]
         todo += [(f"e{r['id']}", r["headline"]) for r in self.rows("SELECT id, headline FROM episodes")]
         todo += [(f"c{r['id']}", r["reason"]) for r in self.rows("SELECT id, reason FROM edges")]
+        todo += [(f"p{r['id']}", self.passage_words(r, r["text"])) for r in self.rows("SELECT * FROM passages")]   # the library
         todo = [(item, text) for item, text in todo if item not in shelves[item[0]].where]
         for i in range(0, len(todo), 64):
             self.remember_meaning(todo[i:i + 64])

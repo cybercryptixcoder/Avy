@@ -5,7 +5,7 @@
 #   judge_connections  connects the first pair only
 #   write_inferences   infers nothing
 #   recheck            everything holds
-#   explore_memory     round 1 reads the first node at the frontier; the last round keeps the first two
+#   explore_memory     round 1 reads the first node at the frontier; the last round keeps the first two, and two library passages
 import json, re, sys, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 LOG = sys.argv[1]                  # every request, one JSON line each (the tests read it)
@@ -62,9 +62,10 @@ def answer(body):
         frontier = re.findall(r"^([kx]\d+) \[", text, re.M)
         last = "This is the last round" in text
         time.sleep(0.4)
+        shelf = re.findall(r"^\[(p\d+)\]", text, re.M)          # library passages its searches turned up
         if last:
             return name, {"task": "what the message needs (mock)", "questions": [], "open": [], "follow": [], "search": [],
-                          "keep": [{"item": h, "why": "mock keeps it"} for h in frontier[:2]], "done": True}
+                          "keep": [{"item": h, "why": "mock keeps it"} for h in frontier[:2] + shelf[:2]], "done": True}
         return name, {"task": "what the message needs (mock)", "questions": ["what else is there?"], "open": frontier[:1],
                       "follow": frontier[:1], "search": ["something related"], "keep": [], "done": False}
     return name, {}

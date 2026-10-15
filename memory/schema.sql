@@ -64,6 +64,41 @@ CREATE TABLE IF NOT EXISTS episodes (
   run       INTEGER                             -- the run that wrote it
 );
 
+-- THE LIBRARY ----------------------------------------------------------------------------------------
+-- What he added that wasn't said in this conversation: documents, papers, code, spreadsheets, recordings,
+-- conversations he had elsewhere (with Claude, with people). Any format: intake.py reads it into passages,
+-- kept word for word in order, like the log. Passages are searchable at once (words and meaning), so memory
+-- can bring them back before any knowledge is written from them. Writing knowledge from them is a later step
+-- (ARCHITECTURE.md, "The library").
+CREATE TABLE IF NOT EXISTS sources (
+  id      INTEGER PRIMARY KEY,                  -- s3
+  name    TEXT NOT NULL,                        -- what he called it (the file or folder name)
+  kind    TEXT NOT NULL,                        -- document, code, conversations, data, recording, mixed
+  added   TEXT NOT NULL,
+  came    TEXT,                                 -- where it came from: an attached file (f2026...), a folder, a path
+  digest  TEXT,                                 -- a hash of what was read, so the same thing isn't added twice
+  status  TEXT NOT NULL DEFAULT 'reading',      -- reading, stored (searchable), problem
+  meta    TEXT NOT NULL DEFAULT '{}'            -- what the reader found: format, pages, files, conversations, speakers
+);
+CREATE TRIGGER IF NOT EXISTS sources_are_kept BEFORE DELETE ON sources
+  BEGIN SELECT RAISE(ABORT, 'the library keeps what it was given'); END;
+
+CREATE TABLE IF NOT EXISTS passages (
+  id       INTEGER PRIMARY KEY,                 -- p41
+  source   INTEGER NOT NULL REFERENCES sources(id),
+  seq      INTEGER NOT NULL,                    -- its place in the source
+  part     TEXT,                                -- where in it: "page 3", "src/app.py:120-180", "Trip planning · #12"
+  speaker  TEXT,                                -- conversations: who said it, as the source names them
+  role     TEXT,                                -- conversations: user (Shreyas), assistant, or other
+  at       TEXT,                                -- when, if the source says
+  text     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS passages_by_source ON passages(source, seq);
+CREATE TRIGGER IF NOT EXISTS passages_are_permanent_1 BEFORE UPDATE ON passages
+  BEGIN SELECT RAISE(ABORT, 'passages are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS passages_are_permanent_2 BEFORE DELETE ON passages
+  BEGIN SELECT RAISE(ABORT, 'passages are append-only'); END;
+
 -- KNOWLEDGE ----------------------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS nodes (

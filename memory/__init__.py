@@ -18,6 +18,7 @@ A Memory is one file. The parts of the class live in their own files:
     ops.py        the one door for changes rules.py      what every change must pass
     search.py     meaning + words          recall.py     what each message brings back
     health.py     the network's shape      inspect.py    what the inspector reads
+    library.py    what he added (documents, code, other conversations), kept as passages
 """
 
 from .common import NAME, clock, now, stamp, when, day, tokens, who, clip, terms, locate, same_title, node_ref, edge_ref, message_ref
@@ -25,6 +26,7 @@ from .embed import embedder, EMBED_MODEL
 from .health import measure as health, record as record_health
 from .inspect import Inspect
 from .knowledge import Knowledge, SHAPES, ORIGINS, SAID_BY
+from .library import Sources, digest_of
 from .log import Log, WINDOW, SITTING_GAP
 from .network import Network, KINDS, LIVE, MAX_LIVE
 from .ops import Ops
@@ -33,5 +35,5 @@ from .search import Search, top_score, ECHO
 from .store import Store
 
 
-class Memory(Store, Log, Knowledge, Network, Ops, Search, Recall, Inspect):
+class Memory(Store, Log, Knowledge, Network, Ops, Search, Recall, Inspect, Sources):
     """One memory: Memory("data/memory-v2.db"), or Memory(path, name="incognito", letter="x")."""

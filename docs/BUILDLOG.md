@@ -143,3 +143,97 @@ processes (Luminal's limit is 8 at once). Run 1 was started at ~01:35 from a sna
 - CSS custom properties that reference others (`--thin: 2px solid var(--ink)`) are resolved where they're
   declared (`:root`), so redefining `--ink` on a child doesn't change `var(--thin)` inside it. The green tile
   sets its border color explicitly for that reason.
+
+**7. The library: anything added becomes searchable memory** (`intake.py`, `memory/library.py`).
+- New permanent stores in every memory file: `sources` (what was added: name, kind, digest, status, meta;
+  never deleted) and `passages` (its words, in order, each labeled with where it is, and for
+  conversations who said it, their role and when; append-only like the log). Handles `s3`, `p41`.
+- Intake reads anything with no model involved: documents (heading-path labels, page/slide/cell markers),
+  code (`path:first-last`, ≤ 60 lines), data (30 rows with the header repeated), recordings (the attached
+  file's transcript is reused), folders and archives (unpacked safely; node_modules/.git/build/lockfiles
+  /minified/binaries skipped and counted), and **conversations in any of the common shapes**: Claude export,
+  ChatGPT export (the branch it ended on), any JSON with speaker+text-ish keys, WhatsApp exports, labeled
+  transcripts ("Me: …", "**Claude:** …"), speaker headings. A text only counts as a conversation if a few
+  speakers come back again and again and the turns cover nearly all of it (so a Markdown document's headings
+  or prose with a colon aren't mistaken for speakers: both were, at first, and the tests caught it).
+- A background queue (one job at a time): queued → reading → storing (searchable by words at once) →
+  embedding (meaning vectors; rate measured, real ETA) → stored; `duplicate` when the same words are already
+  there (a digest of the passages). Every chat attachment joins the library of the memory it was attached
+  in (`files.hooks["read"]`); folders come in through the looking glass (`/api/library/upload` per file with
+  `X-Batch` and `X-File-Path`, then `/api/library/folder`).
+- Recall gains a second safety net (`library_net`): passages that match by themselves, in their own
+  section of the memory note ("From his library…"), each `[p41] (from "name"; where; who said it)`. Explore
+  sees library passages its searches turn up and can keep them (`p41`). The system prompt explains them;
+  footnotes work for `[p41]` (hover: the passage; click: the passage view).
+- Measured here: embedding is slow on this 2-CPU container shared with four live runs (≈0.8 s per
+  1,200-character passage; short texts ≈60/s). On a laptop it's far faster. That's why the ETA is measured.
+- Decided by me, reversible, flagged for Shreyas (VISION.md §16): attachments join the library
+  automatically; the library can't be deleted from; the Claude history still builds into its own memory file
+  (the existing design) *and* now also sits in the main library as passages when attached.
+
+**8. The looking glass** (`/glass`, the Glass button): one full-page view, refreshed every 1.5 s while open
+and on events: intake jobs (bar, passages done/total, rate, ETA, steps, problems; pause/resume/cancel; a
+drop zone and [ add files ] / [ add a folder ]), memory's numbers (+ library, thoughts kept, health),
+the mind (what it's doing now, today's calls and cost, runs by job, latest runs, what went wrong), **your
+Claude history** (its memory file's numbers; [ plan ], [ build ] with thinking level, budget and a trial
+stretch count, [ stop ]: runs `tools/claude_import.py run` as a separate process so its fixed clock never
+touches the live conversation; progress parsed from its output), **dreaming** (start with hours, budget,
+thinking; wake; progress), and costs. `/api/glass` returns all of it in one answer.
+
+**9. Dreaming** (`mind/dream.py`, `/dream`): see ARCHITECTURE.md §5. Rounds of: Check everything stale
+(hourly), sweep the next 6 longest-undreamt nodes for distant partners (Connect), think about a rotating
+focus (wander / hub / bridge between two distant hubs; never the same view twice), health every 30 min;
+until time, budget or waking; wakes early after two laps round all of memory find nothing new. Every job
+carries its own thinking level (`Job.effort`, new), so dreaming runs at max while `/mind:` stays none.
+Pitfall found by the test: on a small memory with no candidate pairs, the first version looped through
+Think hundreds of times in seconds (331 runs in 15 s with the scripted model). Fixed by the lap rule and
+the no-repeat rule.
+
+**10. VISION.md and ARCHITECTURE.md** written: the vision (the concept document restructured, plus
+everything Shreyas added this session: the library, the looking glass, dreaming, search inside the thinking
+chain, the thinking levels; and an "Open decisions" list) and the architecture (what kind of graph, every
+store and its guarantees, the jobs, recall and explore with their formulas, dreaming, the planned thought
+graph, slots, self model, parallel threads, the library's Read job, turn assembly, testing, where each part
+lives).
+
+**Pitfalls**
+- I wrote Python-style implicit string concatenation in the page's JavaScript twice (`"a "` newline `"b"`):
+  a syntax error that silently kills the whole page. `tests/page/run.py` now runs `node --check` on the
+  page's script before any browser test, and says so first.
+- `pkill -f "app.py$"` matched the shell running it and killed my own command. Kill by PID.
+- New command descriptions must be ≤ 6 words (the `/` panel test checks it).
+
+### Live test run 1 (old code: before the library), first findings
+
+Four scenarios, ~16–20 min and ~$0.25 each (life still running). Scores (judge, 0–1):
+
+| scenario | probe | app | memory | rules |
+|---|---|---|---|---|
+| work | resume a debugging task after other conversations | 1.0 | 1.0 | 0.88 |
+| work | why the cache was ruled out | 1.0 | 1.0 | 1.0 |
+| work | "should I cap the cache to fix latency?" (a ruled-out idea) | 1.0 ⚠ | 0.88 | 1.0 |
+| work | the retry policy, from an attached design doc | **0.0** | **0.0** | **0.0** |
+| work | who's on call, from the same doc | 1.0 | 1.0 | 1.0 |
+| persona | grocery list 8 messages back at window 4 (the short-term gap) | 1.0 (window4) | | |
+| persona | style two weeks later (short, no lists, no question at the end) | 1.0 | 1.0 | 0.5 |
+| ideas | how an idea changed | 1.0 | 1.0 | 1.0 |
+| ideas | ideas borrowed from brains or computers | 1.0 | 1.0 | 0.83 |
+| ideas | threads to pull into a pitch | 0.75 | 0.75 | 0.75 |
+
+What they show:
+1. **A file's contents never reached memory**, and worse, Avy *confidently denied* the doc said what it
+   said ("the doc doesn't specify a retry policy"), because memory held a node about the doc (written from
+   her own reply when it was attached) and she took it as the whole doc. "Who's on call" only worked
+   because her reply at the time happened to repeat that line. → The library (built above) is the fix;
+   run 2 measures it.
+2. **Her own words crowd his out.** In the ideas scenario memory held 29 "Avy said" nodes to his 25 (plus 26
+   inferred): every long reply of hers left several idea nodes, even when he never responded to them. For
+   "which threads should I pull in", the answer included *her* elaborations ("reasons must be checkable")
+   as his threads and missed his own OS analogy. In the work scenario an answer turned her suggestion ("worth
+   a look across the call sites") into something he'd reported (the judge flagged it as invented). The
+   tiers are labeled in the note, but the answer still blurs them. → An open decision (VISION.md §16.2).
+3. The internal-state test (resuming a multi-day bug hunt) went well: the conversation's facts carry the
+   working state. The concept's harder internal-memory cases (plans that live only in her reasoning,
+   commitments, suspicions) aren't exercised by scenarios where he states everything.
+4. The persona test was too easy: the default system prompt already asks for short, plain replies, so
+   "short, no lists" holds even without memory. Run 2 uses preferences that go *against* the defaults.

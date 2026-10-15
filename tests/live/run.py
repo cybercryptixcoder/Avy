@@ -46,6 +46,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("scenario", nargs="?", default="")
     parser.add_argument("--all", action="store_true", help="every scenario, side by side in separate processes")
+    parser.add_argument("--only", default="", help="with --all: just these scenarios, comma-separated")
     parser.add_argument("--key", default=str(ROOT / ".env"))
     parser.add_argument("--models", default=str(ROOT / "data" / "models" / "meaning"))
     parser.add_argument("--out", default=str(HERE / "results"))
@@ -58,7 +59,7 @@ def main():
     stamp = args.stamp or datetime.now().strftime("%Y-%m-%d_%H-%M")
     if args.all:
         procs = []
-        for name in scenarios.SCENARIOS:
+        for name in (args.only.split(",") if args.only else scenarios.SCENARIOS):
             cmd = [sys.executable, "-u", __file__, name, "--stamp", stamp, "--mind", args.mind, "--until", str(args.until),
                    "--key", args.key, "--models", args.models, "--out", args.out] + (["--no-explore-play"] if args.no_explore_play else [])
             Path(args.out).mkdir(parents=True, exist_ok=True)
@@ -93,10 +94,12 @@ class Live:
         memory.embedder.wait(300)
         self.mem = app.MEMORIES["main"] = memory.Memory(self.work / "memory-v2.db")
         app.FILES_DIR = self.work / "files"
+        files.hooks["read"] = app.on_file_read            # attachments join the library, as in the app
+        app.INTAKE.start()
         llm.app.update(ask=app.ask_json, prices=app.PRICES, effort=lambda: args.mind)
         worker.app.update(page=app.page_size, main=lambda: self.mem, memories=lambda: [self.mem])
         defaults = {name: spec["default"] for name, spec in app.SETTINGS.items()}
-        self.settings = dict(defaults, footnotes="on", mind=args.mind,
+        self.settings = dict(defaults, footnotes="on", mind=args.mind, thinking=self.sc.get("thinking", "none"),
                              explore="off" if args.no_explore_play else "on")
         app.current_settings = lambda: self.settings
         self.tags, self.cost, self.started = {}, {"replies": 0.0, "sim": 0.0, "probes": 0.0, "judge": 0.0}, time.time()
@@ -144,20 +147,39 @@ class Live:
 
     def attach(self, name):
         import io
-        data = self.sc["files"][name].encode()
-        record = files.save(io.BytesIO(data), len(data), name, "text/markdown", app.FILES_DIR)
-        return files.wait(record["id"], [app.FILES_DIR], 60)
+        data = self.sc["files"][name]
+        data = data if isinstance(data, bytes) else data.encode()
+        record = files.save(io.BytesIO(data), len(data), name, "", app.FILES_DIR)
+        record = files.wait(record["id"], [app.FILES_DIR], 120)
+        end = time.time() + 600                        # let the library take it in (the app would carry on; a test waits)
+        time.sleep(0.5)
+        while app.INTAKE.busy() and time.time() < end:
+            time.sleep(0.5)
+        for j in app.INTAKE.status()["jobs"][:3]:
+            self.say(f"     library  {j['state']:<9} {j['name']}  {j.get('passages') or j.get('total')} passages  {j.get('problem') or ''}")
+        return record
 
     def play(self, s):
         self.clock(self.moment(s["day"], s["at"]))
         self.write_due()                       # a quiet spell before this: the mind catches up
         if s.get("sim"):
             return self.simulate(s)
-        for line in s["lines"]:
-            speaker, text = line[0], line[1]
-            extra = line[2] if len(line) > 2 else {}
+        lines = list(s["lines"])
+        i = 0
+        while i < len(lines):
+            speaker, text = lines[i][0], lines[i][1]
+            extra = lines[i][2] if len(lines[i]) > 2 else {}
+            nxt = lines[i + 1] if i + 1 < len(lines) else None
+            if nxt and nxt[0] == "avy":                 # Avy's reply is scripted: both saved as they are (no model)
+                for who, words in (("user", text), ("assistant", nxt[1])):
+                    self.tags[self.mem.add(who, words)] = (s["thread"], s["day"])
+                    self.clock(memory.now() + timedelta(seconds=40))
+                self.write_due()
+                i += 2
+                continue
             attached = [self.attach(n) for n in extra.get("files", [])]
             self.turn(text, s["thread"], s["day"], attached)
+            i += 1
 
     def simulate(self, s):
         """A simulated Shreyas chats about something for a few turns (filler, like real life)."""
@@ -241,8 +263,20 @@ class Live:
                 break
             files_ = [f.get("name") for f in m["meta"].get("files") or [] if isinstance(f, dict)]
             lines.append(f"[{datetime.fromisoformat(m['at']):%b %d, %I:%M %p}] {memory.who(m['role'], m.get('via'))}: {m['text']}"
-                         + "".join(f"\n  (he attached {n}; its contents:\n{self.sc['files'][n]}\n  )" for n in files_ if n in self.sc.get("files", {})))
+                         + "".join(f"\n  (he attached {n}; its contents:\n{self.file_text(n)}\n  )" for n in files_ if n in self.sc.get("files", {})))
         return "\n".join(lines) or "(nothing yet)"
+
+    def file_text(self, name):
+        """What the judge is told an attached file says (a zip: each file in it; at most 20,000 characters)."""
+        data = self.sc["files"][name]
+        if isinstance(data, str):
+            return data[:20000]
+        import io, zipfile
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as z:
+                return "\n".join(f"--- {n} ---\n{z.read(n).decode(errors='replace')}" for n in z.namelist())[:20000]
+        except zipfile.BadZipFile:
+            return "(a binary file)"
 
     def grade(self, probe, answer, passes=2):
         tool = llm.tool("grade", "Grade the answer.", {

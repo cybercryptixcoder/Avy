@@ -58,7 +58,9 @@ Each round you can:
   open     read nodes in full: their exact words and all their connections
   follow   look at the neighbors of nodes (one step along their connections)
   search   search memory in your own words, for things the message doesn't mention but the task needs
-  keep     the nodes (k12) and log lines (#41) Avy should have; this replaces your previous keep list
+  keep     the nodes (k12), log lines (#41) and library passages (p41) Avy should have; this replaces your
+           previous keep list. His library holds what he added (documents, code, conversations from
+           elsewhere), word for word; a passage is the right thing to keep when the answer is in its words.
   done     true when your questions are answered, or nothing more is likely to help
 Keep what genuinely helps; leave out what only sounds similar. If memory has nothing useful, keep
 nothing and say so in your questions. Answer only by calling explore_memory."""
@@ -70,7 +72,7 @@ TOOL = llm.tool("explore_memory", "Decide the next moves in the search, and what
     "follow": {"type": "array", "items": {"type": "string"}, "description": f"Node handles whose neighbors to look at (at most {MAX_FOLLOW})."},
     "search": {"type": "array", "items": {"type": "string"}, "description": f"New searches, in your own words (at most {MAX_SEARCH})."},
     "keep": {"type": "array", "items": llm.obj({
-        "item": {"type": "string", "description": "A node handle (k12) or a log line (#41)."},
+        "item": {"type": "string", "description": "A node handle (k12), a log line (#41) or a library passage (p41)."},
         "why": {"type": "string", "description": "How it helps, in a few words."},
     })},
     "done": {"type": "boolean"},
@@ -96,6 +98,26 @@ class Library:
         """'#41' -> (memory, 41). Log lines are read from the memory being talked to."""
         mid = message_ref(ref)
         return (default, mid) if mid and default.message(mid) else (None, None)
+
+    def passage(self, ref, default):
+        """'p41' -> (memory, 41): the library passage, from the memory being talked to first, then the others."""
+        h = str(ref or "").strip().strip("[]")
+        if not (h[:1] in "pP" and h[1:].isdigit()):
+            return None, None
+        for mem in [default] + [m for m in self.mems if m is not default]:
+            if mem.passage(int(h[1:])):
+                return mem, int(h[1:])
+        return None, None
+
+    def library(self, text, words=True, meaning=True, k=6):
+        """Library passages close to the text, across every memory: [(memory, pid, score)], best first."""
+        vec = embedder.query(text) if meaning and embedder.ready else None
+        found = []
+        for mem in self.mems:
+            for pid, hit in mem.library_hits([(text, 1.0, vec)], words, vec is not None, k).items():
+                found.append((mem, pid, hit["score"]))
+        found.sort(key=lambda x: -x[2])
+        return found[:k]
 
 
 def preview(mem, chain, links=4):
@@ -159,13 +181,17 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
     for mem, chain, _ in sorted(landing, key=lambda x: -x[2])[:PREVIEWS]:
         add(mem, chain)
     rec["landing"] = list(frontier)
+    shelf = {}                           # library passages the searches turned up: (letter, pid) -> (memory, score)
+    for mem, pid, score in library.library(text, words, meaning):
+        if score >= (0.6 if meaning and embedder.ready else 0.3):
+            shelf[(mem.letter, pid)] = (mem, score)
 
     opened, kept, notes, searches = {}, [], {"task": "", "questions": []}, []
     log_hits = {}
     convo_answer = None
     for rnd in range(1, rounds_allowed + 1):
         prompt = make_prompt(library, home, text, recent, frontier, opened, kept, notes, searches, log_hits,
-                             rnd, rounds_allowed)
+                             rnd, rounds_allowed, shelf)
         convo = [{"role": "system", "content": INSTRUCTIONS}, {"role": "user", "content": prompt}]
         try:
             reply = llm.call(convo, TOOL, max_tokens=2000, effort=effort)
@@ -191,6 +217,10 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
                 m, mid = library.message(item, home)
                 if m:
                     kept.append({"item": f"#{mid}", "why": str(k.get("why") or "")})
+                else:
+                    m, pid = library.passage(item, home)
+                    if m:
+                        kept.append({"item": f"p{pid}", "why": str(k.get("why") or ""), "memory": m})
         step = {"round": rnd, "task": notes["task"], "questions": notes["questions"], "open": [], "follow": [],
                 "search": [], "keep": [k["item"] for k in kept], "done": bool(answer.get("done"))}
         thinking = (((reply.get("choices") or [{}])[0].get("message") or {}).get("reasoning_content") or "").strip()
@@ -232,6 +262,9 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
                 mid = int(item[1:])
                 if mid < shown_from and hit["score"] >= (0.6 if vec is not None else 0.3):
                     log_hits[mid] = max(log_hits.get(mid, 0), hit["score"])
+            for mem, pid, score in library.library(q, words, meaning):
+                if score >= (0.6 if vec is not None else 0.3):
+                    shelf[(mem.letter, pid)] = (mem, max(score, shelf.get((mem.letter, pid), (None, 0))[1]))
             step["search"].append(q)
         rec["rounds"].append(step)
         if progress:
@@ -253,8 +286,17 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
 
     # 3. What was kept becomes the note, laid out like recall's.
     used, picked, log_lines, cited = 0, [], [], set()
+    shelf_lines = []
     by_mem = {}
     for k in kept:
+        if k["item"].startswith("p"):
+            mem = k["memory"]
+            block = mem.passage_block(mem.passage(int(k["item"][1:])))
+            if used + tokens(block) <= level["tokens"]:
+                used += tokens(block)
+                shelf_lines.append({"passage": int(k["item"][1:]), "memory": mem.name, "how": "explored", "score": 1.0,
+                                    "block": block, "why": k["why"]})
+            continue
         if k["item"].startswith("#"):
             mid = int(k["item"][1:])
             m = home.message(mid)
@@ -284,7 +326,7 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
                 mem.apply({"op": "connect", **{k: mem.edge(item["edge"])[k] for k in ("a", "b", "kind", "reason")},
                            "support": {"kind": "used", "source": "explore", "note": f"led to {item['handle']} for: {clip(text, 0, 80)}"}})
 
-    trace.update({"nodes": picked, "log": log_lines, "tokens": used, "seconds": round(time.time() - started, 2),
+    trace.update({"nodes": picked, "log": log_lines, "library": shelf_lines, "tokens": used, "seconds": round(time.time() - started, 2),
                   "searched": {"nodes": len(rec["visited"]), "log": len(log_hits)}, "walked": len(came_by)})
     if len(library.mems) > 1:
         sections, extra = [], {}
@@ -297,23 +339,23 @@ def explore(library, home, text, recent="", shown_from=None, depth="normal", wor
         trace["main_messages"] = sorted(l["message"] for ls in extra.values() for l in ls)
         for mem in library.mems:
             part = {**trace, "nodes": by_mem.get(mem.name, []), "log": log_lines if mem is home else extra.get(mem.name, []),
-                    "connections": []}
+                    "library": [l for l in shelf_lines if l["memory"] == mem.name], "connections": []}
             mem.finish_trace(part)
             trace["connections"] += part["connections"]
             label = " (from the main conversation; read-only here)" if mem is not home else " (from earlier in this incognito conversation)"
             sections += mem.sections(part, label)
         trace["messages"] = sorted(cited | {l["message"] for l in log_lines})
-        trace["briefing"] = briefing(sections) if picked or log_lines or extra else briefing([], "Avy searched her memory and found nothing that helps with this.")
+        trace["briefing"] = briefing(sections) if picked or log_lines or extra or shelf_lines else briefing([], "Avy searched her memory and found nothing that helps with this.")
     else:
         home.finish_trace(trace, cited)
-        if not picked and not log_lines:
+        if not picked and not log_lines and not shelf_lines:
             trace["briefing"] = briefing([], "Avy searched her memory and found nothing that helps with this.")
     if notes["task"]:
         trace["briefing"] += f"\n\n(What the search took this message to need: {notes['task']})"
     return trace
 
 
-def make_prompt(library, home, text, recent, frontier, opened, kept, notes, searches, log_hits, rnd, rounds):
+def make_prompt(library, home, text, recent, frontier, opened, kept, notes, searches, log_hits, rnd, rounds, shelf=None):
     parts = [f"The message: {text}"]
     if recent:
         parts.append(f"Just before it:\n{recent}")
@@ -346,6 +388,10 @@ def make_prompt(library, home, text, recent, frontier, opened, kept, notes, sear
     if log_hits:
         lines = [home.message_block(home.message(mid)) for mid in sorted(log_hits, key=lambda m: -log_hits[m])[:6]]
         parts.append("From the log (raw messages your searches matched; keep as #41 if useful):\n" + "\n".join(lines))
+    if shelf:
+        best = sorted(shelf.items(), key=lambda kv: -kv[1][1])[:6]
+        parts.append("From his library (passages of what he added that your searches matched; keep as p41 if useful):\n"
+                     + "\n".join(mem.passage_block(mem.passage(pid)) for (_, pid), (mem, _) in best))
     if kept:
         parts.append("Kept so far: " + ", ".join(f"{k['item']} ({k['why']})" for k in kept))
     return "\n\n".join(parts)

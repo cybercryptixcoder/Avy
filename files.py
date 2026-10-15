@@ -47,7 +47,8 @@ MAX_FRAMES = 8
 SCAN_PAGES = 6                   # a scanned PDF: how many pages to show as pictures
 ID = re.compile(r"^f\d{8}-\d{6}-[0-9a-f]{4}$")
 
-hooks = {"transcribe": None}     # set by app.py: voice.transcribe_file(path) -> (text, seconds), if voice is installed
+hooks = {"transcribe": None,     # set by app.py: voice.transcribe_file(path) -> (text, seconds), if voice is installed
+         "read": None}           # set by app.py: told (home, record) when a file has been read, so it joins the library
 _heavy = threading.Semaphore(1)  # one transcription at a time: the speech model is big
 
 
@@ -154,6 +155,11 @@ def read_in_background(home, record):
         record["what"] = record.get("problem") or "couldn't read it"
     record["read_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
     write_info(home, record)
+    if hooks.get("read"):
+        try:
+            hooks["read"](home, record)          # anything attached also joins memory's library (intake.py)
+        except Exception as e:
+            print(f"Files: couldn't add {record.get('name')} to the library ({e})")
 
 
 def read(path, home, record):

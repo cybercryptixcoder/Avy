@@ -13,6 +13,7 @@ Everything Avy writes to disk goes in the data/ folder next to this file.
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import urllib.parse
@@ -22,10 +23,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import files
+import intake
 import luminal
 import memory
 from memory import recall as recalling
-from mind import explore, llm as mind_llm, worker, writer
+from mind import dream, explore, llm as mind_llm, worker, writer
 
 
 # ---------------------------------------------------------------------------
@@ -46,6 +48,7 @@ V1_MEMORY = DATA / "memory.db"              #   version 1's memory (the log is c
 INCOGNITO_DIR = DATA / "incognito"          #   an incognito conversation: deleted when it ends
 FILES_DIR = DATA / "files"                  #   files you attach, each kept as it came, with what Avy read from it
 CLAUDE_MEMORY = DATA / "memory-claude.db"   #   where an imported Claude history goes (tools/claude_import.py)
+LIBRARY_DIR = DATA / "library"              #   folders you add to memory (kept as they came, one folder per upload)
                                             #   data/models      speech and meaning-search models
                                             #   data/recordings  backups of what you said (voice)
 PORT = 8000
@@ -67,6 +70,9 @@ Memory holds nodes (things, information and ideas) with handles like [k12], in t
 - what you said before: your own suggestions and ideas. Not facts about him unless he agreed.
 - what you worked out yourself: inferred, with how sure you are and what it rests on. Useful, but when
   you lean on one, say it's your impression, and never present it as something he told you.
+The note may also bring passages from his library ([p41]): things he added, like documents, papers, code, data
+or conversations he had elsewhere, quoted word for word with where each comes from. Treat them like a document he
+handed you: use their exact words, and only his own words in them are facts about him.
 A node that changed shows its earlier versions; the newest is what's true now. The note also lists how
 the nodes connect, with reasons: follow those, because that's how something from weeks ago turns out to
 matter now. Use what's relevant and ignore the rest. If neither the recent messages nor memory covers
@@ -80,8 +86,9 @@ block with the right language, like ```csv; the page shows it with a button that
 is the one place markdown is fine."""
 
 FOOTNOTES = """When part of your answer comes from memory, put that node's handle right after it, like
-this[k12], with no space before it. The page turns these into small footnotes. Use only handles from the
-memory note, and only where they genuinely support what you just said; never mention numbers otherwise."""
+this[k12] (or a library passage's, like this[p41]), with no space before it. The page turns these into small
+footnotes. Use only handles from the memory note, and only where they genuinely support what you just said;
+never mention numbers otherwise."""
 
 NO_FOOTNOTES = "Don't mention node handles or message numbers unless he asks where something came from."
 
@@ -455,7 +462,7 @@ class Turn:
         """What the page shows under the reply: what memory brought, and where it came from."""
         found = self.recall.get("explore") or {}
         return {"message": self.user_id, "recall": self.recall_id, "memory": self.mem.name,
-                "nodes": len(self.recall["nodes"]), "log": len(self.recall["log"]),
+                "nodes": len(self.recall["nodes"]), "log": len(self.recall["log"]), "library": len(self.recall.get("library") or []),
                 "explored": bool(found and not found.get("fell_back")),
                 "kept": [x["handle"] for x in self.recall["nodes"]],
                 "visited": found.get("visited", [])}
@@ -559,7 +566,7 @@ def memory_for(query):
 
 
 MEMORY_VIEWS = ("/api/log", "/api/memory", "/api/node", "/api/edge", "/api/episode", "/api/run", "/api/recall",
-                "/api/search", "/api/graph", "/api/journal", "/api/health")
+                "/api/search", "/api/graph", "/api/journal", "/api/health", "/api/library", "/api/source", "/api/passage")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -584,6 +591,8 @@ class Handler(BaseHTTPRequestHandler):
             self.export(q)
         elif url.path == "/api/import":
             self.send_json(200, IMPORT)
+        elif url.path == "/api/glass":
+            self.send_json(200, glass())
         # --- memory, for the chat history, the inspector and the graph (?memory=main|incognito) ---
         elif url.path in MEMORY_VIEWS:
             mem = memory_for(q)
@@ -598,7 +607,7 @@ class Handler(BaseHTTPRequestHandler):
                 full = q.get("episodes", ["1"])[0] != "0"
                 last = mem.row("SELECT metrics FROM health ORDER BY id DESC LIMIT 1")
                 self.send_json(200, {"stats": mem.stats(), "episodes": mem.episodes_list() if full else [],
-                                     "reflections": mem.runs_list(["think", "check"], 30) if full else [],
+                                     "reflections": mem.runs_list(["think", "check", "dream"], 30) if full else [],
                                      "health": json.loads(last["metrics"]) if last else None})
             elif url.path == "/api/node":
                 self.send_found(mem.node_record(n, number(q, "version")))
@@ -617,6 +626,20 @@ class Handler(BaseHTTPRequestHandler):
             elif url.path == "/api/health":
                 self.send_json(200, {"now": memory.health(mem), "history": [
                     {"at": r["at"], **json.loads(r["metrics"])} for r in mem.rows("SELECT * FROM health ORDER BY id")]})
+            elif url.path == "/api/library":     # everything he added, and what the intake is doing
+                self.send_json(200, {"sources": mem.sources_list(), "stats": mem.library_stats(), "intake": INTAKE.status(),
+                                     "memory": mem.name})
+            elif url.path == "/api/source":
+                found = mem.source(n)
+                if found:
+                    found["passages_shown"] = mem.passages_of(n, number(q, "after") or 0, min(number(q, "limit") or 40, 200))
+                self.send_found(found)
+            elif url.path == "/api/passage":
+                p = mem.passage(n)
+                if p:
+                    p["before"] = mem.row("SELECT id, part FROM passages WHERE source = ? AND seq = ?", p["source"], p["seq"] - 1)
+                    p["after"] = mem.row("SELECT id, part FROM passages WHERE source = ? AND seq = ?", p["source"], p["seq"] + 1)
+                self.send_found(p)
             else:
                 self.send_json(200, mem.find(q.get("q", [""])[0]))
         else:
@@ -635,6 +658,43 @@ class Handler(BaseHTTPRequestHandler):
             self.chat()
         elif self.path == "/api/files":
             self.upload()
+        elif self.path == "/api/library/upload":          # one file of a folder you're adding
+            self.library_upload()
+        elif self.path == "/api/library/folder":          # ...and the folder is complete: read it into the library
+            body = self.read_json()
+            batch = str(body.get("batch") or "")
+            folder = LIBRARY_DIR / batch
+            if not re.fullmatch(r"b[0-9a-z-]{6,40}", batch) or not folder.exists():
+                return self.send_json(400, {"error": "That folder didn't arrive. Add it again."})
+            job = INTAKE.add_tree(talking_to(), folder, str(body.get("name") or "folder")[:120], came=f"folder {batch}")
+            self.send_json(200, {"job": job})
+        elif self.path == "/api/library/add":             # an attached file, added to the library by hand
+            fid = str(self.read_json().get("file") or "")
+            path, record = files.original(fid, file_folders())
+            if not record:
+                return self.send_json(404, {"error": "That file isn't here."})
+            job = INTAKE.add_file(talking_to(), path, record["name"], came=fid, record=record, home=path.parent)
+            self.send_json(200, {"job": job})
+        elif self.path == "/api/intake":                  # {"pause": true|false} or {"cancel": job id}
+            body = self.read_json()
+            if "pause" in body:
+                INTAKE.pause(bool(body["pause"]))
+            if body.get("cancel"):
+                INTAKE.cancel(int(body["cancel"]))
+            self.send_json(200, INTAKE.status())
+        elif self.path == "/api/dream":                   # {"action": "start", hours, max_dollars, effort} or {"action": "stop"}
+            body = self.read_json()
+            if not DREAM:
+                return self.send_json(400, {"error": "Dreaming isn't available."})
+            if MEMORIES["incognito"] and body.get("action") == "start":
+                return self.send_json(400, {"error": "End the incognito conversation first: she dreams about the memory that's kept."})
+            problem = DREAM.stop() if body.get("action") == "stop" else DREAM.start(
+                float(body.get("hours") or 8), float(body.get("max_dollars") or 10), luminal.effort_level(body.get("effort") or "max"))
+            self.send_json(400 if problem else 200, {"error": problem} if problem else DREAM.status())
+        elif self.path == "/api/history":                 # the Claude history's build: {"action": plan|run|stop, ...}
+            body = self.read_json()
+            problem = history_action(body)
+            self.send_json(400 if problem else 200, {"error": problem} if problem else history_status())
         elif self.path.startswith("/api/files/") and self.path.endswith("/import"):
             problem = start_import(self.path.split("/")[3])
             self.send_json(400 if problem else 200, {"error": problem} if problem else IMPORT)
@@ -722,6 +782,28 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 pass
 
+    def library_upload(self):
+        """One file of a folder being added to memory: X-Batch names the folder's upload, X-File-Path where the file
+        sits in it. Kept as it came under data/library/<batch>/; read once the whole folder has arrived."""
+        length = int(self.headers.get("Content-Length") or 0)
+        batch = str(self.headers.get("X-Batch") or "")
+        if not re.fullmatch(r"b[0-9a-z-]{6,40}", batch):
+            return self.send_json(400, {"error": "A folder upload needs its batch name."})
+        if length > files.MAX_BYTES:
+            return self.send_json(413, {"error": f"That file is over {files.fmt_size(files.MAX_BYTES)}."})
+        rel = safe_relative(urllib.parse.unquote(self.headers.get("X-File-Path") or "file"))
+        target = (LIBRARY_DIR / batch / rel)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        left = length
+        with open(target, "wb") as out:
+            while left > 0:
+                chunk = self.rfile.read(min(1 << 20, left))
+                if not chunk:
+                    break
+                out.write(chunk)
+                left -= len(chunk)
+        self.send_json(200, {"path": rel, "size": length - left})
+
     def upload(self):
         """A file, as the request's body. Any kind, any size up to files.MAX_BYTES."""
         length = int(self.headers.get("Content-Length") or 0)
@@ -784,7 +866,8 @@ class Handler(BaseHTTPRequestHandler):
             self.event({"hello": True, "page": PAGE_VERSION})
             while True:
                 try:
-                    self.event({"mind": box.get(timeout=25)})
+                    e = box.get(timeout=25)
+                    self.event(e if "intake" in e or "dream" in e or "history" in e else {"mind": e})
                 except queue.Empty:
                     self.wfile.write(b": still here\n\n")
                     self.wfile.flush()
@@ -958,6 +1041,161 @@ def run_import(path, here):
 
 
 # ---------------------------------------------------------------------------
+# 8b. The library (anything you add becomes searchable memory: intake.py), and the looking glass
+#     (one view of everything loading into memory and everything the mind is doing).
+# ---------------------------------------------------------------------------
+
+INTAKE = intake.Intake(tell=lambda event: worker.tell(event))
+MIND = {"now": None, "recent": []}          # what the background mind is doing, as it tells us
+
+
+def on_file_read(home, record):
+    """A file attached in the chat has been read: it joins the library of the memory it was attached in
+    (an incognito conversation's own, deleted with it). Pictures and files with no words are skipped."""
+    if record.get("status") != "ready" or record.get("kind") in ("image", "binary"):
+        return
+    incog = MEMORIES["incognito"] and str(Path(home).resolve()).startswith(str(INCOGNITO_DIR.resolve()))
+    mem = MEMORIES["incognito"] if incog else MEMORIES["main"]
+    if mem:
+        INTAKE.add_file(mem, Path(home) / record["name"], record["name"], came=record["id"], record=record, home=home)
+
+
+def hear_mind(event):
+    """Keep the mind's current job and its recent runs for the looking glass."""
+    if "job" not in event:
+        return
+    if event.get("state") == "start":
+        MIND["now"] = {**event, "since": datetime.now().astimezone().isoformat(timespec="seconds")}
+    else:
+        MIND["now"] = None
+        MIND["recent"] = ([{**event, "at": datetime.now().astimezone().isoformat(timespec="seconds")}] + MIND["recent"])[:40]
+
+
+def safe_relative(path):
+    """A folder upload's relative path, made safe: no absolute paths, no '..', no hidden tricks."""
+    parts = [files.safe_name(p) for p in str(path or "").replace("\\", "/").split("/") if p not in ("", ".", "..")]
+    return "/".join(p for p in parts if p) or "file"
+
+
+def glass():
+    """Everything the looking glass shows, in one answer: what's loading into memory (and how long it'll take),
+    what the mind is doing and has done, the state of memory, the Claude history's build, and what it costs."""
+    mem = talking_to()
+    today = memory.stamp()[:10]
+    last_health = mem.row("SELECT metrics, at FROM health ORDER BY id DESC LIMIT 1")
+    runs = mem.rows("SELECT id, job, at, status, attempts, seconds, cost, focus FROM runs ORDER BY id DESC LIMIT 30")
+    by_job = mem.rows("SELECT job, COUNT(*) AS n, ROUND(COALESCE(SUM(cost), 0), 4) AS cost, "
+                      "SUM(CASE WHEN status IN ('failed', 'error') THEN 1 ELSE 0 END) AS failed, ROUND(AVG(seconds), 1) AS seconds "
+                      "FROM runs GROUP BY job ORDER BY n DESC")
+    return {
+        "at": memory.stamp(),
+        "memory": {**mem.stats(), **{"library_" + k: v for k, v in mem.library_stats().items()}},
+        "intake": INTAKE.status(),
+        "sources": mem.sources_list(30),
+        "mind": {"now": MIND["now"], "recent": MIND["recent"][:12], "runs": runs, "by_job": by_job,
+                 "today": {"calls": worker.calls_today(mem), "budget": worker.REFLECT_CALLS,
+                           "cost": round(mem.value("SELECT COALESCE(SUM(cost), 0) FROM runs WHERE at >= ?", today) or 0, 4)},
+                 "failures": mem.rows("SELECT id, job, at, focus, problems FROM runs WHERE status IN ('failed', 'error') ORDER BY id DESC LIMIT 8"),
+                 "quiet_minutes": round(worker.quiet_minutes(mem), 1), "reflect_idle": worker.REFLECT_IDLE,
+                 "settings": {"mind": current_settings()["mind"], "thinking": current_settings()["thinking"]}},
+        "health": {**json.loads(last_health["metrics"]), "at": last_health["at"]} if last_health else None,
+        "history": history_status(),
+        "dream": DREAM.status() if DREAM else None,
+        "spend": {"all": round(mem.value("SELECT COALESCE(SUM(cost), 0) FROM runs") or 0, 4), "balance": wallet()},
+    }
+
+
+# --- your Claude history's build (tools/claude_import.py run), started and stopped from the looking glass ---
+# It runs as its own process: it sets memory's clock to each conversation's time as it goes, which must never
+# touch the conversation you're having. Its progress comes from its own output, and from its memory file.
+
+HISTORY = {"proc": None, "state": "idle", "lines": [], "done": 0, "total": None, "spent": None, "eta_hours": None,
+           "started": None, "args": None, "plan": None}
+
+
+def history_status():
+    out = {k: v for k, v in HISTORY.items() if k != "proc"}
+    out["lines"] = HISTORY["lines"][-30:]
+    out["file"] = str(CLAUDE_MEMORY)
+    out["exists"] = CLAUDE_MEMORY.exists()
+    if CLAUDE_MEMORY.exists():
+        import sqlite3
+        try:
+            db = sqlite3.connect(f"file:{CLAUDE_MEMORY}?mode=ro", uri=True, timeout=5)
+            one = lambda sql: db.execute(sql).fetchone()[0]
+            written = one("SELECT COALESCE(MAX(last), 0) FROM episodes")
+            out["memory"] = {"messages": one("SELECT COUNT(*) FROM messages"), "written_to": written,
+                             "waiting": one(f"SELECT COUNT(*) FROM messages WHERE id > {written} AND via = 'claude'"),
+                             "nodes": one("SELECT COUNT(*) FROM current"), "connections": one("SELECT COUNT(*) FROM edges"),
+                             "conversations": one("SELECT COUNT(DISTINCT json_extract(meta, '$.conversation')) FROM messages WHERE via = 'claude'"),
+                             "cost": round(one("SELECT COALESCE(SUM(cost), 0) FROM runs") or 0, 4)}
+            db.close()
+        except sqlite3.Error as e:
+            out["memory"] = {"problem": str(e)}
+    return out
+
+
+def history_action(body):
+    """plan | run {effort, max_dollars, max_stretches} | stop. Returns a problem, or None."""
+    import signal
+    import subprocess
+    import threading
+    action = body.get("action")
+    script = HERE / "tools" / "claude_import.py"
+    if action == "stop":
+        proc = HISTORY["proc"]
+        if not proc or proc.poll() is not None:
+            return "The build isn't running."
+        proc.send_signal(signal.SIGINT)              # it stops cleanly between stretches; running it again carries on
+        HISTORY["state"] = "stopping"
+        return None
+    if HISTORY["proc"] and HISTORY["proc"].poll() is None:
+        return "It's already running (stop it first)."
+    if not CLAUDE_MEMORY.exists():
+        return "There's no imported history yet: attach your Claude export and press [ import ] on it first."
+    if action == "plan":
+        done = subprocess.run([sys.executable, str(script), "plan", "--memory", str(CLAUDE_MEMORY)], capture_output=True,
+                              text=True, cwd=HERE, timeout=600)
+        HISTORY["plan"] = (done.stdout + done.stderr).strip()[-4000:]
+        return None
+    if action != "run":
+        return "Unknown action."
+    effort = luminal.effort_level(body.get("effort") or "none")
+    cmd = [sys.executable, "-u", str(script), "run", "--memory", str(CLAUDE_MEMORY), "--effort", effort]
+    if body.get("max_dollars"):
+        cmd += ["--max-dollars", str(float(body["max_dollars"]))]
+    if body.get("max_stretches"):
+        cmd += ["--max-stretches", str(int(body["max_stretches"]))]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=HERE, bufsize=1)
+    HISTORY.update(proc=proc, state="running", lines=[], done=0, total=None, spent=None, eta_hours=None,
+                   started=memory.stamp(), args={"effort": effort, "max_dollars": body.get("max_dollars"),
+                                                 "max_stretches": body.get("max_stretches")})
+
+    def follow():
+        for line in proc.stdout:
+            line = line.rstrip()
+            HISTORY["lines"] = (HISTORY["lines"] + [line])[-300:]
+            m = re.search(r"\[\s*(\d+)/(\d+)\]", line)
+            if m:
+                HISTORY["done"], HISTORY["total"] = int(m.group(1)), int(m.group(2))
+            m = re.search(r"\$([\d.]+) spent so far, about ([\d.]+) h to go", line)
+            if m:
+                HISTORY["spent"], HISTORY["eta_hours"] = float(m.group(1)), float(m.group(2))
+            m = re.search(r"^([\d,]+) stretches to write", line)
+            if m:
+                HISTORY["total"] = int(m.group(1).replace(",", ""))
+            worker.tell({"history": {"state": HISTORY["state"], "done": HISTORY["done"], "total": HISTORY["total"], "line": line}})
+        code = proc.wait()
+        HISTORY["state"] = "stopped" if HISTORY["state"] == "stopping" else ("finished" if code == 0 else f"failed (exit {code})")
+        worker.tell({"history": {"state": HISTORY["state"]}})
+    threading.Thread(target=follow, daemon=True).start()
+    return None
+
+
+DREAM = None      # dreaming (mind/dream.py), set at start
+
+
+# ---------------------------------------------------------------------------
 # 9. Start
 # ---------------------------------------------------------------------------
 
@@ -975,6 +1213,10 @@ if __name__ == "__main__":
         copied = MEMORIES["main"].copy_log_from(V1_MEMORY)
         print(f"Memory v2: copied {copied} messages from {V1_MEMORY.name}; knowledge is rebuilt from them in the background.")
     memory.embedder.start(DATA / "models" / "meaning")
+    files.hooks["read"] = on_file_read                  # anything attached joins memory's library
+    worker.listeners.append(hear_mind)                   # the looking glass keeps track of the mind
+    INTAKE.start()
+    DREAM = dream.Dream(main=lambda: MEMORIES["main"], tell=worker.tell)
     worker.start(ask=ask_json, prices=PRICES, page=page_size, main=lambda: MEMORIES["main"],
                  effort=lambda: current_settings()["mind"],
                  memories=lambda: [m for m in MEMORIES.values() if m])

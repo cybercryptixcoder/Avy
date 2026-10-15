@@ -455,6 +455,54 @@ button { cursor: pointer; background: none; border: 0; }
 .graph-tip[hidden] { display: none; }
 .graph-tip .h { opacity: .55; font-size: 11px; }
 
+/* The looking glass: everything loading into memory and everything the mind is doing, live. Full page, like
+   the graph: same paper, same ink, panels drawn the terminal way. */
+.glass { position: fixed; inset: 18px; z-index: 30; background: var(--card); color: var(--ink); border: var(--thick);
+         border-radius: 30px; overflow: hidden; display: flex; flex-direction: column; font: 13px/1.55 var(--mono); }
+.glass[hidden] { display: none; }
+.glass-head { display: flex; gap: 2ch; align-items: baseline; padding: 16px 24px 10px; border-bottom: 1.5px solid var(--ink); }
+.glass-head .t { font-weight: 700; }
+.glass-head .n { opacity: .55; margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.glass-head .live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); margin-right: 1ch;
+                    animation: pulse 1.6s ease-in-out infinite; }
+.glass-head button, .glass button.act { font: inherit; font-weight: 700; }
+.glass-head button:hover, .glass button.act:hover { text-decoration: underline; text-underline-offset: 3px; }
+.glass button.act[disabled] { opacity: .4; cursor: default; text-decoration: none; }
+.glass-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 24px 24px; display: grid; gap: 14px 28px;
+              grid-template-columns: repeat(auto-fit, minmax(min(100%, 46ch), 1fr)); align-content: start; scrollbar-width: thin; }
+.pane { min-width: 0; }
+.pane.wide { grid-column: 1 / -1; }
+.pane h3 { font: inherit; font-weight: 400; opacity: .55; margin: 4px 0 6px; white-space: nowrap; overflow: hidden; }
+.pane .big { font-size: 26px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; }
+.pane .dim { opacity: .55; }
+.pane .warn { color: var(--orange); }
+.pane .row2 { display: flex; gap: 1ch; align-items: baseline; padding: 1px 0; white-space: nowrap; }
+.pane .row2 .g { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pane .row2 .k { flex: none; opacity: .55; }
+.pane .row2 .n { flex: none; opacity: .7; font-variant-numeric: tabular-nums; }
+.pane .row2.click { cursor: pointer; padding: 1px 5px; margin: 0 -5px; }
+.pane .row2.click:hover, .pane .row2.click:focus-visible { background: var(--ink); color: var(--card); outline: none; }
+.pane .row2.click:hover .k, .pane .row2.click:hover .n, .pane .row2.click:hover .dim { opacity: .8; }
+.nums2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(15ch, 1fr)); gap: 8px 14px; margin: 4px 0 8px; }
+.nums2 div b { display: block; font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.nums2 div span { opacity: .55; font-size: 11.5px; }
+.job { padding: 8px 0 9px; border-top: 1px dashed color-mix(in srgb, var(--ink) 30%, transparent); }
+.job:first-of-type { border-top: 0; }
+.job .top { display: flex; gap: 1ch; align-items: baseline; }
+.job .top .nm { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.job .top .st { margin-left: auto; flex: none; opacity: .7; }
+.bar { font-variant-numeric: tabular-nums; white-space: pre; letter-spacing: -.02em; }
+.bar .fill { color: var(--ink); }
+.bar .rest { opacity: .25; }
+.dropzone { border: 1.5px dashed var(--ink); border-radius: 12px; padding: 12px 14px; margin: 6px 0 10px; text-align: center; }
+.dropzone.over { background: color-mix(in srgb, var(--teal) 22%, transparent); border-style: solid; }
+.glass select, .glass input.num { font: inherit; color: inherit; background: var(--field); border: 1.5px solid var(--ink);
+                                  border-radius: 6px; padding: 0 6px; height: 24px; }
+.glass input.num { width: 8ch; }
+.glass pre.out { margin: 6px 0; padding: 8px 10px; border: 1.5px solid var(--ink); font: inherit; font-size: 12px; line-height: 1.5;
+                 white-space: pre-wrap; max-height: 32vh; overflow: auto; }
+@media (max-width: 900px) { .glass { inset: 8px; border-radius: 22px; } .glass-head, .glass-body { padding-left: 14px; padding-right: 14px; } }
+
 /* ===================================================================
    5. The keys panel
    =================================================================== */
@@ -490,8 +538,10 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   html, body, .frame, .shell { height: auto; }
   .frame { padding: 10px; }
   .shell { padding: 12px; gap: 12px; border-radius: 24px; }
-  .nav-items { display: none; }
-  .nav-pill { justify-content: space-between; height: 54px; }
+  .nav-items, .nav-globe { display: none; }
+  .nav-pill { justify-content: space-between; height: 54px; gap: 6px; padding-left: 6px; }
+  .nav .pill-btn { padding: 0 11px; gap: 6px; }
+  #openGlass { font-size: 0; gap: 0; }                 /* the glass: just its icon on a phone */
   .round-btn { width: 54px; height: 54px; }
   .main { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .side { display: contents; }
@@ -680,6 +730,16 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   <div class="graph-card" id="graphCard" hidden></div>
   <div class="graph-foot"><span>● thing · information ○ idea ◌ inferred &nbsp; line weight: how strong</span>
     <span>drag to turn · scroll to zoom · click a node · esc to close</span></div>
+</div>
+
+<!-- ---------- the looking glass (/glass) ---------- -->
+<div class="glass" id="glass" hidden aria-label="The looking glass: memory loading and the mind at work">
+  <div class="glass-head"><span class="t"><span class="live" aria-hidden="true"></span>── the looking glass</span>
+    <span class="n" id="glassSub"></span>
+    <button id="glassClose" type="button">[ close ]</button></div>
+  <div class="glass-body" id="glassBody"></div>
+  <input type="file" id="libFiles" multiple hidden>
+  <input type="file" id="libFolder" webkitdirectory multiple hidden>
 </div>
 
 <!-- ---------- keys panel ---------- -->
@@ -1149,14 +1209,14 @@ function escapeHtml(text) {
 // They're numbered in the order they first appear; the same node keeps its number.
 function footnotes(html) {
   const order = [];
-  return html.replace(/\[([kx]\d+)\]/g, (_, h) => {
+  return html.replace(/\[([kxp]\d+)\]/g, (_, h) => {
     if (!order.includes(h)) order.push(h);
     return `<sup class="fn" tabindex="0" data-h="${h}">${order.indexOf(h) + 1}</sup>`;
   });
 }
 
 function renderMarkdown(text, streaming = false) {
-  if (streaming) text = text.replace(/\[[kx]?\d*$/, "");   // a footnote still arriving: wait for all of it
+  if (streaming) text = text.replace(/\[[kxp]?\d*$/, "");   // a footnote still arriving: wait for all of it
   return footnotes(renderParts(text));
 }
 
@@ -1234,12 +1294,12 @@ function addLine(kind, text, before = prompt) {
 
 // The dim line under a reply: what memory brought for it. Click to look under the hood.
 function addTrace(after, recalled) {
-  const n = recalled?.nodes || 0, m = recalled?.log || 0;
-  if (!n && !m && !recalled?.explored) return null;
+  const n = recalled?.nodes || 0, m = recalled?.log || 0, lib = recalled?.library || 0;
+  if (!n && !m && !lib && !recalled?.explored) return null;
   const line = document.createElement("div");
   line.className = "line trace";
   line.tabIndex = 0;
-  const found = [n && plural(n, "node"), m && plural(m, "log line")].filter(Boolean).join(" · ") || "nothing that helps";
+  const found = [n && plural(n, "node"), m && plural(m, "log line"), lib && plural(lib, "passage")].filter(Boolean).join(" · ") || "nothing that helps";
   line.textContent = (recalled.explored ? "↳ searched memory, kept " : "↳ recalled ") + found;
   const open = (e) => { e.stopPropagation(); inspect("recall", recalled.recall ?? recalled.id, null, recalled.memory); };
   line.onclick = open;
@@ -1310,6 +1370,17 @@ async function showFootnote(sup) {
   fnCard = el("div", "fn-card", el("div", "h", `${h} · looking…`));
   document.body.append(fnCard);
   placeCard(sup);
+  if (h[0] === "p") {                     // a passage from his library
+    try {
+      const p = fnCache[h] ||= await getJSON(api(`/api/passage?id=${h.slice(1)}`, incognito ? "incognito" : null));
+      if (!fnCard) return;
+      fnCard.replaceChildren(el("div", "h", `${h} · from his library · ${p.source_kind}`), el("div", "t", p.source_name),
+        p.part ? el("div", "h", p.part + (p.speaker ? ` · ${p.role === "user" ? "you" : p.speaker}` : "")) : null,
+        el("div", "q", p.text.length > 320 ? p.text.slice(0, 320) + "…" : p.text));
+      placeCard(sup);
+    } catch { fnCard?.replaceChildren(el("div", "h", `${h} · not in the library any more`)); }
+    return;
+  }
   try {
     const r = fnCache[h] ||= await getJSON(api(`/api/node?id=${h.slice(1)}`, mem));
     if (!fnCard) return;
@@ -1341,6 +1412,7 @@ log.addEventListener("click", (e) => {
   e.stopPropagation();
   hideFootnote();
   const h = s.dataset.h;
+  if (h[0] === "p") return inspect("passage", Number(h.slice(1)), null, incognito ? "incognito" : "main");
   inspect("node", Number(h.slice(1)), null, h[0] === "x" ? "incognito" : "main");
 }, true);
 
@@ -1533,6 +1605,9 @@ const ACTIONS = {
   memory:    { short: "look inside memory", about: "look inside memory (/memory: words searches it)",
                run: (words) => words ? inspect("search", words) : inspect("memory") },
   graph:     { short: "memory as a living network", about: "see memory as a network, in 3D (Esc closes)", run: () => openGraph() },
+  dream:     { short: "let Avy dream (long, deep reflection)", about: "dreaming: hours of reflection at full thinking over all of memory (opens the looking glass, where it's started and woken)", run: () => openGlass() },
+  glass:     { short: "memory loading, the mind working", about: "the looking glass: what's loading into memory (and how long it'll take), what the mind is doing, your Claude history's build, dreaming, costs", run: () => openGlass() },
+  library:   { short: "everything you've added", about: "the library: documents, code, data and conversations you've added, read into passages memory can search", run: () => inspect("library") },
   index:     { short: "write what's waiting now", about: "turn the messages waiting into knowledge now, instead of at the end of the sitting", run: indexNow },
   reflect:   { short: "let Avy think now", about: "reflect now: re-check, infer, connect (normally done when it's quiet)", run: reflectNow },
   incognito: { short: "a conversation nothing keeps", about: "a separate conversation nothing is kept from (again to end it)", run: toggleIncognito },
@@ -1759,8 +1834,14 @@ function listenToMind() {
   source.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.hello) return void pageIsStale(data.page);
+    if (data.intake || data.history || data.dream) {
+      glassSoon();
+      if (data.intake?.state === "stored") { refreshMemory(); sound("mind"); }
+      return;
+    }
     const m = data.mind;
     if (!m) return;
+    glassSoon();
     mindNow = m.state === "start" ? `${words[m.job] || m.job}${m.job === "write" ? " " + m.focus.replace("-", " on") : m.job === "think" ? ": " + m.focus.toLowerCase() : ""}…` : "";
     if (m.state !== "start") refreshMemory();
     if (m.state === "done" && m.applied > 0 && !document.hidden) sound("mind");
@@ -2525,7 +2606,8 @@ const VIEWS = {
                        `${s.waiting ? ` · ${s.waiting} waiting` : ""}${s.failed_runs ? ` · ${s.failed_runs} failed runs lately` : ""}`),
       h ? el("div", "dim", `network: ${plural(h.islands ?? 0, "island")} · clustering ${h.clustering} (random ${h.random_clustering}) · ` +
                            `${h.average_path} steps apart on average · `, go("health", "health")) : null,
-      el("div", "dim", `search by meaning: ${s.meaning} · ${s.mb} MB · `, go("journal", "journal"), " · ", go("graph", "graph")),
+      el("div", "dim", `search by meaning: ${s.meaning} · ${s.mb} MB · `, go("journal", "journal"), " · ", go("graph", "graph"),
+         " · ", go("library", "library"), " · ", go("glass", "glass")),
       el("div", "", current ? write : null, " ", current && s.memory === "main" ? think : null),
       searchBox(""),
       sec("conversations, newest first"),
@@ -2681,6 +2763,9 @@ const VIEWS = {
       sec(`older messages it brought (${t.log.length})`),
       t.log.length ? t.log.map((l) => row([["n", `#${l.message}`], ["g", l.why || `found by ${l.how === "both" ? "words + meaning" : l.how}`]],
                                            () => inspect("log", l.message, null, memOf(l)))) : el("div", "dim", "none"),
+      t.library?.length ? [sec(`from his library (${t.library.length})`), t.library.map((l) =>
+        row([["n", `p${l.passage}`], ["g", l.why || `found by ${l.how === "both" ? "words + meaning" : l.how}`], ["n", (l.score ?? 0).toFixed(2)]],
+            () => inspect("passage", l.passage, null, l.memory || mem)))] : null,
       t.skipped ? el("div", "dim", `${t.skipped} more matched but didn't fit`) : null,
       ...toggle("the exact memory note the model got", r.briefing),
     ]];
@@ -2700,6 +2785,60 @@ const VIEWS = {
   },
 
   async graph() { openGraph(); return ["graph", [el("div", "dim", "opened the graph view.")]]; },
+  async glass() { openGlass(); return ["glass", [el("div", "dim", "opened the looking glass.")]]; },
+
+  // The library: everything he added, read into passages memory can search.
+  async library(arg, extra, mem) {
+    const r = await getJSON(api("/api/library", mem));
+    const working = r.intake.jobs.filter((j) => ["queued", "reading", "storing", "embedding"].includes(j.state));
+    return ["library", [
+      el("div", "dim", "what you've added: documents, papers, code, data, recordings, conversations from elsewhere. each is read into passages, " +
+                       "kept word for word and searchable by memory at once. attach anything in the chat, or drop files and folders in the ",
+         go("looking glass", "glass"), "."),
+      el("div", "", `${plural(r.stats.sources, "source")} · ${plural(r.stats.passages, "passage")}`
+                    + (working.length ? ` · ${working.length} loading now` : "")),
+      sec("sources, newest first"),
+      r.sources.length ? r.sources.map((s) => row([["n", `s${s.id}`.padEnd(5)], ["k", s.kind.padEnd(14)], ["g", s.name],
+                                                  ["n", `${s.passages.toLocaleString()}${s.status !== "stored" ? " · " + s.status : ""}`]],
+                                                 () => inspect("source", s.id)))
+                       : el("div", "dim", "nothing yet."),
+    ]];
+  },
+
+  // One source: what it is, how it was read, and its passages in order.
+  async source(id, after, mem) {
+    const s = await getJSON(api(`/api/source?id=${id}&after=${after || 0}&limit=60`, mem));
+    const meta = s.meta || {};
+    const facts = [meta.format, meta.conversations && plural(meta.conversations, "conversation"), meta.messages && plural(meta.messages, "message"),
+                   meta.files && plural(meta.files, "file"), meta.speakers && "speakers: " + meta.speakers.join(", ")].filter(Boolean).join(" · ");
+    const shown = s.passages_shown || [];
+    return [`source s${s.id}`, [
+      el("div", "big", s.name),
+      el("div", "dim", `${s.kind} · ${s.status} · added ${day(s.added)} · ${plural(s.passages, "passage")} · ${Math.round(s.chars / 1000).toLocaleString()}k characters`),
+      facts ? el("div", "dim", facts) : null,
+      meta.skipped ? el("div", "dim", `left out: ${meta.skipped.folders} in folders like node_modules or .git, ${meta.skipped.files} other files, ${meta.skipped.big} too big`) : null,
+      meta.problem ? el("div", "banner", meta.problem) : null,
+      sec(`passages ${shown.length ? `${shown[0].seq}–${shown.at(-1).seq}` : ""}`),
+      after ? button("from the start", () => inspectInstead("source", id)) : null,
+      shown.map((p) => row([["n", `p${p.id}`.padEnd(7)], ["k", (p.part || "").slice(0, 34).padEnd(Math.min(34, (p.part || "").length))],
+                            ["g", (p.speaker ? `${p.role === "user" ? "you" : p.speaker}: ` : "") + p.text.replace(/\s+/g, " ")]],
+                           () => inspect("passage", p.id, null, mem))),
+      shown.length === 60 ? button("more", () => inspectInstead("source", id, shown.at(-1).seq)) : null,
+    ]];
+  },
+
+  // One passage, word for word, with its neighbors.
+  async passage(id, extra, mem) {
+    const p = await getJSON(api(`/api/passage?id=${id}`, mem));
+    return [`passage p${p.id}`, [
+      el("div", "dim", "from ", go(p.source_name, "source", p.source, null, mem), ` (${p.source_kind}) · passage ${p.seq}`),
+      p.part ? el("div", "big", p.part) : null,
+      p.speaker || p.at ? el("div", "dim", [p.speaker && `${p.role === "user" ? "you" : p.speaker} said`, p.at && day(p.at)].filter(Boolean).join(" · ")) : null,
+      el("div", "para", p.text),
+      el("div", "", p.before ? button(`before: ${(p.before.part || "p" + p.before.id).slice(0, 40)}`, () => inspectInstead("passage", p.before.id)) : null,
+         " ", p.after ? button(`after: ${(p.after.part || "p" + p.after.id).slice(0, 40)}`, () => inspectInstead("passage", p.after.id)) : null),
+    ]];
+  },
 };
 
 
@@ -3138,7 +3277,7 @@ document.addEventListener("drop", (e) => {
   e.preventDefault();
   dragDepth = 0;
   $("chat").classList.remove("dropping");
-  if (e.dataTransfer.files.length) attachFiles([...e.dataTransfer.files]);
+  addDropped(e.dataTransfer, glassState.open);   // files: attached to your next message; folders: into memory's library
 });
 
 // Pasting a picture or a file into the box attaches it; pasting text pastes text, as usual.
@@ -3197,6 +3336,283 @@ async function importExport(f) {
       return;
     }
   }
+}
+
+
+/* ===================================================================
+   16. The looking glass (/glass): everything loading into memory, and everything the mind is doing.
+       What's being read (with real rates and how long it'll take), the state of memory, the mind's
+       runs and failures, your Claude history's build (start, stop, plan), dreaming, and what it costs.
+       It asks the server every 1.5 s while it's open; events make it redraw sooner.
+   =================================================================== */
+const glassState = { open: false, timer: null, data: null, uploads: [], soon: null, effort: "none", budget: "5", stretches: "", dreamHours: "8", dreamBudget: "10", dreamEffort: "max" };
+
+function openGlass() {
+  closeInspector();
+  if (graph.open) closeGraph();
+  sound("open");
+  glassState.open = true;
+  $("glass").hidden = false;
+  refreshGlass();
+  clearInterval(glassState.timer);
+  glassState.timer = setInterval(refreshGlass, 1500);
+}
+function closeGlass() {
+  if (!glassState.open) return;
+  sound("close");
+  glassState.open = false;
+  $("glass").hidden = true;
+  clearInterval(glassState.timer);
+  input.focus();
+}
+$("openGlass").dataset.sound = "custom";
+$("glassClose").dataset.sound = "custom";
+$("openGlass").onclick = () => (glassState.open ? closeGlass() : openGlass());
+$("glassClose").onclick = closeGlass;
+document.addEventListener("keydown", (e) => { if (glassState.open && e.key === "Escape") { e.stopPropagation(); closeGlass(); } }, true);
+
+async function refreshGlass() {
+  if (!glassState.open) return;
+  try { glassState.data = await getJSON("/api/glass"); } catch (e) { glassState.problem = e.message; }
+  drawGlass();
+}
+function glassSoon() {                 // something happened (an event): redraw shortly, once
+  if (!glassState.open || glassState.soon) return;
+  glassState.soon = setTimeout(() => { glassState.soon = null; refreshGlass(); }, 250);
+}
+
+const fmtTime = (s) => s == null ? "?" : s < 60 ? `${Math.round(s)}s` : s < 3600 ? `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, "0")}s`
+  : `${Math.floor(s / 3600)}h ${String(Math.round((s % 3600) / 60)).padStart(2, "0")}m`;
+const money = (x) => "$" + (x || 0).toFixed(x >= 10 ? 2 : 4);
+function bar(done, total, width = 24) {
+  const share = total ? Math.max(0, Math.min(1, done / total)) : 0, n = Math.round(share * width);
+  return el("span", "bar", el("span", "fill", "█".repeat(n)), el("span", "rest", "░".repeat(width - n)), ` ${Math.round(share * 100)}%`);
+}
+function line2(cells, onclick) {      // a row in a pane: [dim key] [text] [dim number]
+  const r = el("div", "row2" + (onclick ? " click" : ""), ...cells.map(([c, t]) => el("span", c, t)));
+  if (onclick) { r.tabIndex = 0; r.onclick = onclick; r.onkeydown = (e) => { if (e.key === "Enter") onclick(); }; }
+  return r;
+}
+function act(label, onclick, disabled = false) {
+  const b = el("button", "act", `[ ${label} ]`);
+  b.type = "button"; b.disabled = disabled; b.onclick = onclick;
+  return b;
+}
+const STATE_WORDS = { queued: "waiting its turn", reading: "reading…", storing: "keeping the passages…",
+  embedding: "learning what it means…", stored: "in memory: searchable", duplicate: "already in the library",
+  problem: "couldn't", nothing: "nothing in it to read", cancelled: "cancelled" };
+
+function drawGlass() {
+  if (!glassState.open) return;
+  const a = document.activeElement;
+  if (a && $("glass").contains(a) && (a.tagName === "INPUT" || a.tagName === "SELECT")) return;   // don't redraw under your typing
+  const d = glassState.data;
+  if (!d) return $("glassBody").replaceChildren(el("div", "pane", glassState.problem || "looking…"));
+  const m = d.memory;
+  $("glassSub").textContent = `${m.memory} memory · ${new Date().toLocaleTimeString([], { hour12: false })}` + (glassState.problem ? ` · ${glassState.problem}` : "");
+  $("glassBody").replaceChildren(intakePane(d), memoryPane(d), mindPane(d), historyPane(d), dreamPane(d), runsPane(d));
+}
+
+function intakePane(d) {
+  const i = d.intake, pane = el("div", "pane wide");
+  const zone = el("div", "dropzone", "drop files or a whole folder here: they join memory's library (any format; read, kept word for word, searchable) · ",
+                  act("add files", () => $("libFiles").click()), " ", act("add a folder", () => $("libFolder").click()));
+  zone.ondragover = (e) => { e.preventDefault(); e.stopPropagation(); zone.classList.add("over"); };
+  zone.ondragleave = () => zone.classList.remove("over");
+  zone.ondrop = (e) => { e.preventDefault(); e.stopPropagation(); zone.classList.remove("over"); addDropped(e.dataTransfer, true); };
+  pane.append(el("h3", "", "── loading into memory"),
+    el("div", "", i.busy ? `${i.jobs.filter((j) => !["stored", "duplicate", "problem", "nothing", "cancelled"].includes(j.state)).length} at work` : "nothing loading right now", " · ",
+       i.paused ? act("resume", () => postJSON("/api/intake", { pause: false }).then(refreshGlass)) : act("pause", () => postJSON("/api/intake", { pause: true }).then(refreshGlass)),
+       i.paused ? el("span", "warn", "  paused") : null),
+    zone);
+  for (const u of glassState.uploads) {
+    pane.append(el("div", "job", el("div", "top", el("span", "nm", u.name), el("span", "st", "uploading")),
+      el("div", "", bar(u.done, u.total), `  ${u.done} of ${plural(u.total, "file")}` + (u.failed ? ` · ${u.failed} failed` : ""))));
+  }
+  const jobs = i.jobs.slice(0, 14);
+  if (!jobs.length && !glassState.uploads.length) pane.append(el("div", "dim", "nothing added yet. anything you attach in the chat joins the library too."));
+  for (const j of jobs) {
+    const working = ["reading", "storing", "embedding"].includes(j.state);
+    const progress = j.state === "embedding" || j.state === "storing"
+      ? el("div", "", bar(j.done, j.total), `  ${j.done.toLocaleString()} / ${j.total.toLocaleString()} passages`,
+           j.rate ? ` · ${j.rate}/s` : "", j.eta != null && j.state === "embedding" ? ` · about ${fmtTime(j.eta)} left` : "")
+      : j.state === "stored" ? el("div", "dim", `${plural(j.passages || j.total, "passage")} · ${j.kind}${j.meta?.format ? ` (${j.meta.format})` : ""} · took ${fmtTime(j.seconds)}`) : null;
+    pane.append(el("div", "job",
+      el("div", "top", el("span", "nm", j.name), j.source ? el("span", "dim", `s${j.source}`) : null,
+         el("span", "st" + (j.state === "problem" ? " warn" : ""), (working ? "● " : "") + (STATE_WORDS[j.state] || j.state)),
+         j.state === "queued" ? act("cancel", () => postJSON("/api/intake", { cancel: j.id }).then(refreshGlass)) : null),
+      progress,
+      j.problem ? el("div", j.state === "problem" ? "warn" : "dim", j.problem) : null,
+      j.steps?.length && !working ? el("div", "dim", j.steps.at(-1)) : null,
+      j.source && j.state === "stored" ? act("open it", () => { closeGlass(); inspect("source", j.source, null, j.memory); }) : null));
+  }
+  return pane;
+}
+
+function memoryPane(d) {
+  const m = d.memory, h = d.health;
+  const nums = [["messages", m.messages], ["written to", `#${m.written_to}`], ["waiting", m.waiting], ["conversations", m.episodes],
+                ["nodes", m.nodes], ["ideas", m.ideas], ["inferred", m.inferred], ["connections", m.connections],
+                ["library", `${m.library_sources} sources`], ["passages", (m.library_passages || 0).toLocaleString()], ["thoughts kept", m.thoughts ?? 0]];
+  return el("div", "pane",
+    el("h3", "", "── memory now"),
+    el("div", "nums2", nums.map(([k, v]) => el("div", "", el("b", "", String(v ?? 0)), el("span", "", k)))),
+    h ? el("div", "dim", `network: clustering ${h.clustering} (random ${h.random_clustering}) · ${h.average_path} steps apart · ${plural(h.islands ?? 0, "island")}`) : null,
+    el("div", "dim", `search by meaning: ${m.meaning} · ${m.mb} MB on disk`),
+    m.library_passages ? el("div", "dim", "the library is searchable now; writing knowledge from it (nodes citing its passages) is the next step") : null,
+    el("div", "", act("open memory", () => { closeGlass(); inspect("memory"); }), " ", act("the graph", () => { closeGlass(); openGraph(); }),
+       " ", act("the library", () => { closeGlass(); inspect("library"); })));
+}
+
+function mindPane(d) {
+  const mi = d.mind;
+  const now = mi.now ? `● ${mi.now.job}${mi.now.focus ? ": " + mi.now.focus : ""} (for ${fmtTime((Date.now() - new Date(mi.now.since)) / 1000)})`
+    : `quiet for ${fmtTime(mi.quiet_minutes * 60)}; it reflects after ${mi.reflect_idle} minutes of quiet`;
+  return el("div", "pane",
+    el("h3", "", "── the mind"),
+    el("div", mi.now ? "" : "dim", now),
+    el("div", "dim", `today: ${mi.today.calls} of ${mi.today.budget} reflection calls · ${money(mi.today.cost)} · thinks: ${mi.settings.mind} · avy thinks: ${mi.settings.thinking}`),
+    mi.by_job.length ? el("div", "", mi.by_job.map((j) => line2([["k", j.job.padEnd(8)], ["g", `${plural(j.n, "run")}${j.failed ? `, ${j.failed} failed` : ""}`],
+                                                                   ["n", `${j.seconds ?? "?"}s avg · ${money(j.cost)}`]]))) : el("div", "dim", "no runs yet"),
+    mi.failures.length ? [el("h3", "", "── what went wrong lately"), mi.failures.slice(0, 5).map((f) => {
+      let why = ""; try { why = (JSON.parse(f.problems || "[]").flat().find(Boolean) || ""); } catch {}
+      return line2([["k", `#${f.id} ${f.job}`], ["g", why || f.focus || ""], ["n", day(f.at)]], () => { closeGlass(); inspect("run", f.id); });
+    })] : null);
+}
+
+function runsPane(d) {
+  const runs = d.mind.runs.slice(0, 12);
+  const mark = (s) => (s === "ok" ? "✓" : s === "repaired" ? "✓·" : s === "partial" ? "~" : "✗");
+  return el("div", "pane",
+    el("h3", "", "── the mind's latest runs"),
+    runs.length ? runs.map((r) => line2([["k", `${mark(r.status)} ${r.job}`.padEnd(10)], ["g", r.focus || ""], ["n", `${r.seconds ?? "?"}s · ${money(r.cost)}`]],
+                                        () => { closeGlass(); inspect("run", r.id); })) : el("div", "dim", "nothing yet"),
+    el("div", "dim", `\nall-time (estimate): ${money(d.spend.all)} · Luminal balance: ${d.spend.balance == null ? "unknown" : "$" + d.spend.balance.toFixed(2)}`));
+}
+
+function historyPane(d) {
+  const h = d.history, hm = h.memory || {};
+  const pane = el("div", "pane");
+  pane.append(el("h3", "", "── your claude history"));
+  if (!h.exists) {
+    pane.append(el("div", "dim", "not imported yet. attach your Claude export in the chat and press [ import ] on it: it becomes its own memory, " +
+                                 "ready to be built into knowledge from here. (it also joins the library at once, so it's searchable.)"));
+    return pane;
+  }
+  const running = h.state === "running" || h.state === "stopping";
+  pane.append(
+    el("div", "nums2", [["conversations", hm.conversations], ["messages", hm.messages], ["written to", `#${hm.written_to}`], ["waiting", hm.waiting],
+                        ["nodes", hm.nodes], ["spent", money(hm.cost)]].map(([k, v]) => el("div", "", el("b", "", String(v ?? "–")), el("span", "", k)))),
+    running ? el("div", "", bar(h.done, h.total || 1), `  ${h.done} / ${h.total ?? "?"} stretches`,
+                 h.spent != null ? ` · ${money(h.spent)} so far` : "", h.eta_hours != null ? ` · about ${fmtTime(h.eta_hours * 3600)} left` : "") : null,
+    el("div", h.state.startsWith("failed") ? "warn" : "dim", `build: ${h.state}${h.started ? ` (started ${day(h.started)})` : ""}`));
+  const effort = el("select", "", ["none", "low", "high", "max"].map((o) => { const x = el("option", "", o); x.selected = o === glassState.effort; return x; }));
+  effort.onchange = () => (glassState.effort = effort.value);
+  const budget = el("input", "num"); budget.value = glassState.budget; budget.inputMode = "decimal"; budget.title = "stop once this much (estimated) is spent";
+  budget.oninput = () => (glassState.budget = budget.value);
+  const stretches = el("input", "num"); stretches.value = glassState.stretches; stretches.placeholder = "all"; stretches.title = "a trial: only this many stretches";
+  stretches.oninput = () => (glassState.stretches = stretches.value);
+  pane.append(
+    el("div", "", "thinking ", effort, "  budget $", budget, "  stretches ", stretches),
+    el("div", "", act("plan", async () => { pane.append(el("div", "dim", "planning…")); await postJSON("/api/history", { action: "plan" }).catch((e) => addLine("error", e.message)); refreshGlass(); }, running),
+       " ", act("build", () => postJSON("/api/history", { action: "run", effort: glassState.effort, max_dollars: Number(glassState.budget) || 0,
+                                                            max_stretches: Number(glassState.stretches) || 0 }).then(refreshGlass).catch((e) => addLine("error", e.message)), running || !hm.waiting),
+       " ", act("stop", () => postJSON("/api/history", { action: "stop" }).then(refreshGlass), !running)),
+    h.plan ? el("pre", "out", h.plan) : null,
+    h.lines?.length ? el("pre", "out", h.lines.slice(-8).join("\n")) : null);
+  return pane;
+}
+
+function dreamPane(d) {
+  const dr = d.dream, pane = el("div", "pane");
+  pane.append(el("h3", "", "── dreaming"));
+  if (!dr) return pane.append(el("div", "dim", "not available")), pane;
+  const on = dr.state === "dreaming" || dr.state === "waking";
+  pane.append(el("div", on ? "" : "dim", on ? `● dreaming since ${day(dr.started)}: ${dr.phase || ""}` : `awake${dr.last ? ` · last dream ${day(dr.last.ended)}: ${dr.last.summary}` : ""}`));
+  if (on) pane.append(el("div", "", bar(dr.elapsed, dr.hours * 3600), `  ${fmtTime(dr.elapsed)} of ${dr.hours}h · ${dr.runs} runs · ${money(dr.spent)} of ${money(dr.budget)}`),
+                      el("div", "dim", `swept ${dr.swept} of ${dr.of} nodes · ${dr.connected} new connections · ${dr.inferred} new thoughts · ${dr.revised} revised`));
+  const hours = el("input", "num"); hours.value = glassState.dreamHours; hours.oninput = () => (glassState.dreamHours = hours.value);
+  const budget = el("input", "num"); budget.value = glassState.dreamBudget; budget.oninput = () => (glassState.dreamBudget = budget.value);
+  const effort = el("select", "", ["max", "high", "low", "none"].map((o) => { const x = el("option", "", o); x.selected = o === glassState.dreamEffort; return x; }));
+  effort.onchange = () => (glassState.dreamEffort = effort.value);
+  pane.append(el("div", "", "for ", hours, " h  budget $", budget, "  thinking ", effort),
+    el("div", "", act("dream", () => postJSON("/api/dream", { action: "start", hours: Number(glassState.dreamHours) || 8, max_dollars: Number(glassState.dreamBudget) || 10,
+                                                               effort: glassState.dreamEffort }).then(refreshGlass).catch((e) => addLine("error", e.message)), on),
+       " ", act("wake", () => postJSON("/api/dream", { action: "stop" }).then(refreshGlass), !on)),
+    el("div", "dim", "a long, slow reflection at full thinking: it sweeps the whole memory, re-checks, connects distant things and forms new thoughts."));
+  return pane;
+}
+
+async function postJSON(url, body) {
+  return getJSON(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+}
+
+// --- adding to the library: files, or whole folders (dropped, or picked) ---------------------------------
+async function addLibraryFiles(list) {
+  for (const f of list) {
+    await fetch("/api/files", { method: "POST", headers: { "X-File-Name": encodeURIComponent(f.name), "Content-Type": f.type || "application/octet-stream" }, body: f })
+      .catch(() => addLine("error", `couldn't upload ${f.name}`));
+  }
+  setTimeout(refreshGlass, 600);
+}
+async function uploadFolder(items, name) {
+  const batch = "b" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+  const up = { name: name + "/", done: 0, total: items.length, failed: 0 };
+  glassState.uploads.push(up);
+  drawGlass();
+  let next = 0;
+  const lane = async () => {
+    while (next < items.length) {
+      const it = items[next++];
+      try {
+        const res = await fetch("/api/library/upload", { method: "POST", headers: { "X-Batch": batch, "X-File-Path": encodeURIComponent(it.path) }, body: it.file });
+        if (!res.ok) up.failed++;
+      } catch { up.failed++; }
+      up.done++;
+      if (up.done % 5 === 0 || up.done === up.total) drawGlass();
+    }
+  };
+  await Promise.all([lane(), lane(), lane(), lane()]);
+  try { await postJSON("/api/library/folder", { batch, name }); } catch (e) { addLine("error", `the folder didn't go in: ${e.message}`); }
+  glassState.uploads = glassState.uploads.filter((u) => u !== up);
+  refreshGlass();
+}
+$("libFiles").onchange = (e) => { addLibraryFiles([...e.target.files]); e.target.value = ""; };
+$("libFolder").onchange = (e) => {
+  const list = [...e.target.files];
+  if (!list.length) return;
+  const name = (list[0].webkitRelativePath || "folder").split("/")[0];
+  uploadFolder(list.map((f) => ({ file: f, path: f.webkitRelativePath.split("/").slice(1).join("/") || f.name })), name);
+  e.target.value = "";
+};
+// What was dropped: plain files, and folders walked to every file in them (with their paths).
+async function readDropped(dt) {
+  const entries = [...(dt.items || [])].map((i) => i.webkitGetAsEntry?.()).filter(Boolean);
+  const out = { files: [], folders: [] };
+  if (!entries.length) { out.files = [...(dt.files || [])]; return out; }
+  const fileOf = (entry) => new Promise((ok, no) => entry.file(ok, no));
+  const walk = async (dir, prefix, items) => {
+    const reader = dir.createReader();
+    for (;;) {
+      const batch = await new Promise((ok, no) => reader.readEntries(ok, no));
+      if (!batch.length) break;
+      for (const e of batch) {
+        if (e.isDirectory) await walk(e, prefix + e.name + "/", items);
+        else items.push({ file: await fileOf(e), path: prefix + e.name });
+      }
+    }
+  };
+  for (const e of entries) {
+    if (e.isDirectory) { const items = []; await walk(e, "", items); out.folders.push({ name: e.name, items }); }
+    else out.files.push(await fileOf(e));
+  }
+  return out;
+}
+async function addDropped(dt, toLibrary) {
+  const { files: list, folders } = await readDropped(dt);
+  if (folders.length && !glassState.open) openGlass();
+  for (const f of folders) uploadFolder(f.items, f.name);
+  if (list.length) toLibrary ? addLibraryFiles(list) : attachFiles(list);
 }
 
 
