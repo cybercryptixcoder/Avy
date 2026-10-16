@@ -883,7 +883,7 @@ LOCAL_BASE_URL=http://localhost:11434/v1
 | Context | 163,840 tokens. The endpoint doesn't report it: declare it yourself. Prompts of ~57k tokens verified. |
 | Output | `max_tokens` 1 to 393,216. **Leave it out and you get a silent 8,192 cap.** |
 | Thinking | `reasoning_effort`: `none`, `low`, `medium`, `high`, `xhigh`, `ultra`, `max`. **Always send it.** |
-| Concurrency | ≤ 8 parallel is safe; 12 gets some 429s; 16 many. Sequential is never limited. |
+| Concurrency | ≤ 8 parallel is safe; 12 gets some 429s; 16 many. There is also a request-rate cap per key (429, `x-reject-reason: client-request-rate-limit`, `Retry-After: 1`): everything on the key shares it. |
 | Billing | Prepaid. `GET /v1/balance` → `available_units` ÷ 1e10 = USD. Settles asynchronously. |
 | Images (generation) | A different host, `https://images.luminal.cloud` (Ideogram 4.5), same key and wallet. |
 
