@@ -218,3 +218,6 @@ Next: VISION.md §15–16 (the open decisions first), then LATER.md.
 - Luminal refuses a forced tool call while thinking; `luminal.prepare()` handles it. Don't "fix" it back.
 - Everything under `data/` is private and big; never commit it, never paste it into a prompt for an
   agent.
+
+**Also:** [LANDSCAPE.md](LANDSCAPE.md) (the field), [EXPLORER-BRIEF.md](EXPLORER-BRIEF.md) (the research agent's brief),
+[WORKING-WELL.md](WORKING-WELL.md) (its manual), [EXPEDITION-1.md](EXPEDITION-1.md) (what its first run found).

@@ -19,6 +19,10 @@ living network of knowledge that she thinks about when it's quiet.
 - **[docs/HISTORY.md](docs/HISTORY.md)**: how Avy came to be, from the conversation itself.
 - **[docs/IDEAS.md](docs/IDEAS.md)**: every idea and consideration so far, and where each stands.
 - **[docs/MISTAKES.md](docs/MISTAKES.md)**: what went wrong along the way, and what was learned.
+- **[docs/LANDSCAPE.md](docs/LANDSCAPE.md)**: the field: Supermemory and other memory systems, benchmarks, open problems.
+- **[docs/EXPLORER-BRIEF.md](docs/EXPLORER-BRIEF.md)**: the brief for the research agent (keyless copy).
+- **[docs/WORKING-WELL.md](docs/WORKING-WELL.md)**: the manual for long, careful work with a modest model.
+- **[docs/EXPEDITION-1.md](docs/EXPEDITION-1.md)**: what the first expedition found, and what holds.
 - **[VERSIONS.md](VERSIONS.md)**: the versions kept side by side, and how to go back or fork.
 - **[LATER.md](LATER.md)**: what's decided but not built yet.
 - **[tests/bench/RESULTS.md](tests/bench/RESULTS.md)**: how well it works, measured.
