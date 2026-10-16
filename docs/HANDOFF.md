@@ -177,6 +177,7 @@ python3 tests/test_import.py      # a made-up Claude export in every shape, end 
 python3 tests/test_files.py       # every kind of file, made and read; what the model gets
 python3 tests/test_intake.py      # the library: every format into passages, the queue, recall and explore finding them
 python3 tests/test_dream.py       # dreaming with a scripted model: sweeps, focuses, its own thinking level, budget, waking
+python3 tests/live/test_runner.py # the live runner itself: a failed call is recorded, never graded as 0
 ```
 
 In a browser, against a fake Luminal (`tests/page/README.md`): the page's basics, memory views and the

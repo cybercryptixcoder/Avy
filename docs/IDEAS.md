@@ -252,6 +252,35 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
 - **Planning ahead beats acting on the spot.** *(the principle for it)*
 - **Calendar and other connectors for context.** *(later)*
 
+## From the first expedition (Oct 16)
+
+The explorer's shortlist (17 ideas, its ids in brackets; [EXPEDITION-1.md](EXPEDITION-1.md)), folded into what
+Avy already has. All *open*.
+
+- **Preference slots with evidence and reconfirmation** (I022, I038): the slots of VISION §9, each value with
+  the message it came from, re-affirmed or asked about when it's old or contradicted. The closest to the one
+  result that lifted scores (E04, which showed the ceiling).
+- **Stale marking from a changed rule** (I006): when something he set as a rule (a config, a policy, his
+  allergy) gets a new version, every inference resting on the old one is marked stale until Check re-reads it.
+  Versions and evidence chains already make it a short walk.
+- **Evidence-gated recall** (I002, I018, I007): an inference reaches the reply only if its evidence reaches
+  his words within a few steps; evidence first, inferences after.
+- **An inference budget** (I013, I049): each inference scored at write time by how specific it is and what
+  it's likely to be useful for; broad patterns cost more to recall. One answer to VISION §16.7.
+- **Typed inferences** (I026): each says what kind of link it is (a cause, a goal, a pattern) and how reliable
+  its signal is; unlabeled ones sit in a lane default recall skips.
+- **A roadmap per plan** (I030, I035, I025, I041): a plan node with its steps, linked to the threads working on
+  it; background jobs must write their results back to it; resuming reads the roadmap, not a search; a "where
+  were we" card when he comes back. The thought graph's plans (VISION §7) and a long-horizon thread's state
+  (§10) as one object.
+- **Dream-time curation on a budget** (I023, I039): dreaming reports orphans and contradictions and merges
+  near-duplicates, within a cost cap (VISION §16.5).
+- **Find what's missing, then search for it** (I015): before answering, ask what the answer needs that recall
+  didn't bring, and search for that.
+- **Plans and what's coming up as one class** (W7): both chronic misses, both want something always in view at
+  answer time.
+- **An interleaved-tasks harness** (I040): the test VISION §10 needs (ARCHITECTURE §9), at real lengths.
+
 ## The five pillars (from earlier conversations)
 
 Unlimited context and verifiability come first (Avy has both); persistence, proactivity and a model of

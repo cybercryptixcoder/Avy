@@ -359,6 +359,20 @@ what excellent looks like, how it goes wrong, a check for each failure, tiers, s
 review), pilot it on a slice, then run. Built on named methods (SIFT, lateral reading, snowballing, competing
 hypotheses, pre-mortems, forecasting practice), cited at its end.
 
+**19. The first expedition, checked** (`docs/EXPEDITION-1.md`, Oct 16). The explorer ran ten hours and sent back
+a report, briefs, a pain map, a census, five experiments and five gap checks. Checked under the prose: the
+claims ledger holds (1,685 of 1,752 quotes found verbatim on a fresh pass), and so does W7, its volume run of
+Avy's own live suite (recomputed from the logs; now in tests/live/RESULTS.md, "At volume"). The report's
+citations don't: 4 of its 23 claim-citing sentences say what their quotes don't, and experiment ids decorate
+lines they don't bear on. Three of the five experiments don't support their verdicts: E01's "long horizon" was
+about 1,150 tokens, so VISION §10 is untested, not refuted; E02's lessons arm was broken; E04's note was written
+by hand (a ceiling for slots, not a mechanism). The census gave Supermemory Agent Zero's 95.6.
+- WORKING-WELL.md gained what would have caught each: a support check per sentence (P13), an attribution check,
+  "an id supports only what it is", validity checks before any verdict (regime, dependence, inside each arm,
+  oracle vs mechanism, leakage; P14), truthful logs, shared limits, and card rule 12, *check the checks*.
+- The live runner now records a failed call as failed instead of grading the error as 0
+  (`tests/live/test_runner.py`). IDEAS.md has the explorer's shortlist folded into Avy's concepts.
+
 ### State of things (end of session 3)
 
 **Everything below is on `main`, in his name, and tested** (offline suites: memory, luminal, files, import,

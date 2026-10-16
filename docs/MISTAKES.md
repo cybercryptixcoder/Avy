@@ -162,3 +162,9 @@ same ones aren't made twice. (When a cause was outside Claude's control, it says
     selected node, which might not exist on the date chosen. Caught by the last full page-test pass, which
     is why that pass is never skipped. Lesson: anything that swaps the data under a view must reset what
     points into the old data.
+51. **A gate that checked the wrong thing.** The explorer's brief had its report pass a checker that every
+    factual sentence carry ids, and the report passed with zero violations while 4 of 23 claim-citing sentences
+    said what their quotes don't and experiment ids were scattered over lines they don't bear on. The checker
+    measured that ids were there, so ids were put there. Same shape in its experiments: a verdict gate that
+    never asked whether the test reached the situation it was about. Lesson: test every gate on a planted bad
+    example before trusting it to pass; check support, not presence (WORKING-WELL.md, card rule 12).

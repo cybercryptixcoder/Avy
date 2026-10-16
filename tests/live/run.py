@@ -348,7 +348,13 @@ class Live:
             try:
                 a = self.answer(p, setup)
             except Exception as e:
-                a = {"setup": setup, "answer": f"(failed: {e})", "retrieval": {}, "kept": []}
+                a = {"setup": setup, "answer": f"(failed: {e})", "retrieval": {}, "kept": [], "failed": str(e)[:300]}
+            if a.get("failed"):
+                # A call that failed (a rate limit, a timeout) says nothing about memory: not graded, not a 0.
+                a["grade"] = {"score": None, "marks": [], "invented": None, "failed": True}
+                self.say(f"     {setup:<9} FAILED (not graded): {a['failed'][:120]}")
+                record["answers"].append(a)
+                continue
             a["grade"] = self.grade(p, a["answer"])
             r = a.get("retrieval") or {}
             self.say(f"     {setup:<9} score {a['grade']['score']}  covered {r.get('covered')} of {p['needs']}  items {r.get('items')}"
@@ -416,7 +422,7 @@ def report(r):
         for s in setups:
             a = next((a for a in p["answers"] if a["setup"] == s), None)
             g = (a or {}).get("grade") or {}
-            cells.append("" if a is None else f"{g.get('score')}" + (" ⚠" if g.get("invented") else ""))
+            cells.append("" if a is None else "failed" if g.get("failed") else f"{g.get('score')}" + (" ⚠" if g.get("invented") else ""))
         out.append(f"| {p['id']} | " + " | ".join(cells) + " |")
     out.append("")
     for p in r["probes"]:

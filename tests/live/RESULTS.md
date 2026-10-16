@@ -141,6 +141,44 @@ has to be found by search is kept some of the time; finding 1 stands on two runs
 7. **A citation slip**: "[k21]" (a book list) written for message #21. → Fixed (Oct 15): footnotes to anything
    she wasn't shown are marked with a "?" and their card says so first.
 
+## At volume (Oct 16, run by the explorer)
+
+One run per scenario can't tell the system from the day, so the explorer ran the suite again: three more runs
+of most scenarios (31 runs in all with runs 1–3 here, 384 answers) and the bench eight times. Its reading is
+the W7 brief in the expedition's archive ([docs/EXPEDITION-1.md](../../docs/EXPEDITION-1.md)); Claude
+recomputed the cells from the run logs and they match. The new runs' logs are in the archive, not here.
+
+Per probe, mean [lowest–highest] of 5 runs (3 for attribution and ideas):
+
+| probe | app | memory | rules |
+|---|---|---|---|
+| persona2 race (metric, tl;dr) | 0.80 [0.33–1.00] | 0.80 [0.67–1.00] | 0.43 [0.33–0.67] |
+| persona2 dinner (two options, tl;dr) | 0.87 [0.33–1.00] | 0.60 [0.33–1.00] | 0.57 [0.33–0.67] |
+| plan next-step | 0.63 [0.00–1.00] | 0.73 [0.50–1.00] | 0.62 [0.00–0.92] |
+| plan whole-plan | 0.85 [0.75–1.00] | 0.75 [0.62–0.88] | 0.52 [0.25–0.75] |
+| life coming-up | 1.00 | 0.97 [0.83–1.00] | 0.65 [0.33–0.92] |
+| life age | 0.80 [0.00–1.00] † | 0.80 [0.00–1.00] | 0.80 [0.00–1.00] |
+| attribution my-ideas | 0.75 [0.42–1.00] | 0.75 [0.58–0.83] | 0.53 [0.33–0.83] |
+
+† one of the zeros is a rate-limit error graded as an answer.
+
+What it says:
+- **Finding 1 is the most reproduced failure there is.** The race and dinner rules faded in every rules run;
+  the tl;dr line was met 13 of 15 times in the app setup, 8 in memory, 5 in rules: it holds as long as her
+  recent replies happen to show it. Slots remain the fix to build first.
+- **Finding 2 is intermittent, not chronic.** The age miss came from run 1 (the oldest build); four runs since
+  found his birth date in every setup except one rate-limit error. Still a reason for the core-of-him slot.
+- **Findings 3 and 6 are one class**: what's coming up and her plans, chronic in 3 to 5 of 5 runs. Both want
+  something always in view at answer time (dates ahead, the plan's steps).
+- **Setup means**: app 0.943, memory 0.912, rules 0.839. Single cells swing from 0.33 to 1.00 between runs,
+  so a one-run difference on one probe means nothing; compare over runs, with the spread.
+- **Bench**: over eight runs explore 0.845, both 0.804, meaning 0.802, words 0.387, none 0.190; two-run cells
+  swing 0.17 to 1.00. Two of its graph checks can't pass as written (origin 0 of 8; one_hub fails on
+  multi-hop questions): check-side debt.
+- **The mind thinking at low** costs about 4× per job ($0.0014 → $0.0055) and writes valid nodes more often
+  on the first try; whether answers improve is unmeasured (those runs died in a rate-limit storm). Keep the
+  mind at none for chat speed until a calm rerun says otherwise.
+
 ## Dreaming, live (a short one)
 
 `dream.py` ran a 12-minute dream at max thinking on a copy of run 3's life memory (253 nodes, 887 connections):
@@ -166,6 +204,11 @@ What it says about real dreams:
   recognize. Run 3 replays `life` and `plan`.
 - **Five processes sharing one key at 8 calls each** hit Luminal's rate limit; one answer was the error.
   Fixed: the runner splits the 8 between processes, and retries wait as long as Luminal's Retry-After asks.
+- **An error is not an answer.** At volume, 4 of 384 answers were rate-limit errors that the judge graded 0,
+  pulling every mean down a little. Fixed (Oct 16): a failed call is recorded as `failed`, never graded, and
+  shows as "failed" in the report's table (`test_runner.py` checks it offline).
+- **Rate limits are per Luminal account**, shared by every key on it (docs/LUMINAL.md): parallel runs on one
+  account starve each other.
 
 ## Cost
 

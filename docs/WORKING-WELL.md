@@ -49,6 +49,9 @@
    a kill criterion.
 10. **When something fails, the system learns.** Every failure you catch becomes a check you run from then on.
 11. **Finish properly.** The review pass and the done list, every time.
+12. **Check the checks.** A gate you haven't seen fail proves nothing when it passes. Before trusting one, feed
+    it a planted bad example: a citation that doesn't say its sentence, a test whose score doesn't depend on
+    what it varies, a harness arm that shows the model the wrong thing.
 
 ---
 
@@ -178,6 +181,18 @@ errors):
 4. **Pointer check**: every id cited in a deliverable exists and has passed its checks.
 5. **Overreach audit** (an independent call, not code): on a random sample of claims, does the claim say more
    than the passage it came from? (template P9)
+6. **Support check** (an independent call per sentence, on every deliverable): give the sentence and the
+   quotes of the claims it cites; ask whether the quotes say it: *yes*, *partly*, *no*, or *about something
+   else* (template P13). Every *no* and *about something else* is an error to fix before shipping. The pointer check only
+   proves the ids exist; this proves they're the right ones. A sentence that inverts its source ("the
+   bottleneck is downstream of retrieval" citing "the bottleneck is retrieval"), or cites a vendor's marketing
+   as evidence of the opposite, passes a pointer check and fails this one.
+7. **Attribution check** (code where it can be): when a sentence or a table row names a system, paper or
+   benchmark, the cited claim's source is about that one. Numbers travel: a score from one system's paper
+   ends up in another system's row, and "two systems" turns out to be one system on two models.
+8. **An id supports only what it is.** An experiment's id supports sentences about that experiment's result;
+   a gap check's id supports "we searched and found X"; neither is a test of anything else. Ids added to a
+   sentence they don't bear on, to satisfy a checker, are a *no* on the support check.
 
 Keep the **rejection rate** (how many claims failed the checks) in `STATE.md`. It measures how much you were
 inventing. It should fall as the run goes on; if it doesn't, slow down.
@@ -430,9 +445,25 @@ When the work is thinking rather than looking things up:
    random; save every raw output, not only the totals.
 6. **Analyze honestly**: means, n, and a 95% interval (bootstrap: resample the items a thousand times). A
    difference is real only if its interval excludes zero; otherwise "no detectable difference".
-7. **Verdict**: *supported*, *not supported*, *inconclusive*, or *harness failed* (a broken run proves nothing
-   either way). Say what surprised you and what you'd test next.
-8. **Don't overclaim**: a small synthetic test shows what happens in that test. Say how far it generalizes and
+7. **Check the test was valid, before any verdict.** Each of these by code or by reading the raw rows, and
+   each written into RESULT.md with its numbers, then read by a fresh call (template P14):
+   - **Regime**: did the test reach the condition the hypothesis is about? Measure it: context length in
+     tokens, how often the mechanism under test actually fired (compaction, eviction, a missed search). A
+     hypothesis about long contexts tested where every context fits in 1,500 tokens says nothing either way.
+   - **Dependence**: does the score move with the thing you varied? Split the items by whether the answer
+     used the key information; if answers that didn't use it are right as often, the metric can't see the
+     hypothesis. A trend opposite to the one the problem predicts (the plain baseline getting *better* as the
+     task gets "harder") is a sign the task never got hard.
+   - **Look inside each arm**: print exactly what the model saw in each condition for three items. Duplicate
+     entries, missing fields, the same text for every item are harness bugs that look like results.
+   - **Oracle or mechanism**: an input written by hand to hold the right facts shows a *ceiling*. Call it
+     that, and test the mechanism that would produce the input separately.
+   - **Leakage**: nothing from another scenario, another condition, or the answer key in the input. Strange
+     "side effects" (invented facts, odd mentions) are checked against leakage first.
+8. **Verdict**: *supported*, *not supported*, *inconclusive (why)*, or *harness failed* (a broken run proves
+   nothing either way). *Not supported* only from a test that passed step 7; a negative from an invalid test
+   is as wrong as a positive. Say what surprised you and what you'd test next.
+9. **Don't overclaim**: a small synthetic test shows what happens in that test. Say how far it generalizes and
    how far it doesn't.
 
 ---
@@ -504,6 +535,11 @@ noise.
 - **The decay audit, at each phase end**: put a sample of the earliest and the latest outputs of the same kind
   in front of a blind judge. If the late ones are worse, slow down: smaller steps, more checks.
 - **Background jobs as threads** (§2.2): why started, what's expected, what to do with each outcome.
+- **Logs that tell the truth.** Save a command's exit status on the very next line (`rc=$?`); anything in
+  between overwrites it (`echo "$(date) exit=$?"` prints the status of `date`, always 0). A failed call (a
+  rate limit, a timeout) is recorded as a failure and left out of every score, never graded as a 0.
+- **Shared limits.** Find out what your calls share (an account's request rate, a budget) before running
+  things in parallel; parallel jobs on one limit starve each other and fail in storms.
 - **Leave a handoff**: at the end (or if you might be stopped), a short note: what's done, what's half done,
   what's next, where everything is. Someone else (or you, tomorrow) should be able to continue from it.
 
@@ -514,7 +550,11 @@ noise.
 - **Synthesize from records**, not from your earlier prose. Build tables first (claims by question, results by
   condition), then write from the tables.
 - **Every factual sentence carries its ids.** Check it by code: sentences without ids outside the sections
-  marked as ideas or open questions are errors.
+  marked as ideas or open questions are errors. Then run the support check (§2.4, check 6) on every sentence
+  that has them: an id that's present but doesn't say the sentence is worse than no id, because it looks
+  checked.
+- **Report experiments by what they tested, not by their verdict word.** "The note didn't beat the transcript
+  where the whole transcript was 1,200 tokens" carries its limits; "falsified" doesn't.
 - **Keep disagreements and uncertainty.** If sources disagree, say so and say who says what. Don't average
   them into a mush.
 - **Write the summary last**, from the finished body.
@@ -629,6 +669,24 @@ interest, how reliable do independent sources consider it, and is there a better
 Claim as stated in {source A}: "{claim}". {Source A} cites: {citation}. Here is the cited source's text: {text}. Does the
 cited source actually say this? Same strength, same scope, same numbers? If it in turn cites something for it, what?
 JSON: {"supports": "fully|partly|no", "difference": "...", "next_citation": "... or none", "quote": "exact sentence"}
+```
+
+**P13 · Support check** (one call per sentence; the caller never sees the draft's reasoning)
+```
+Sentence from a report: "{sentence}". It cites these claims, each with the exact quote from its source and the source's
+title: {id: title: quote, ...}. Do the quotes, taken together, say what the sentence says? Watch for: the opposite of the
+quote; a different system or paper than the sentence names; one thing counted as two; a quote that is only on the same
+topic; a stronger or broader sentence than the quotes. JSON: {"verdict": "yes|partly|no|about something else",
+"why": "...", "sentence_the_quotes_support": "..."}
+```
+
+**P14 · Is this test valid?** (before the verdict; give it PREREG.md, three raw items per arm, and the measurements)
+```
+Hypothesis: {hypothesis}. Here is exactly what the model saw in each condition for three items: {inputs per arm}. Measured:
+{context lengths in tokens, how often the mechanism fired, score split by whether the key information was used}. Does this
+test reach the situation the hypothesis is about? Does the score depend on the thing being varied? Is any arm showing the
+model something broken (duplicates, missing fields, identical text), hand-written, or leaked from another scenario or the
+answer key? JSON: {"valid": true|false, "problems": ["..."], "verdict_allowed": "any|inconclusive|harness failed"}
 ```
 
 ---

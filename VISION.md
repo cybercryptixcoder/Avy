@@ -284,6 +284,12 @@ near zero; memory built for chat loses the dense state and causal detail of agen
 memory saves structured compaction summaries and extracted facts, with no per-task state and no published
 measurement of this. **Open ground, and measurable**: the interleaved-tasks test (ARCHITECTURE §9).
 
+*Oct 16:* the first expedition tried a version of that test (its E01) and reported the idea "not supported".
+The test never reached long horizon: with eight interleaved jobs the whole transcript was about 1,150 tokens,
+compaction almost never fired, and the plain transcript got better as jobs were added. So the hypothesis is
+still untested, not refuted; the next attempt needs real lengths and a decision that's only right if the old
+insight survived (docs/EXPEDITION-1.md).
+
 ## 11. Everything is visible
 
 **Memory you can't inspect is memory you can't trust.** Footnotes on replies, what memory brought for each

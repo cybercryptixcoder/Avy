@@ -391,9 +391,18 @@ One folder per experiment: `experiments/E01-short-name/`.
    script or by a model call, saved to `data/`. **Save every raw output** (each model answer, each judge
    verdict) to `results.json`, not only the totals.
 3. **Repeat** stochastic conditions at least 3 times (different seeds or samples) and report the spread.
-4. **`RESULT.md`**: numbers copied from `results.json` (Checker 4 verifies they appear there); a verdict:
-   *supported*, *not supported*, *inconclusive*, or *harness failed* (a broken run proves nothing either way);
-   what surprised you; what the next test would be.
+4. **`RESULT.md`**: numbers copied from `results.json` (Checker 4 verifies they appear there); a
+   `## Validity` section (below); a verdict: *supported*, *not supported*, *inconclusive (why)*, or *harness
+   failed* (a broken run proves nothing either way); what surprised you; what the next test would be.
+   **Validity, before the verdict** (WORKING-WELL §6 step 7, template P14), each with its measured number:
+   *regime* (context lengths in tokens; how often the mechanism under test actually fired: compaction,
+   eviction, a missed search); *dependence* (the score split by whether the answer used the key information:
+   if answers that didn't are right as often, the metric can't see the hypothesis); *inside each arm* (paste
+   exactly what the model saw in each condition for three items, and look for duplicates, missing fields,
+   identical text); *oracle* (a hand-written input is a ceiling, and the verdict says "ceiling"); *leakage*
+   (nothing from another scenario, condition or the answer key). *Not supported* is allowed only when all
+   five pass; otherwise *inconclusive (which one failed)*. Lesson of the first run: E01 tested "long horizon"
+   at about 1,150 tokens, E02's lessons arm showed five copies of one lesson, E04's note was written by hand.
 5. **Statistics**: report n, means, and a 95% bootstrap interval (resample items 1,000 times); call a
    difference real only if the interval for the difference excludes zero, otherwise "no detectable
    difference".
@@ -403,7 +412,8 @@ One folder per experiment: `experiments/E01-short-name/`.
 
 Checker 4: `PREREG.md` exists and was written before `results.json` (compare modification times, and keep
 both times in `LOG.md`); it has every required field; the n in `results.json` matches; every number in
-`RESULT.md` appears in `results.json`.
+`RESULT.md` appears in `results.json`; `RESULT.md` has a `## Validity` section with all five checks and a
+number for each, and a *not supported* verdict only if all five passed.
 
 ### 6.8 Model judges
 
@@ -424,8 +434,15 @@ report: below), Checker 3 (gaps), Checker 4 (experiments). Put their totals in `
 inside the sections "Ideas", "Open questions", "How this run went" and headings, must contain at least one id
 in brackets. Every
 cited id must exist, and must be verified (C), valid (N), complete (G) or have a `RESULT.md` (E). Every number
-in a sentence must appear in the quote of a cited claim or in the `results.json` of a cited experiment. The
-report is done only when Checker 2 reports **zero** violations.
+in a sentence must appear in the quote of a cited claim or in the `results.json` of a cited experiment.
+Then the **support pass**: one fresh call per sentence (WORKING-WELL template P13) is given the sentence and
+the quotes or results of what it cites, and answers *yes*, *partly*, *no* or *about something else*; every
+*no* or *about something else* is a violation, and so is a sentence naming a system whose cited claim comes
+from another system's source. An id supports only what it is: an experiment id only that experiment's result,
+a gap id only "we searched and found X". A sentence that has nothing to cite is rewritten or moved to "How this
+run went", never given an id it doesn't need (the first run's report passed the presence check with zero
+violations while 4 of its 23 claim-citing sentences said what their quotes don't). The report is done only
+when Checker 2, support pass included, reports **zero** violations.
 
 ### 6.10 The overreach audit
 

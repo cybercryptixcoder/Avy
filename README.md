@@ -155,7 +155,7 @@ Everything stays in this folder:
 - `tools/copy_log.py`: carry the log from one memory file to another (see VERSIONS.md).
 - `tools/claude_export.py`, `tools/claude_import.py`: read a Claude export; import it and run the mind over it.
 - `tests/test_memory.py`, `test_luminal.py`, `test_import.py`, `test_files.py`, `test_intake.py`, `test_dream.py`:
-  offline checks (`python3 tests/test_memory.py`, and so on).
+  offline checks (`python3 tests/test_memory.py`, and so on); `tests/live/test_runner.py` checks the live runner.
 - `tests/page/`: the page in a real browser against a fake Luminal (`python3 tests/page/run.py`).
 - `tests/bench/`: the benchmark: a month of conversation replayed through the real Avy, questions that need
   memory, a judge. `python3 tests/bench/run.py` (under an hour and well under a dollar; a throwaway memory, never yours).
