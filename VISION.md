@@ -294,6 +294,49 @@ the task's state, fetched context. A conversation gives recent turns and voice t
 task's state and what it needs; a lookup gives fetched context almost everything. If the format is picked
 wrong, search inside thinking can still pull more.
 
+### Instruments, not tools *(Shreyas, Oct 16)*
+
+*"These tools are not like MCP, in the form of when it is called, it is available... It's more so that it's
+always available. It's kind of like you've made a custom home screen setup, like a desktop setup, with a weather
+widget, a time widget, a calendar widget... Or you're using Vision OS with the Vision Pro, and you've got this
+really sick setup with 10 different screens. You just need to look in that direction, and it's there."* The things
+that can be turned into an "I'll do the homework for you" setup should be: *"Having a calendar with that tracked
+is better than expecting an LLM to track things over time."* She gets a timeline and a sense of time she can look
+at any moment. Preferences too, and *"that should take up a good amount of space, because a big part of this is
+personalization"*, with its own structure for building up his preferences and the persona she has with him: *"It's
+like we're building this thing together."*
+
+### What shape memory should take *(Shreyas, Oct 16; reasoning in progress)*
+
+His open questions, as one question about the architecture: is a graph the best structure everywhere, or a tree,
+a timeline, or something invented (trees at certain nodes of a graph, where a node is known to split into
+options)? One graph or several? Directed or undirected? Is traversal deterministic or non-deterministic, with
+several states at once? And maybe retrieval memory and the persona, *"this almost living thing"*, are different
+things altogether.
+
+Claude's reasoning so far (proposals for him to decide):
+- **The shape follows the question.** Things in time are asked "what's next, what came before": a timeline.
+  Plans and decisions split into steps and options: trees (with dependencies, a directed acyclic graph). Knowledge
+  of the world is associative, many to many: a graph. Preferences are rules with exceptions: a cascade, general to
+  specific, like CSS. The coming-up failure is a missing timeline: a graph is a bad calendar.
+- **One set of nodes, many structures over it.** Every node lives once, with its evidence; the graph, the
+  timeline, the plan trees and the cascade organize the same nodes, like a library catalog by subject, author
+  and date over one set of books. The dentist appointment is a point on the timeline and a node linked to his
+  teeth.
+- **Shown vs searched.** The instruments on the desk are the active faces of the structures (the next two weeks
+  of the timeline, each thread's frontier, the top of the cascade), computed by code the same way every time.
+  The stores behind them are searched. That's his active/passive split for every model.
+- **Direction carries meaning; walking goes both ways.** Association is symmetric; evidence, versions, causes and
+  steps are directed. Search can walk any edge either way; checking follows direction ("what rests on this?").
+  Evidence must have no cycles, because a cycle is circular reasoning, and code can refuse one.
+- **Deterministic where it's shown, exploratory where it's searched.** The desk is built the same way from the
+  same state; the walk through memory is the model's choice. The living state is a set of threads, each in its
+  own state at once, and each message or event moves the one it belongs to.
+- **The persona is a model of the relationship**, not only of her: his preferences, her manner with him, and the
+  shared ground (coined terms, agreements, how they work), the "us" in *"we're building this thing together"*.
+
+### Everything is a model of something *(Shreyas, Oct 16)*
+
 Internal memory has an active and a passive side too: the active side is what's in its slots; the passive side
 is "just another model". *"This aspect of models keeps coming up... the system builds a model of everything."*
 An entity can be a person, a project, Avy herself, or anything else, and the system forms a model of each: the
