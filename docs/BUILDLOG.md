@@ -337,6 +337,20 @@ was written in memory's first batch. Fixed: a reload of the graph lets go of a h
 that isn't there, and the drawing tolerates one anyway; `tests/page/t_ui.py` now selects a node that can't
 exist and slides back (deterministic), and page errors are recorded with their stack.
 
+**17. The landscape, Shreyas's new ideas, and a brief for his explorer agent (Oct 16).** At his request:
+research on Supermemory and the field (`docs/LANDSCAPE.md`, with sources), and his newest ideas added to the
+concept: the feel of a long conversation (VISION §8), long-horizon multitasking with his training-run example
+(VISION §10, ARCHITECTURE §9 with a small test design), Avy as an agent with tools (§13), the challenge and
+the direction "an agent that gets better the longer you know it" (§17), and decisions 8–9 (§16). Then a brief
+for his own agent (DeepSeek Flash with a computer of its own) to run a long exploration: `docs/EXPLORER-BRIEF.md`
+(key removed; the copy he hands over has it). Its design: the agent can't hold long instructions, so the
+procedure lives in files (state, plan, log, a wake-up every 15 minutes), and its tendency to invent is caught
+by checkers it writes first: every claim carries a verbatim quote checked against a saved copy of the source,
+numbers must appear in the quote, "nobody has done X" goes through a gap protocol (≥10 searches, ≥20 sources,
+an adversarial pass) and is worded as "not found in N searches", ideas need a prior-art search and a
+prediction, experiments are preregistered with n ≥ 30 and repeated, and the report is checked sentence by
+sentence. When its report comes back, check the ledgers, not the prose.
+
 ### State of things (end of session 3)
 
 **Everything below is on `main`, in his name, and tested** (offline suites: memory, luminal, files, import,
