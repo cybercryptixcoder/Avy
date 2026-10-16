@@ -312,6 +312,13 @@ what failed? sounds the same? can the judge tell which is which?). Shrink the sl
 one stops matching: that's the floor. The live-test harness (`tests/live/`) and the benchmark's judge are
 the pieces this reuses.
 
+**The coined-term probe** (Shreyas, Oct 16): the sharpest single test of whether the feel is emergent. Plant a
+few terms he invents in passing early in a long scripted history; much later, raise a related topic without the
+term; ask nothing about it. Measure how often she uses the term unprompted, and whether a blind judge finds the
+use natural rather than forced. Three conditions: no memory, a dictionary of his terms injected every turn (the
+"cheat" baseline: high use, much of it forced), and Avy's memory as it is (no instruction to use them). The
+interesting result is natural use without being told.
+
 ---
 
 ## 8. The library (storage built Oct 15; writing knowledge from it planned)

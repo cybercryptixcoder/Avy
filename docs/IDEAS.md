@@ -167,6 +167,12 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
   surface, stance, a shared world of coined names, anticipation, momentum. Ideas: replies that landed as
   examples, a shared lexicon, his corrections as lessons about manner; measured by the fork test.
   *(open: VISION §8)*
+- **Shared vocabulary that emerges** *(Oct 16)*: a term he coined months ago, used by her unprompted while
+  working on something else. Not a dictionary (that's the cheat); emergent from memory bringing the coining
+  moment back at the right time. Extends to the whole feel and behavior. *(open: VISION §8; the coined-term
+  probe, ARCHITECTURE §7.4)*
+- **One entity, not a new chat; a persona that grows into what you'd want** *(Oct 16)*: "let's go back and
+  talk to Avy". What would make it sticky as a product. *(open: VISION §12)*
 - **Learning from what happened** *(Oct 16)*: continual learning as getting better at things, not just
   remembering: lessons from her own outcomes, with evidence. Measured by CL-Bench's gain. *(open: VISION §17)*
 - **Dreaming**: long, quiet stretches (about 8 hours, thinking at max) spent forming connections and
@@ -230,6 +236,8 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
 
 ## Proactivity (the next pillar)
 
+- **Long-horizon multitasking as the target** *(Oct 16)*: "the door we want to knock on". *(his leaning,
+  VISION §16.8)*
 - **Long-horizon multitasking** *(Oct 16)*: his example of a training run started in the background whose
   insights are lost to compaction or haze by the time it finishes; the hypothesis that Avy can be the best
   at this, because each task keeps its own state and resumes from it. *(open: VISION §10, ARCHITECTURE §9;

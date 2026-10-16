@@ -224,6 +224,18 @@ do that"), lessons about manner rather than facts; and the character note writte
 whole transcript and once from memory alone; if a blind judge can't tell which is which, the feel survived.
 Nobody publishes that number yet.
 
+**Emergent, not scripted** *(Shreyas, Oct 16)*: *"Maybe four months ago I said a certain term in the middle of
+something, maybe I just invented it. It would be really cool if, while working on something else, the LLM
+described it using that term... You could cheat that: just create a dictionary. If it's an emergent response
+through our setup, that's a lot more interesting. And that's not limited to vocabulary: that's the entire feel
+of it, the entire behavior."* The distinction matters for the design: a dictionary injected every turn forces
+the words in (and overuses them); the interesting version is when nothing tells her to use them and she does,
+because memory brought the moment he coined the term to the table at the right time. Avy's structure already
+points that way: his exact words are kept, a term he coins becomes a thing in memory pointing at the message it
+was born in, and connections lead from related topics to it. The test: plant coined terms early, raise a related
+topic months later without the term, and measure whether she uses it unprompted and appropriately, against
+no memory and against a dictionary (ARCHITECTURE §7.4).
+
 ## 9. Putting it together: one turn's context
 
 Each turn's context is built like allocated memory: **fixed slots that are always shown**, filled partly by
@@ -288,6 +300,12 @@ One endless conversation: no "new chat". Dials for everything about memory (`/wi
 shallower. Files of any kind. A page that's beautiful to use: terminal-quiet chat, neo-brutalist panels,
 textured not neon, **a dark mode that's done properly**, and small sounds for what happens (sending, a reply
 landing, clicking, touching a node, the swish of the graph turning).
+
+**One entity, not a new chat** *(Shreyas, Oct 16)*: people are used to opening a new chat and getting a fresh
+agent every time. Avy is one conversation that keeps growing, so she grows more accustomed to you and you to
+her: less "let's open a new chat", more "let's go back and talk to Avy". A persona that evolves, learns and
+grows into what this person wants it to be, from the relationship rather than from settings, is what would make
+it something people come back to.
 
 ## 13. The bigger picture
 
@@ -385,6 +403,9 @@ Each of these blocks something in §15. The trade-offs are in ARCHITECTURE.md.
    in recall unless asked for; dreaming merges and retires them; or keep them and let explore filter.
 8. **What Avy is best at.** Candidates from Oct 16: long-horizon multitasking (§10), getting better the
    longer you know her (§17), keeping the feel (§8). One of them could become the thing she's built around.
+   *His leaning (Oct 16):* long-horizon multitasking is "the door we want to knock on", the one to target and
+   call ours; and the evolving persona, a single entity that grows into what you'd want, as what makes it
+   sticky.
 9. **Tools for Avy**: web search, a terminal, acting on his behalf. When, and with what limits.
 
 ## 17. The challenge *(Shreyas, Oct 15–16)*
