@@ -255,6 +255,20 @@ ACTIVE MEMORY (fixed slots, every turn)          PASSIVE MEMORY (stores: searche
 
 The slots stay the same size however long Avy runs. Everything that grows lives in the stores.
 
+### Seen by time *(Oct 16)*
+
+The same system, sorted by time:
+- **The past**: the log, the library and knowledge. Built, and the strongest part.
+- **What's always true**: habits and identity (the preferences note, character, the core of who he is).
+  Designed.
+- **The present**: her working state (the thought frontier, threads). Designed.
+- **The future**: intentions waiting for a cue, and what's coming up. Not designed yet.
+
+Every failure the live tests reproduce sits outside the past: preferences (always), plans and what's coming
+up (the future), a plan that lived only in her own reply (the present). Human memory has a separate system
+for each of these, which is where the parallels in docs/IDEAS.md ("Human memory, and what it suggests") come
+from.
+
 ## 10. A side effect: parallelism and multitasking
 
 Because every message starts like a new conversation, Avy doesn't depend on one trail of context. When a

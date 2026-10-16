@@ -281,6 +281,37 @@ Avy already has. All *open*.
   answer time.
 - **An interleaved-tasks harness** (I040): the test VISION §10 needs (ARCHITECTURE §9), at real lengths.
 
+## Human memory, and what it suggests (Oct 16)
+
+From the conversation about what Avy resembles. All *open* unless marked.
+
+- **Seen by time**: the past (built), what's always true (designed), the present (designed), the future (new).
+  The reliable failures all sit outside the past (VISION §9, "Seen by time").
+- **Preferences are habits, not memories.** Recall depends on the cue matching how something was stored
+  (encoding specificity), and "how long is a half marathon?" never cues "use metric". People don't recall a
+  standing preference, they just act on it. So it can't depend on search: it has to be always on. *(supports
+  slots first, VISION §16.4)*
+- **Prospective memory** *(new)*: intentions with a trigger, either a time ("Friday") or an event ("when the
+  training run finishes", "next time Rohan comes up"), that come into view when the cue appears, carrying why
+  they were made and what each outcome would mean. One mechanism for what's coming up, her plans, and the
+  resume side of long-horizon multitasking.
+- **Storage strength vs retrieval strength** (Bjork): the log never loses anything; connection strength is how
+  easy a thing is to reach. Forgetting lowers reachability and never deletes. *(already the design; now named)*
+- **Dream about what's coming** *(new)*: sleep strengthens most what people expect to need later. Dreaming
+  should go first to open threads, upcoming events and recent corrections, not sweep at random. *(VISION §16.5)*
+- **Salience** *(new)*: corrections, decisions, things he repeats, things he's excited about are stored
+  stronger, the way emotion strengthens memory. Today every node counts the same.
+- **A feeling of knowing** *(new)*: a cheap map of what she knows about, so a search miss can be told apart from
+  something never said, and she can say "you mentioned something like this around March".
+- **A working self** *(new)*: her open threads and goals steer what she looks up (Conway's self-memory system).
+  Connects the thought graph (§7) and search inside thinking.
+- **Source monitoring**: the "whose idea" failure is cryptomnesia, someone else's idea remembered as your own.
+  Fix: record who adopted an idea apart from who said the words. *(already VISION §16.2)*
+- **Transactive memory**: a couple remembers as one system, each knowing what the other knows, with a private
+  vocabulary. That's the feel and the coined terms (VISION §8).
+- **Caution**: a Microsoft architecture copying sleep consolidation and forgetting (May 2026) didn't beat plain
+  retrieval on LongMemEval. Copy the brain only where it fixes a failure we've measured.
+
 ## The five pillars (from earlier conversations)
 
 Unlimited context and verifiability come first (Avy has both); persistence, proactivity and a model of
