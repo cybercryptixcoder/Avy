@@ -255,6 +255,23 @@ ACTIVE MEMORY (fixed slots, every turn)          PASSIVE MEMORY (stores: searche
 
 The slots stay the same size however long Avy runs. Everything that grows lives in the stores.
 
+### Fixed slots, like an instruction format *(Shreyas, Oct 16)*
+
+His parallel, from the hardware design he was learning: in a computer there's a fixed amount of space, and an
+instruction format (R-type, I-type) allocates exactly so many bits to this field, so many to that. Nothing to
+replicate, just the shape of it: the context window is active memory, and it gets a fixed layout too, with a
+set allocation for the persona, a set allocation for internal memory, and so on. Not the whole window, and as
+little of it as possible, but each part with its own fixed space.
+
+### Everything is a model of something *(Shreyas, Oct 16)*
+
+Internal memory has an active and a passive side too: the active side is what's in its slots; the passive side
+is "just another model". *"This aspect of models keeps coming up... the system builds a model of everything."*
+An entity can be a person, a project, Avy herself, or anything else, and the system forms a model of each: the
+world, everything it knows. One of those models is her own state. So the architecture is, by nature, a
+collection of models of entities, each with a small active part kept in fixed slots and a passive part
+searched when needed.
+
 ### Seen by time *(Oct 16)*
 
 The same system, sorted by time:
