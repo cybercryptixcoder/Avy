@@ -29,6 +29,15 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
 - **Entertained by agents.** He's quitting YouTube and Instagram and wants the agent to fill that space
   productively: something playing while he eats, that he can jump into. *(parked: the narrator, below)*
 
+- **Beat the best, with one cheap model** *(Oct 15–16)*: build better agent memory than what's out there
+  (docs/LANDSCAPE.md), measured on others' benchmarks, with DeepSeek Flash as the only model. *"Intelligence
+  is capped for a given model... but the extent to which that intelligence is leveraged is still up for
+  grabs."* *(open: the direction; VISION §17)*
+- **An agent that gets better the longer you know it** *(Oct 16)*: quality rising with months of use, where
+  today's agents stay flat or decline. *(open: VISION §17)*
+- **Emergent behavior and an artificial mind** *(Oct 15)*: the hope that the structure produces behavior
+  nobody wrote, the way ReasoningBank's lessons matured on their own. *(open)*
+
 ## How it's built
 
 - **From scratch, one file at a time, written directly, tried after every step.** After Hermes and Ava,
@@ -94,6 +103,7 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
   on, soft or off)*
 - **See her thinking**: the chain of thought behind each reply, collapsible, kept with the message.
   *(built Oct 15: "thought for Ns" above the reply; saved in its own append-only table; in exports)*
+- **New features for Avy's page as she grows** *(Oct 16)*: part of the exploration he wants run. *(open)*
 - **A looking glass**: one place to watch everything loading into memory and the mind working: progress,
   how many done, ETA, errors, the state of memory. *(built Oct 15: the Glass button, `/glass`)*
 
@@ -153,6 +163,12 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
   privately, kept apart; what's held in mind versus what sits on the shelf until something calls it.
   *(open: his to design, iteratively; the library is the first passive shelf, and her saved thinking the
   first record of internal thought, but neither is wired into the network yet. VISION.md §16)*
+- **The feel of a long conversation, kept** *(Oct 16)*: the reason you don't want to start a new chat:
+  surface, stance, a shared world of coined names, anticipation, momentum. Ideas: replies that landed as
+  examples, a shared lexicon, his corrections as lessons about manner; measured by the fork test.
+  *(open: VISION §8)*
+- **Learning from what happened** *(Oct 16)*: continual learning as getting better at things, not just
+  remembering: lessons from her own outcomes, with evidence. Measured by CL-Bench's gain. *(open: VISION §17)*
 - **Dreaming**: long, quiet stretches (about 8 hours, thinking at max) spent forming connections and
   re-indexing, not answering. *(built Oct 15: `/dream`, from the looking glass; sweeps, wanders, checks
   health, wakes when nothing's left or the budget's spent; its real behavior on a big memory is still to
@@ -213,6 +229,12 @@ The story of when each came up is in [HISTORY.md](HISTORY.md).
   pieces, documents by heading, tables by rows, pictures described)*
 
 ## Proactivity (the next pillar)
+
+- **Long-horizon multitasking** *(Oct 16)*: his example of a training run started in the background whose
+  insights are lost to compaction or haze by the time it finishes; the hypothesis that Avy can be the best
+  at this, because each task keeps its own state and resumes from it. *(open: VISION §10, ARCHITECTURE §9;
+  a candidate for what Avy is best at, §16.8)*
+- **Avy as an agent of her own** *(Oct 16)*: web search, a terminal, acting. *(later: VISION §13, §16.9)*
 
 - **Proactive, reaching out with what he could do now.** *(later)*
 - **Structured awakening**: plan, schedule, stop; wake on triggers or every few hours; no model running

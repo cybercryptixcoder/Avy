@@ -201,6 +201,29 @@ of conversation, not the topic**, giving, in effect, a dynamic system prompt per
 always in view; situational behavior is retrieved. The origin tiers carry over: "keep it short" is something
 he said; "wants depth when talking about life" is her inference until he confirms it.
 
+### The feel *(Shreyas, Oct 16)*
+
+*"You know how you have a really long conversation with an agent, and then you don't want to switch
+conversation because you've spoken to it for so long? Now the agent gets you... Not just in terms of how long
+a message is or what vocabulary is used, but it's a mix of those. It's more so a feel. How do we preserve
+that?"*
+
+What a long conversation builds, roughly in layers, and what a new chat loses:
+1. **Surface**: length, vocabulary, rhythm.
+2. **Stance**: how she pushes back, how dry or warm she is, and when.
+3. **A shared world**: names coined together, callbacks, running jokes ("Gerald", "the hinge").
+4. **Anticipation**: her model of what he'll want before he says it.
+5. **Momentum**: the threads still in the air.
+
+A preferences note covers part of the first layer. The rest lives only in the transcript, which is why
+leaving it hurts. Ideas for holding it (his to decide): her own replies that *landed* kept as examples,
+chosen for the kind of conversation rather than just the latest; **a shared lexicon**, every coined term with
+a pointer to the message where it was born; **his corrections as the strongest signal** ("too long", "don't
+do that"), lessons about manner rather than facts; and the character note written from that evidence.
+**The measure is the fork test** (ARCHITECTURE §7.4): continue a long conversation twice, once with the
+whole transcript and once from memory alone; if a blind judge can't tell which is which, the feel survived.
+Nobody publishes that number yet.
+
 ## 9. Putting it together: one turn's context
 
 Each turn's context is built like allocated memory: **fixed slots that are always shown**, filled partly by
@@ -231,6 +254,24 @@ to check, on resuming, what changed among the nodes that thread's thoughts depen
 Writes at the same time go through the one checkpoint; scheduling uses a view of every thread's open
 commitments.
 
+### Long-horizon multitasking: the hypothesis *(Shreyas, Oct 16)*
+
+His example: a coding agent sets up a training run after working out a set of very specific insights, starts
+it in the background, and moves on to other work. The context grows; by the time the run finishes, the
+insights that shaped it are either compacted away or so far back that the model is hazy on them, so it judges
+the results and continues the work worse than it would have at the time.
+
+**The hypothesis: Avy can be the best at long-horizon multitasking**, because nothing she needs has to
+survive in one growing context. Each task keeps its own state; when the run finishes, she resumes *that*
+thread with its insights, not the last hour of unrelated work. What has to be true for it to work: the
+insights must be captured as the thread's state (why the run was configured that way, what result would
+mean what, what to do next), not only as facts; that's the thought graph and the frontier (§7), plus her
+saved reasoning (built). What the field shows (docs/LANDSCAPE.md): agents do well on single tasks and worse
+when the same tasks are interleaved; on interdependent multi-session tasks every tested memory system scores
+near zero; memory built for chat loses the dense state and causal detail of agent work. Supermemory's agent
+memory saves structured compaction summaries and extracted facts, with no per-task state and no published
+measurement of this. **Open ground, and measurable**: the interleaved-tasks test (ARCHITECTURE §9).
+
 ## 11. Everything is visible
 
 **Memory you can't inspect is memory you can't trust.** Footnotes on replies, what memory brought for each
@@ -257,6 +298,10 @@ Five things a capable agent needs. Avy takes on two first:
 Then: **persistence** (internal memory: the thought graph, character, self model), **proactivity**
 (structured wake-ups, rules for reaching out, using memory as the model of his life), and **a model of the
 user**.
+
+**Avy as an agent of her own** *(Shreyas, Oct 16)*: web search, a terminal, the ability to act, so she
+doesn't only remember and talk but does things; and new features in her page as she grows. Long-horizon
+multitasking (§10) is where memory and acting meet.
 
 ## 14. Principles
 
@@ -295,6 +340,9 @@ user**.
 | Preferences note, character note, self model | designed |
 | Parallel threads (frontiers as saved state, interrupts, stale-assumption check) | designed |
 | Fork test, interleaved-tasks test | designed |
+| Live scenario tests, a live dream test; findings in tests/live/RESULTS.md | built (Oct 15) |
+| Benchmarks against others: LongMemEval-S, CL-Bench, the fork test, interleaved tasks (Flash only) | next (§17) |
+| Avy as an agent: web search, a terminal, acting | later (§13) |
 | The real-scale test: years of Claude conversations built into memory | ready to run (his to start) |
 | Proactivity | later |
 
@@ -335,3 +383,29 @@ Each of these blocks something in §15. The trade-offs are in ARCHITECTURE.md.
    that actually get worked to") that turn up in unrelated questions and crowd the note when search is by
    rules. Options: Think writes less and only what's useful for something coming up; inferences count for less
    in recall unless asked for; dreaming merges and retires them; or keep them and let explore filter.
+8. **What Avy is best at.** Candidates from Oct 16: long-horizon multitasking (§10), getting better the
+   longer you know her (§17), keeping the feel (§8). One of them could become the thing she's built around.
+9. **Tools for Avy**: web search, a terminal, acting on his behalf. When, and with what limits.
+
+## 17. The challenge *(Shreyas, Oct 15–16)*
+
+*"I want to build it better... I want to beat it on a benchmark, but I want to beat it, period."*
+
+Others are building memory for agents, some funded, some ahead in engineering (docs/LANDSCAPE.md). The
+challenge Shreyas set: build the best one anyway, **with one cheap model** (DeepSeek-V4.1-Flash), on the
+thesis that intelligence is capped by the model but **how much of it gets used is up for grabs**: a modest
+model in the right contraption can outperform its size. Building on what's known, not repeating it.
+
+**The direction that ties it together: an agent that gets better the longer you know it.** Plot quality
+against months of use: for today's agents the line is flat or falling (long contexts rot, beliefs go stale,
+rapport is lost on every new chat). Make Avy's go up. It has measurable parts:
+- **Facts**: beat the published memory systems on their own benchmark (LongMemEval-S; Supermemory's engine
+  scores 81.6–85.2%, the best published systems 91–95.6%), with Flash as the only model.
+- **Learning from experience**: a positive gain on CL-Bench (Berkeley/Snorkel, June 2026), where the best
+  system improved about 25% with experience and dedicated memory systems did worse than keeping everything
+  in context. That's continual learning as getting better at things, not just remembering them: lessons
+  from her own outcomes (what she tried, what happened, what she'd do differently), with evidence.
+- **The feel**: a fork test a blind judge can't pass (§8).
+- **Many things at once**: the interleaved-tasks test (§10).
+- **Unasked relevance**: bringing up what matters without being asked (the allergy test in tests/live).
+

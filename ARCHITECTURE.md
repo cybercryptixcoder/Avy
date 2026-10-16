@@ -358,6 +358,17 @@ view of every thread's open commitments.
 **Test**: interleave several tasks that each wait on a slow background job; measure how accurately each is
 picked back up as the number of tasks grows, against a conventional single-transcript agent.
 
+**The case it's built for** (Shreyas, Oct 16): a task works out specific insights, starts a long background
+job configured by them, and the agent moves on. When the job finishes, a single-transcript agent has either
+compacted those insights away or holds them far back in a long context. A thread instead keeps, in its
+frontier: the job and how to check it; the insights behind its configuration (pointing into her saved
+reasoning); the prediction (what result would mean what); and the next step for each outcome. The interrupt
+loads exactly that, plus the stale-assumption list. A small version of the test: N tasks (2, 4, 8), each with
+a few planted, specific insights that matter only when its job "finishes"; filler work in between; at each
+completion, ask for the decision that needs those insights. Score: correct decisions, and whether the
+planted insight was used (checkable by its exact wording). Baselines: one growing transcript; the same with
+compaction (summaries); facts-only memory. The field's nearest benchmarks are in docs/LANDSCAPE.md.
+
 ---
 
 ## 10. Turn assembly and budgets (built parts)
