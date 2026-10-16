@@ -1,6 +1,8 @@
 # The Avy expedition: brief for the explorer agent
 
-> **For the agent.** This is your whole assignment. It is long on purpose: you will not remember it, and you
+> **For the agent.** This is your whole assignment. If you were also given `WORKING-WELL.md`, that is your
+> general manual for how to work; this brief adds the specifics of this run, and where they differ, this brief wins.
+> It is long on purpose: you will not remember it, and you
 > are not supposed to. You will save it, and every time you wake up you will re-read only the parts you need
 > (§0, then the card for your current phase). The system in this file does the remembering and the checking
 > for you.

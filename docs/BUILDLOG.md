@@ -351,6 +351,14 @@ an adversarial pass) and is worded as "not found in N searches", ideas need a pr
 prediction, experiments are preregistered with n ≥ 30 and repeated, and the report is checked sentence by
 sentence. When its report comes back, check the ledgers, not the prose.
 
+**18. A general manual for long, cheap, good work** (`docs/WORKING-WELL.md`, Oct 16). Shreyas asked for the
+explorer brief's approach generalized to everything his agent does: research (both mapping a field and checking
+a claim to its origin, with rigor tiers so verification goes where conclusions rest), reasoning, ideas,
+experiments, building, writing, long runs. The meta rule: before any task, write a system card (deliverable,
+what excellent looks like, how it goes wrong, a check for each failure, tiers, steps, files, stop rules, final
+review), pilot it on a slice, then run. Built on named methods (SIFT, lateral reading, snowballing, competing
+hypotheses, pre-mortems, forecasting practice), cited at its end.
+
 ### State of things (end of session 3)
 
 **Everything below is on `main`, in his name, and tested** (offline suites: memory, luminal, files, import,
