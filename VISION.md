@@ -263,7 +263,36 @@ replicate, just the shape of it: the context window is active memory, and it get
 set allocation for the persona, a set allocation for internal memory, and so on. Not the whole window, and as
 little of it as possible, but each part with its own fixed space.
 
-### Everything is a model of something *(Shreyas, Oct 16)*
+### The desk, field by field *(Shreyas and Claude, Oct 16; in discussion)*
+
+His list:
+- **The persona**: not a model of self, just a manner of being. How she responds: the words she uses, the
+  references she brings, how she behaves.
+- **Maybe a system prompt.**
+- **The context fetched** for the task.
+- **The task's record**: not just the task, but where it's at.
+- **For long-horizon multitasking, jump to the node.** A model creates memories as it builds; something it left
+  an hour ago was left at a certain state; when it needs that context again it jumps straight to the node where
+  it was working, and it's as if it never left.
+
+Claude's additions:
+- **The new message and the last few turns, word for word.** Without them "yes, do that" has nothing to point at.
+- **Him, the active side of the model of him**: who he is and his standing preferences, always in view. This is
+  not the persona (her manner); it's the always-true part of him, the thing the tests show fading.
+- **The clock and what's due**: the date and time, and anything coming up or waiting for a cue.
+- **The open threads, one line each**: what's in flight, so she knows where she *can* jump. Like an operating
+  system's process table next to the program counter.
+- **The system prompt is worth keeping, but small**: the rules of the machine (cite, don't invent, what she can
+  do), not the personality. Like an instruction set, separate from the program.
+- Words and references they've coined come through fetched context, not the persona slot, so they show up
+  because something brought them back, not from a dictionary.
+
+**One desk or several?** His instruction-format parallel answers it: a few fixed formats, like R-type and I-type,
+same total size and different field splits, and a quick first step (the opcode) that picks the format for the
+message. Fields always there: rules, persona, him, the clock, the new message. Fields that flex: recent turns,
+the task's state, fetched context. A conversation gives recent turns and voice the most room; a task gives the
+task's state and what it needs; a lookup gives fetched context almost everything. If the format is picked
+wrong, search inside thinking can still pull more.
 
 Internal memory has an active and a passive side too: the active side is what's in its slots; the passive side
 is "just another model". *"This aspect of models keeps coming up... the system builds a model of everything."*
