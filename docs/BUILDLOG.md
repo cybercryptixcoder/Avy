@@ -87,7 +87,13 @@ Work is on the branch **`desk`** (not merged into `main` yet; merge once the pag
 
 ### Next (pick up here)
 
-1. Read `tests/persona/results/longrun1_longrun.md` (probes: coined terms beyond the window, metric at window 0,
+0. **At the pause (Oct 17, 17:02)** longrun1 was on day 8 of 12 and the machine shuts down when the session goes idle,
+   so it most likely didn't finish. Its memory is in `tests/persona/results/longrun1.memory/` (it started before
+   checkpointing existed, so it can't resume). Run a fresh one: `python3 tests/persona/longrun.py --stamp longrun2`
+   (it now checkpoints after every exchange: rerun the same command and it carries on), keeping the session busy
+   (a monitor) or on a machine that stays on. The resume path was only half tested (a cut-off run kept 6 exchanges
+   in transcript.jsonl and its marks; the second half, picking up, wasn't run yet).
+1. Read `tests/persona/results/longrun2_longrun.md` (probes: coined terms beyond the window, metric at window 0,
    calendar, resuming the background run, the fork test, her core's drift). Fix what fails; run it again.
 2. **The page** (planned, not started): a desk view (`/desk`, a "Desk" pill next to Glass): calendar as a vertical
    two-week timeline with big Instrument Serif day numerals and a "now" line, threads with plan trees, the persona

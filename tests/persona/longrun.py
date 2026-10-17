@@ -8,6 +8,9 @@ a long background run with the insights behind it. Then probes that only memory 
     python3 tests/persona/longrun.py --days 3         a quick try
     python3 tests/persona/longrun.py --probes-only --memory tests/persona/results/<stamp>.memory/longrun.db
 
+It checkpoints after every exchange (the memory file, transcript.jsonl and a mark of the last beat done), so running it
+again with the same --stamp carries on where it stopped: the machine it runs on may be reclaimed mid-run.
+
 Writes tests/persona/results/<stamp>_longrun.md and .json.
 """
 
@@ -118,6 +121,13 @@ class Run:
         app.keep_after = lambda mem, last: None
         self.log = open(self.work / "trace.log", "a")
         self.transcript, self.cost = [], 0.0
+        self.saved = self.work / "transcript.jsonl"                 # the checkpoint: every exchange as it happens
+        if self.saved.exists():
+            self.transcript = [json.loads(line) for line in self.saved.read_text().splitlines() if line.strip()]
+        done = self.mem.mark("longrun_beat")
+        self.done = tuple(int(x) for x in done.split(":")) if done else (-1, -1)
+        if self.transcript:
+            self.say(f"resuming after sitting {self.done[0]}, beat {self.done[1]} ({len(self.transcript)} exchanges kept)")
         self.day1 = datetime(2026, 10, 19).astimezone()
 
     def say(self, *parts):
@@ -175,26 +185,38 @@ class Run:
         return (r["choices"][0]["message"].get("content") or "ok").strip().strip('"')
 
     def play(self, days):
-        for day, hhmm, beats in DAYS:
+        for index, (day, hhmm, beats) in enumerate(DAYS):
             if day > days:
                 break
+            if index < self.done[0]:
+                continue                                          # done before a restart
             h, m = (int(x) for x in hhmm.split(":"))
             self.clock(self.day1 + timedelta(days=day - 1, hours=h, minutes=m))
             for r in worker.write_due(self.mem):                  # quiet before this sitting: the mind catches up
                 self.cost += r.get("cost") or 0
             self.say(f"\n=== day {day} {memory.now():%a %b %d %H:%M}")
             sitting = []
-            for beat in beats:
+            for t in self.transcript:                              # a sitting interrupted mid-way picks up its own thread
+                if t.get("sitting") == index:
+                    sitting += [("him", t["him"]), ("avy", t["avy"])]
+            for b, beat in enumerate(beats):
+                if (index, b) <= self.done:
+                    continue
                 kind, text = beat[0], beat[1:].strip()
                 if kind == "!":
                     if text == "reflect":
                         for r in worker.reflect_on_manner(self.mem, force=True):
                             self.say(f"      reflect {r['status']}: {r.get('critique')} changed {r.get('changed')}")
+                    self.mem.set_mark("longrun_beat", f"{index}:{b}")
                     continue
                 message = text if kind == ">" else self.him(text, sitting)
                 reply, info = self.turn(message)
                 sitting += [("him", message), ("avy", reply)]
-                self.transcript.append({"day": day, "him": message, "avy": reply, **info})
+                self.transcript.append({"day": day, "sitting": index, "him": message, "avy": reply, **info})
+                with open(self.saved, "a") as f:
+                    f.write(json.dumps(self.transcript[-1]) + "\n")
+                self.mem.set_mark("longrun_beat", f"{index}:{b}")
+                self.mem.set_mark("talk_clock", memory.now().isoformat())
                 self.say(f"  him: {message}")
                 self.say(f"  avy: {reply}")
                 extra = []
@@ -210,10 +232,14 @@ class Run:
             self.clock(memory.now() + timedelta(hours=2))
             for r in worker.write_due(self.mem, force=True):
                 self.cost += r.get("cost") or 0
+            self.mem.set_mark("longrun_beat", f"{index}:{len(beats)}")
+        if self.mem.mark("longrun_played"):
+            return
         self.clock(self.day1 + timedelta(days=days, hours=3))     # the night after: reflection
         worker.reflect_now(self.mem, budget=10 ** 6)
         for r in worker.reflect_on_manner(self.mem, force=True):
             self.say(f"      reflect {r['status']}: {r.get('critique')} changed {r.get('changed')}")
+        self.mem.set_mark("longrun_played", "1")
 
     def probes(self):
         self.clock(self.day1 + timedelta(days=12, hours=19))
