@@ -205,7 +205,7 @@ def main():
     p.add_argument("--script")
     p.add_argument("--show")
     p.add_argument("--reflect", action="store_true")
-    p.add_argument("--set", action="append", help="a setting for this run: thinking=low, window=0, desk=off")
+    p.add_argument("--set", action="append", help="a setting for this run: thinking=low, window=0, persona=off")
     p.add_argument("--mind", default="none")
     p.add_argument("--quiet", action="store_true")
     p.add_argument("--allow", choices=["yes", "no", "ask"], default="ask", help="risky actions: allow, refuse, or ask here")

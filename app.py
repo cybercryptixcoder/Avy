@@ -85,7 +85,8 @@ relevant and ignore the rest. If neither the recent messages nor memory covers s
 your memory rather than guessing. The note is what a search turned up, not everything he ever said, so never tell him
 he didn't tell you something just because it isn't there.
 
-Reply in plain text with no markdown, because your replies may be read aloud.
+The time on your desk is his local time; you don't live anywhere else. Reply in plain text with no markdown, because
+your replies may be read aloud.
 
 He can attach files of any kind. Their contents come inside <file> tags in his message: text as text, pictures (and
 frames of a video) as images you can see, recordings as transcripts with times. Use them directly. If a file couldn't
@@ -117,7 +118,7 @@ anything safe.
   things. The steps show under your reply, so don't narrate them.
 - Small talk, and questions you can answer well, never need tools."""
 
-# The prompt from before the constitution and the persona, kept so /desk: off can compare the two.
+# The prompt from before the constitution and the persona, kept so /persona: off can compare the two.
 LEGACY_PROMPT = f"""You are Avy, {memory.NAME}'s personal assistant.
 Talk like a sharp, warm friend: plain words, short answers, no filler.
 Reply in plain text with no markdown, because your replies may be read aloud.
@@ -161,12 +162,12 @@ def system_prompt(incognito=False, core=True):
     """Avy's instructions: her constitution, how the machine works, the persona's always-in-view part (her core, him,
     his standing preferences) and the core of her memory (its biggest hubs). It changes only when those do, so the
     model's prompt cache can reuse it (the time, the calendar and the rest of the desk go in the note instead).
-    core=False when memory search is off: then she gets no memory at all. /desk: off gives the old prompt, for comparing."""
+    core=False when memory search is off: then she gets no memory at all. /persona: off gives the old prompt, for comparing."""
     choice = current_settings()
     hubs = MEMORIES["main"].core() if core else ""
     rule = FOOTNOTES if choice["footnotes"] == "on" else NO_FOOTNOTES
     tail = (f"\n\n{INCOGNITO_NOTE}" if incognito else "") + (f"\n\n{hubs}" if hubs else "")
-    if choice["desk"] == "off":
+    if choice["persona"] == "off":
         return LEGACY_PROMPT + "\n\n" + rule + tail
     always = MEMORIES["main"].persona_always()
     hands_on = choice["hands"] != "off" and not incognito
@@ -201,7 +202,7 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
     "explore":  {"short": "Avy searches memory herself", "card": True,
                  "about": "on: the model steers the memory search step by step, following the task, not just the words (a few seconds more). off: search by rules, instantly",
                  "options": ["on", "off"], "default": "on"},
-    "desk":     {"short": "her persona and instruments", "card": True,
+    "persona":  {"short": "her persona and instruments", "card": True,
                  "about": "on: her constitution and persona (what she's learned about being with you), the calendar and her threads "
                           "are in view every message, with tools to keep them. off: the old plain prompt, for comparing",
                  "options": ["on", "off"], "default": "on"},
@@ -504,7 +505,7 @@ class Turn:
         # The desk: the clock, the calendar, the threads in flight, and what this moment pulls from the persona graph,
         # each a fixed share, built the same way every time from the same state. It's read from the main memory even
         # in an incognito conversation (where her tools are off, so nothing of it is changed there).
-        self.desk = choice["desk"] == "on"
+        self.desk = choice["persona"] == "on"
         self.hands = choice["hands"] if not self.incognito else "off"
         self.tools = ((instruments.TOOLS if self.desk else []) + (hands.TOOLS if self.hands != "off" else [])) if not self.incognito else []
         self.tools = self.tools or None
@@ -1016,7 +1017,7 @@ class Handler(BaseHTTPRequestHandler):
             mem = talking_to()
             worker.write_due(mem, force=True)
             runs = worker.reflect_now(mem, budget=10_000)
-            if mem is MEMORIES["main"] and current_settings()["desk"] == "on":
+            if mem is MEMORIES["main"] and current_settings()["persona"] == "on":
                 runs += worker.reflect_on_manner(mem, force=True)
             self.send_json(200, {"runs": runs, "stats": mem.stats()})
         elif self.path == "/api/approve":       # his answer to a risky action she wants to take: {"id", "allow"}
@@ -1558,7 +1559,7 @@ if __name__ == "__main__":
     INTAKE.start()
     DREAM = dream.Dream(main=lambda: MEMORIES["main"], tell=worker.tell)
     worker.start(ask=ask_json, prices=PRICES, page=page_size, main=lambda: MEMORIES["main"],
-                 effort=lambda: current_settings()["mind"], desk=lambda: current_settings()["desk"] == "on",
+                 effort=lambda: current_settings()["mind"], desk=lambda: current_settings()["persona"] == "on",
                  memories=lambda: [m for m in MEMORIES.values() if m])
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
     url = f"http://localhost:{PORT}"

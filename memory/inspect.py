@@ -58,6 +58,11 @@ class Inspect:
                 r = self.reasoning_of(m["id"])
                 if r:
                     m["thinking"] = {"text": r["text"], "seconds": r["seconds"], "effort": r["effort"], "tokens": r["tokens"]}
+            if m["role"] == "assistant":                                   # what her tools did while she answered
+                asked = self.value("SELECT MAX(id) FROM messages WHERE id < ? AND role = 'user'", m["id"])
+                done = self.rows("SELECT tool, line, seconds, substr(result, 1, 700) AS out FROM actions WHERE asked = ? ORDER BY id", asked) if asked else []
+                if done:
+                    m["steps"] = done
             ep = self.row("SELECT id, headline FROM episodes WHERE ? BETWEEN first AND last", m["id"])
             m["episode"] = ep["id"] if ep else None
             m["headline"] = ep["headline"] if ep else None

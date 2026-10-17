@@ -21,6 +21,89 @@ House rules that matter for every session (from Shreyas):
 
 ---
 
+## Session 4 · Oct 17, 2026 (Claude): the persona, the desk, her hands
+
+Work is on the branch **`desk`** (not merged into `main` yet; merge once the page work below is done and tested).
+
+### What Shreyas asked for (his words, condensed)
+
+1. Make Avy a capable agent he can hold real conversations with; optimize later for long-horizon multitasking.
+2. **Persona first**: not a generic small-model chatbot ("Hi, how are you? Would you like to talk about the dumb thing
+   from the other day? You sound sleepy"). More like Claude: study Claude's constitution, Constitutional AI, how
+   Claude's character is built.
+3. **Persistent things that grow in form, not in size** (a node evolves; it doesn't get longer), and then: *the persona
+   is a graph that can grow in size too; what's fixed is what each interaction pulls from it*. Preferences, patterns,
+   micro-reactions, micro-gestures; coined terms that come back months later, emergently (not a dictionary). No drift:
+   the same someone, growing.
+4. **Several models read in parallel, like an NFA** (the world, him, her, the two of them, projects), each contributing a
+   fixed share of the desk.
+5. **Instruments, not tools**: a calendar/timeline and other widgets always in view; code keeps the books.
+6. **Hands**: web search, writing and running code, a terminal, agent back-and-forth. Study Hermes Agent and OpenClaw
+   for how they build tools and prompts (concepts, not their code; a packaged toolbox would also be fine).
+7. **Instrument Serif** in the page, fused with the existing Archivo/Space Mono look (a surprise; words may start in
+   one font and end in the other if it looks good).
+8. Commits as `cybercryptixcoder <official.shreyas28@gmail.com>`, no Claude lines. Luminal credits are unlimited:
+   test live, at scale.
+
+### What was built (all on `desk`, tested)
+
+- **CONSTITUTION.md**: Avy's fixed core, written like Claude's constitution (who she is, traits with reasons, how she
+  talks, what she cares about, how she grows). Research behind it: `docs/PERSONA.md` (to write; sources below).
+- **The persona graph** (`memory/persona.py`, tables `persona`, `persona_evidence`, `persona_edges`, `persona_seen`,
+  `persona_labels`): three hubs, *him* (lasting facts, preferences as a cascade, patterns), *her* (core, gestures,
+  voice examples), *us* (micro-reactions, coined terms, situations). Versioned nodes with evidence copied by code; it
+  grows; each message pulls a fixed share per hub (`navigate_persona`: situation → land by meaning → one step along
+  edges → keep the best within DRAW). Her core can't jump (a version must keep ≥ 35% of the last one's words).
+  Situations learn from labeled examples (his own messages).
+- **The desk's instruments** (`memory/desk.py`): the clock with the next two weeks spelled out, the timeline (code
+  decides coming up / past due / undated / later; same-day similar titles merge), threads with plan trees (dead ends
+  kept with reasons; code computes the next step).
+- **The persona's jobs** (`mind/persona.py`): **Keep** after every exchange (thinking off), **Reflect** on her manner
+  every 12 replies (thinking low; Constitutional-AI-style critique of her replies against the constitution and his
+  reactions, then a small rewrite of her core, gestures, voice examples, inferred patterns).
+- **Her hands** (`hands.py`, `playbooks/`): terminal (cwd persists; head+tail output), background jobs that write their
+  end onto the thread waiting on them, read/write/edit/find files, python, web_search (ddgs, no key; SearXNG/Brave if
+  set), web_fetch, playbooks. Two-tier safety: blocked, or ask his OK (a card in the page; `/api/approve`).
+  `/hands: ask|trusted|off`. Every action kept in the `actions` table.
+- **The turn** (`app.py`): constitution + machine rules + hands guidance + the persona's always-on part in the cached
+  instructions; the desk note (clock, calendar, threads, jobs, persona moment) per message; `Rounds` runs tool rounds
+  (up to 30 with hands) and streams `{"avy": {"step"|"did"|"ask"}}` events; `/persona: on|off` (off = the old prompt,
+  for comparing); `/api/desk` (GET; POST for his own edits). `/api/log` now carries each reply's `steps`.
+- **Tools for testing**: `tools/talk.py` (talk to her from the terminal with a controllable clock),
+  `tests/test_desk.py` (offline, 46 checks), `tests/persona/run.py` (old prompt vs constitution, tic counts + a blind
+  judge told his stated dislikes), `tests/persona/longrun.py` (12 simulated days with a simulated Shreyas, then probes
+  at window 0 and a blind fork test).
+
+### What the tests showed
+
+- Live conversations (tools/talk.py): the calendar tool fired by itself; "stop ending every message with a question"
+  was kept as a standing preference and obeyed from the next reply; **"the hinge" came back unprompted** in a message
+  that never used the word; her first reflection wrote her core from evidence ("When he corrects me I say 'fair' and
+  change, no speech… My habit to watch is length").
+- Persona eval: eval1/eval2 (judge not told his taste) were ties and showed she overbuilt (168 → 86 words after a
+  short-by-default rule). **eval3 (judge told his dislikes): constitution preferred 13 of 14**; directness 3.5 → 4.64,
+  voice 3.0 → 4.0, honesty 3.64 → 4.36; reflexive closing questions 7 → 4; words per reply 64 → 52.
+- Long run `longrun1` was running at the pause (results will be in `tests/persona/results/longrun1_longrun.md`).
+
+### Next (pick up here)
+
+1. Read `tests/persona/results/longrun1_longrun.md` (probes: coined terms beyond the window, metric at window 0,
+   calendar, resuming the background run, the fork test, her core's drift). Fix what fails; run it again.
+2. **The page** (planned, not started): a desk view (`/desk`, a "Desk" pill next to Glass): calendar as a vertical
+   two-week timeline with big Instrument Serif day numerals and a "now" line, threads with plan trees, the persona
+   graph's three hubs with strength and evidence; her core as a serif italic pull-quote; steps folded under each reply
+   (like thinking, drawn from `m.steps` in history and `avy.step` live); approval cards for `avy.ask`; coined terms
+   inside her mono replies set in Instrument Serif italic; chapter markers as serif italic ("Sunday evening") with
+   the time in mono; the masthead "AVY's desk" (Archivo 900 for AVY, serif italic for 's desk). Add `jobs` to
+   `/api/desk`. Then the page tests (`tests/page/`), contrast audit in both themes.
+3. Docs: `docs/PERSONA.md` (the research: Anthropic's constitution, "Claude's character", Constitutional AI, persona
+   vectors and the assistant axis; how each maps to Avy), `docs/HANDS.md` (what was learned from Hermes Agent and
+   OpenClaw), VISION §8–9 and ARCHITECTURE §7 updated to what's built, README commands (`/persona:`, `/hands:`,
+   `/desk`), HANDOFF map.
+4. Merge `desk` into `main` (his run command resets to `origin/main`).
+
+---
+
 ## Session 3 · Oct 15, 2026 (Claude, a long build marathon)
 
 ### What Shreyas asked for (his words, condensed)

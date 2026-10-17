@@ -16,3 +16,4 @@ tests/bench/results/*.log
 # live test runs: keep the reports, not the throwaway memories or logs
 tests/live/results/*.memory/
 tests/live/results/*.log
+tests/persona/results/*.memory/

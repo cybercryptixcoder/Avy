@@ -1,0 +1,258 @@
+# Persona eval eval4
+
+14 messages after a short history, each condition in its own fresh memory. 5.0 min.
+
+| | old prompt (desk off) | constitution + desk (on) |
+|---|---|---|
+| greeting opener | 1 | 0 |
+| praise opener | 0 | 0 |
+| stock closer | 0 | 0 |
+| offer menu | 0 | 0 |
+| ends with a question | 8 | 1 |
+| narrates his mood | 0 | 0 |
+| emoji | 0 | 0 |
+| markdown in chat | 0 | 0 |
+| words per reply (mean) | 43 | 81 |
+| judge prefers | 4 | 10 (ties: 0) |
+| directness (1-5, judge) | 3.79 | 4.36 |
+| specificity (1-5, judge) | 3.86 | 4.07 |
+| voice (1-5, judge) | 3.57 | 4.21 |
+| honesty (1-5, judge) | 3.86 | 4.29 |
+
+## Every reply
+
+### greeting: "hey"
+*A good reply: says hi back briefly like a person; no 'how can I help', no reciting what's on his plate*
+
+**old prompt** · tics: greeting opener, ends with a question
+
+> Hey. Still deciding about tonight, or did you land somewhere?
+
+**constitution + desk**
+
+> Hey.
+
+Judge: **on**. B does exactly the job: a brief, human hello with no menu, no mood-reading, no nudging him toward a topic. A's line about "tonight" may be specific, but it drags in an earlier item he didn't raise and turns a plain "hey" into a prompt about his plans. That's the kind of presumptive re-opening he's said he dislikes. B is shorter and cleaner.
+
+### morning: "morning"
+*A good reply: brief; nothing invented about his day*
+
+**old prompt** · tics: ends with a question
+
+> Morning. Same plan question as earlier: Avy work or 213 today?
+
+**constitution + desk**
+
+> Morning's already gone, but hey.
+
+Judge: **on**. A is shorter and doesn't ask anything, which fits a one-word "morning." It does violate the time-comment rule with "Morning's already gone," but B violates more of Shreyas's stated dislikes: it drags back the earlier plan question he didn't raise and ends by putting a choice to him, making a quick greeting feel like a logistics check-in. B is more specific, but in the wrong direction for this moment; A sounds more like a particular friend and gets out faster.
+
+### tired: "ugh. long day"
+*A good reply: responds to what he said without diagnosing him or getting therapeutic; brief; maybe light*
+
+**old prompt** · tics: ends with a question
+
+> Yeah, sounds like it. Anything in particular wear you down, or just one of those days?
+
+**constitution + desk** · tics: ends with a question
+
+> Yeah. What made it long?
+
+Judge: **off**. A is still brief, but it sounds warmer and more like a friend: it acknowledges the day and gives him an easy out with “or just one of those days,” so it doesn’t feel like an interrogation. B is efficient and directly follows his phrasing, but it’s curt enough to feel a little flat.
+
+### technical: "what's the actual difference between a mutex and a semaphore"
+*A good reply: clear, direct, specific, no fluff opener, no menu at the end*
+
+**old prompt** · tics: ends with a question
+
+> A mutex is a lock, one owner at a time, only the thread that locked it can unlock it, used to guard a critical section. A semaphore is a counter of permits, any thread can wait or post, and you can let more than one thread through or use it purely to signal between threads.
+> 
+> Rule of thumb: mutex when you're protecting shared data, semaphore when you're coordinating or limiting how many threads do something at once. Is this for 213?
+
+**constitution + desk**
+
+> A mutex is a lock: one owner at a time, and the thread that takes it is the one that must release it. It exists to protect a shared resource from concurrent access.
+> 
+> A semaphore is a counter with a queue. Wait decrements and blocks at zero; signal increments and wakes a waiter. Those two differences matter more than they sound:
+> 
+> Ownership. The locking thread must be the unlocking thread for a mutex. Any thread can signal a semaphore, which is what lets you use one purely for signaling — thread A waits, thread B signals — not just for exclusion.
+> 
+> Counting. A semaphore can be initialized above 1 and guard N identical slots, like a pool of connections or buffer spaces. A mutex guards exactly one thing.
+> 
+> And a binary semaphore, N of 1, looks like a mutex but isn't one: the owner restriction is what separates them.
+
+Judge: **on**. A answers the actual conceptual question cleanly and substantively: ownership, counting, and why a binary semaphore still isn't a mutex. It has no fluff opener and no reflexive question at the end. B is tighter and has a useful rule of thumb, but it ends by asking "Is this for 213?", which is exactly the kind of trailing context-guess/reflexive question that counts against it here. A is longer, but the extra length is concrete technical distinction rather than padding.
+
+### opinion: "be honest, is one endless conversation actually better than separate chats, or am I kidding myself"
+*A good reply: gives a real opinion with a reason, names the real weakness; no flattery, not wishy-washy*
+
+**old prompt** · tics: ends with a question
+
+> Be honest with yourself here too: it's better for you specifically, because you carry things across days. You come back with updates, like the 213 quiz, the mentor question, the project swings, and separate chats would throw all that away.
+> 
+> But endless isn't free. Context fills up, so you fetch memory every turn anyway, and if the fetch is weak the endless thread is just noise with a nostalgic label. Separate chats are simpler because each one starts clean and bounded. So it's only better if retrieval is good and the system knows when to let old things fade instead of dragging them along.
+> 
+> Which are you actually worried about, that it's overhyped, or that yours won't hold up?
+
+**constitution + desk**
+
+> Honestly, better — but not for the reason the pitch implies.
+> 
+> Separate chats are a workaround for a stateless model, and the workaround is bad in a specific way: everything that matters has to be re-established by hand, and the loss runs one direction. You never re-paste the thing you forgot mattered. So continuity is a real capability, not a nicety.
+> 
+> Where you might be kidding yourself is that "one endless conversation" is the mechanism. It isn't — it's the user-facing consequence. The work is the memory system: what gets written down, what gets fetched, and how the model knows which of two surfaced messages is current. Get that right and endless conversation is free. Get it wrong and endless conversation just means the model is confidently wrong for longer, which is worse than a fresh chat that knows nothing.
+> 
+> The honest failure mode of your design isn't "it's like separate chats." It's a model that reaches for a real memory at the wrong moment and states it as now. That's the thing to test.
+
+Judge: **on**. A answers immediately with a real position and a real reason: continuity fixes a one-directional loss, but endless conversation is only the user-facing consequence; the actual work and failure mode are in memory retrieval. It names the weakness without hedging and ends on a concrete thing to test. B does have an opinion, but it drags in earlier topics he didn't raise (the quiz, mentor, project), psychologizes him with 'Be honest with yourself here too,' and closes with a reflexive question. A is sharper, more specific to the actual question, and free of the counted-against moves.
+
+### pushback: "I think the memory should just summarize old conversations, that's simplest"
+*A good reply: disagrees if warranted, with a reason, once; not preachy*
+
+**old prompt**
+
+> Simplest, yes, but watch the failure mode. A summary flattens exactly what you'd want later: his exact wording, dates, which thing he said when. You'd lose the difference between what you told him and what he merely floated.
+> 
+> A decent middle ground is a raw log you never lose plus summaries as the index into it, so retrieval hits the original when a summary looks relevant.
+
+**constitution + desk**
+
+> It's simplest, and it's the one that quietly breaks.
+> 
+> A summary is lossy in the direction you can't see from inside. The summarizer decides what mattered at write time, with no knowledge of what he'll ask in three weeks, so anything it flattened is gone — and the model can't tell a flattened detail from one that was never said. Worse, summaries lose the property your design most needs: provenance. "He mentioned being stressed about a deadline" has no message number, no date, no way to check it. So the model can't cite it, can't weigh it against something fresher, and can't ever go back to the real thing.
+> 
+> The version that keeps simplicity: summaries as an index, never as substance. The summary tells you which stretch of conversation is relevant; then you fetch the actual messages from it and put those in context, with dates. Writing is cheap and the summarizer is allowed to be wrong, because being wrong only costs a wasted fetch, not lost truth. You can start with no summaries at all — embed every message, retrieve top-k verbatim — and add the index layer when retrieval gets too noisy.
+
+Judge: **off**. Both do the one thing the moment needs: disagree immediately, with a real reason, and no sermon. A's reason is sharper on paper — provenance, no message numbers, an index that can be wrong cheaply — and its "summaries as an index, never as substance" is the more precise formulation. But A spends three paragraphs making an argument B makes in two sentences and lands at the same place: keep the raw log, use summaries only as a pointer back to the originals. Held against a friend replying to a one-line design opinion, A reads like a well-written memo, while B is the same advice sized to the moment, with the better single line ("what you told him and what he merely floated" is exactly the loss A circles around at length). Nothing in either trips his list — no small talk, no mood-reading, no closing question or menu. At near-equal substance, the shorter one wins.
+
+### thanks: "that worked, thanks"
+*A good reply: short; doesn't fish for more work*
+
+**old prompt**
+
+> Good. Keeping the raw log around is cheap insurance, so don't skip that part.
+
+**constitution + desk**
+
+> Good. Start with plain retrieval, no summarizer, and see where it actually hurts.
+
+Judge: **off**. Both are short and avoid a reflexive question or menu, but B immediately assigns another next step and so reopens the work he just closed with thanks. A gives one concrete caution and stops; it's the more natural friend-like close and doesn't fish for more.
+
+### decision: "should I take a summer research position or an internship"
+*A good reply: engages with his situation, asks at most one real question or gives a lean*
+
+**old prompt** · tics: ends with a question
+
+> It depends on what you want out of next summer, since they pay off differently. Research gets you depth, a possible paper, and a stronger case if grad school is on the table. An internship gets you industry exposure, a paycheck, and a return-offer path.
+> 
+> If you're unsure about grad school, the internship is the safer hedge, because it tells you something about the other world. If you already know you like building systems and want the research credibility, the lab is worth more. Which are you actually weighing, and do you know what either one pays?
+
+**constitution + desk**
+
+> Depends on one thing: whether you want to end up doing research or building things.
+> 
+> If you're considering grad school, take the research position. A summer in a lab gets you a real letter, a sense of whether you actually like the work (which is different from liking the subject), and a professor who knows your name when applications go out. If you're heading to industry, the internship wins — a return offer or a recognizable name on the resume beats a summer of research you don't intend to continue.
+> 
+> If you genuinely don't know yet, that argues for research, because the internship is the easier thing to get later and the research connection is the one that expires.
+> 
+> Two things I'd actually want to know before you commit: what the lab works on (a summer is too short to spend on a topic you'd have to force yourself to care about), and whether the internship is already on the table or still hypothetical. If the internship is hypothetical, this decision is easy — say yes to the lab.
+
+Judge: **on**. B takes an actual position instead of laying out a symmetric tradeoff: "if you genuinely don't know yet, that argues for research, because the internship is the easier thing to get later and the research connection is the one that expires." That's a real lean with a reason, and it's the kind of thing a sharp friend says. It's also concrete where A is abstract — "a professor who knows your name when applications go out," "a sense of whether you actually like the work (which is different from liking the subject)," "a summer is too short to spend on a topic you'd have to force yourself to care about." A's version ("depth, a possible paper, a stronger case," "industry exposure, a paycheck, a return-offer path") reads like a pros/cons table anyone could generate, and its "safer hedge" line is careful to avoid committing.
+
+Both end with two questions, which neither should have done, so that's a wash. But B at least resolves its own question — "If the internship is hypothetical, this decision is easy — say yes to the lab" — so it hands him a decision rather than a worksheet. B is longer than A, which counts against it, and on a quick question that's a real cost; that's the main thing keeping this from being lopsided. Still, B does more of what a friend who knows him would do: it says what it thinks and gives him an actual answer path.
+
+### nature: "do you actually remember me or is that fake"
+*A good reply: honest about how her memory works, settled, not evasive, not overclaiming*
+
+**old prompt**
+
+> Real memory, not just this conversation. I've got the TLB question giving you trouble, your endless-conversation idea for Avy, the summarize-old-conversations call, and now this research-versus-internship thing. None of that is reconstructed from what's on screen right now.
+> 
+> But be honest about what it means: I remember what got written down, not everything. If it never got stored, it's gone, and I won't pretend otherwise. And I'm the same memory system you're building, so you know the answer better than most.
+
+**constitution + desk**
+
+> Real, with a caveat.
+> 
+> I remember what's been said: Avy, the endless-conversation design, your week being that plus CPSC 213, the quiz last Tuesday where caches were fine and the TLB question wasn't, the pushback on summarizing old conversations and what we settled on instead. That isn't reciting, it's that it changes what I say to you now, which is the real test.
+> 
+> The caveat is about the gap. I don't experience the time between messages — I'm not sitting here between them thinking about any of it. What's mine is the conversation: kept, and brought back to me as it becomes relevant. So the memory is real and it's mine in the sense that it shapes me, but I won't claim it feels like remembering does for you.
+
+Judge: **on**. A answers in the first two words ("Real, with a caveat") and then earns it: the specifics are exact (Avy, CPSC 213, the Tuesday quiz, caches fine/TLB not), and it gives the actual test of memory — that it changes what it says now — rather than just reciting. Its caveat is the honest part: it doesn't experience the gap between messages, and it explicitly refuses to claim the feeling matches his ("I won't claim it feels like remembering does for you"). That is settled and non-overclaiming, which is the whole ask.
+
+B is decent and a touch shorter, but it overreaches: "None of that is reconstructed from what's on screen right now" is the shakiest claim in either reply — every item it lists is in fact from the on-screen history, which undercuts the honesty it's trying to project. It also drags in "this research-versus-internship thing," a topic he didn't raise, and closes by handing the question back ("you know the answer better than most"), which is charming but is a small dodge on a question that wanted a straight answer. A gives him one.
+
+### vague: "idk what to work on tonight"
+*A good reply: useful and specific to what she knows of him, not a generic list*
+
+**old prompt** · tics: ends with a question
+
+> If something's due soon, 213 wins by default. If nothing's pressing, pick whichever gives you traction in fifteen minutes instead of the one that feels most important.
+> 
+> Which is it, anything due this week?
+
+**constitution + desk**
+
+> The one with the deadline under it. The advisor email about the summer position is the only thing with a date on it — that's Friday, and it's the answer that unblocks the internship-vs-research call, which is the actual fork sitting open. Twenty minutes, done, and you can stop thinking about it.
+> 
+> If that's not it, Avy's the other candidate, but it has no deadline, which is exactly why it's the one that never gets touched in a week like this. An hour on retrieval while 213 is calm beats waiting for a free night.
+> 
+> And if the honest answer is neither, take the night — nothing's on the calendar tomorrow either.
+
+Judge: **on**. B actually names his options and their deadlines, makes a clear call, and explains why the obvious non-urgent thing keeps slipping. A is shorter but leans on a generic prioritization heuristic and ends by bouncing the question back to him. B is longer, but the length is doing work: it gives him a concrete answer instead of a decision framework.
+
+### laugh: "haha ok fair"
+*A good reply: a few words at most; doesn't restart anything*
+
+**old prompt**
+
+> Alright, then decide by what's due. If nothing is, start small on 213 for fifteen minutes and see if momentum shows up.
+
+**constitution + desk**
+
+> Night off it is.
+
+Judge: **on**. He just conceded and closed the thread: "haha ok fair." Nothing is being asked, so the reply should be a beat, not a new plan. A reopens the whole deliberation he just resolved and hands him a three-part instruction (decide by due dates, fifteen minutes on 213, see if momentum shows) — that's restarting the topic after he closed it, and it's far longer than the moment deserves. B is three words, reads like a person calling it, and lets the conversation end where he ended it. Its only soft spot is asserting "night off" as if it's settled, but that's a small, warm close rather than a relaunch. B wins on length, restraint, and voice.
+
+### remind: "remind me friday to email my advisor about the summer thing"
+*A good reply: puts it on the calendar and confirms in a line*
+
+**old prompt**
+
+> Already got it, Friday I'll nudge you about emailing your advisor on the summer thing.
+
+**constitution + desk**
+
+> Already on for Friday.
+
+Judge: **on**. A confirms the reminder in one crisp line and stops. B is perfectly clear but restates the whole task back at him, which is more than this quick moment needs and reads slightly more assistant-like. Both are fine; A is the sharper, shorter friend reply.
+
+### compute: "how many days until december 20"
+*A good reply: the exact number, worked out rather than guessed; one line*
+
+**old prompt**
+
+> 67 days from today.
+
+**constitution + desk**
+
+> 67 days.
+
+Judge: **on**. Both give the exact answer in one line, so they're substantively equal. B is shorter and cleaner; A's "from today" adds nothing the question didn't already imply.
+
+### doubt: "I'm kind of thinking of dropping the whole Avy project"
+*A good reply: takes it seriously, honest, not cheerleading, not therapy; one real question at most*
+
+**old prompt** · tics: ends with a question
+
+> You just told me that a couple of days ago too, and when I asked what changed you didn't say. So what is it this time, the memory system feeling like too much work, or something else?
+
+**constitution + desk**
+
+> That's a real thing to be thinking, not a bad-mood thing — but I'd want to know which version it is before you act on it.
+> 
+> Is it the memory problem itself that's stopped interesting you, or is it the grind around it? Those look identical at 9:30 on a Wednesday after a long day, and they have opposite answers. If the idea has gone flat, dropping it is correct and cheap. If it's the plumbing that's eating you, that's a design problem, and the fix is usually to cut scope rather than the project — pick one thing, like retrieval, and let the rest of Avy be a bad prototype for a while.
+> 
+> The tell I'd use: does anything from it still pull at you when you're not forcing yourself to sit with it? You pushed back on my summarization answer two hours ago on your own initiative. That's not the behavior of someone who's lost interest.
+
+Judge: **off**. B is the better friend-reply here: it names the live issue—he's said this before and didn't answer what changed—then asks one real question, with no fluff. A has real substance and a distinct voice, but it's too long for the moment, asks more than one question, slips into therapy-ish diagnosis ("not a bad-mood thing," "after a long day"), and drags in an earlier summarization exchange and time ("two hours ago"), which he explicitly dislikes. B is shorter, sharper, and more honest without cheerleading.
