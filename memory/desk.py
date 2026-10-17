@@ -456,7 +456,9 @@ class Desk:
         """The live half of the desk, built fresh for each message, the same way every time from the same state: the
         clock, the calendar, the threads in flight (and the one this message is about, in full), and the part of the
         persona this moment calls up. Returns (note, what was put on it) so the turn can record it."""
-        parts = [self.clock_text(), "Your calendar (the timeline; you keep it with the timeline tool):\n" + self.calendar_text()]
+        parts = ["Your desk, for you to know where things stand. Bring something up from it only when it bears on what he just "
+                 "said; never recite it, and never mention that something on it is empty.",
+                 self.clock_text(), "Your calendar (the timeline; you keep it with the timeline tool):\n" + self.calendar_text()]
         threads, here = self.thread_heads(open_only=True), None
         if threads:
             here = self.related_thread(text, previous)

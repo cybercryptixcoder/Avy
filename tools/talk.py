@@ -72,7 +72,9 @@ class Talk:
         app.keep_after = lambda mem, last: None            # the keeper runs here, in line, after each reply (below)
         saved = self.mem.mark("talk_clock")
         memory.clock.fixed = datetime.fromisoformat(saved) if saved else datetime.now().astimezone().replace(microsecond=0)
-        self.quiet, self.cost = args.quiet, 0.0
+        self.quiet, self.cost, self.allow = args.quiet, 0.0, args.allow
+        import hands
+        hands.WORKSPACE = Path(args.workspace) if args.workspace else Path(args.memory).with_suffix("").parent / (Path(args.memory).stem + "-workspace")
 
     def set_clock(self, when):
         when = when.strip()
@@ -91,11 +93,18 @@ class Talk:
         print(f"\n[{memory.clock.fixed:%a %b %d %H:%M}] Shreyas: {text}", flush=True)
         started = time.time()
         turn = app.Turn(text, "text")
+        turn.approve = self.approve
         reply, usage = "", None
         with turn.ask() as upstream:
             for line in upstream:
-                if (line.strip() if isinstance(line, bytes) else line.encode().strip()) == b"data: [DONE]":
+                raw = line if isinstance(line, bytes) else line.encode()
+                if raw.strip() == b"data: [DONE]":
                     break
+                if b'"avy"' in raw and not self.quiet:
+                    import json as _json
+                    event = _json.loads(raw.decode().strip()[5:]).get("avy", {})
+                    if event.get("step"):
+                        print(f"   · {event['step']['line']}  ({event['step']['seconds']}s)", flush=True)
                 words, counts = turn.stream(line)
                 reply += words
                 usage = counts or usage
@@ -128,6 +137,14 @@ class Talk:
             self.cost += r.get("cost") or 0
         self.tick(40)
         return reply
+
+    def approve(self, request):
+        """A risky action wants his OK: --allow yes|no decides, or ask at the terminal."""
+        print(f"   ? Avy wants to {request['kind']}: {request['detail']}  ({request['why']})", flush=True)
+        if self.allow in ("yes", "no"):
+            print(f"   ? {'allowed' if self.allow == 'yes' else 'refused'} (--allow {self.allow})", flush=True)
+            return self.allow == "yes"
+        return input("   ? allow? [y/N] ").strip().lower().startswith("y")
 
     def describe(self, target):
         if target.startswith("pa"):
@@ -191,6 +208,8 @@ def main():
     p.add_argument("--set", action="append", help="a setting for this run: thinking=low, window=0, desk=off")
     p.add_argument("--mind", default="none")
     p.add_argument("--quiet", action="store_true")
+    p.add_argument("--allow", choices=["yes", "no", "ask"], default="ask", help="risky actions: allow, refuse, or ask here")
+    p.add_argument("--workspace", help="her workspace for this run (default: next to the memory file)")
     p.add_argument("--no-meaning", action="store_true", help="don't load the meaning model (faster start; word search only)")
     p.add_argument("--yes-my-memory", action="store_true")
     args = p.parse_args()

@@ -14,3 +14,7 @@ Pillow
 
 # Importing a Claude export (tools/claude_import.py): reads the huge JSON a piece at a time.
 ijson
+
+# Avy's hands (hands.py): web search with no key needed. (A SearXNG address in AVY_SEARXNG or a Brave key in
+# BRAVE_API_KEY is used instead when set.)
+ddgs

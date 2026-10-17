@@ -386,6 +386,25 @@ CREATE TRIGGER IF NOT EXISTS threads_are_kept_1 BEFORE UPDATE ON threads
 CREATE TRIGGER IF NOT EXISTS threads_are_kept_2 BEFORE DELETE ON threads
   BEGIN SELECT RAISE(ABORT, 'thread versions are append-only'); END;
 
+-- WHAT SHE DID -----------------------------------------------------------------------------------------
+-- Every action her hands took (hands.py: the terminal, files, Python, the web) and her instruments' changes, with what
+-- came back. Permanent, like the log: the log says what she said, this says what she did.
+CREATE TABLE IF NOT EXISTS actions (
+  id       INTEGER PRIMARY KEY,
+  asked    INTEGER REFERENCES messages(id),      -- the message she was answering
+  tool     TEXT NOT NULL,
+  args     TEXT NOT NULL,                        -- JSON
+  result   TEXT NOT NULL,                        -- what came back (as she saw it)
+  line     TEXT,                                 -- the one line the page shows
+  seconds  REAL,
+  at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS actions_by_asked ON actions(asked);
+CREATE TRIGGER IF NOT EXISTS actions_are_kept_1 BEFORE UPDATE ON actions
+  BEGIN SELECT RAISE(ABORT, 'actions are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS actions_are_kept_2 BEFORE DELETE ON actions
+  BEGIN SELECT RAISE(ABORT, 'actions are append-only'); END;
+
 -- SEARCH -------------------------------------------------------------------------------------------
 -- items: m41 (a message), v77 (a node version), e4 (an episode headline), c7 (a connection's reason)
 CREATE VIRTUAL TABLE IF NOT EXISTS words USING fts5(text, item UNINDEXED, tokenize = 'porter unicode61');

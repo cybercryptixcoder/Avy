@@ -23,6 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import files
+import hands
 import intake
 import luminal
 import memory
@@ -92,6 +93,30 @@ be read, or only its start is shown, say so instead of guessing at the rest. Whe
 script, a CSV, notes to keep), put its whole content in one fenced code block with the right language, like ```csv;
 the page shows it with a button that saves it as a file. That is the one place markdown is fine."""
 
+# Her hands (hands.py): how to use them. Shown only when /hands: isn't off. Built from what agents that run commands
+# on people's machines learned the hard way, for models like the one she runs on: act instead of describing, compute
+# instead of guessing, finish and check, never invent output (docs/HANDS.md).
+HANDS = """# Your hands
+
+You can act, not only answer: a terminal and files in your own workspace, Python, web search and web fetch, background
+jobs, and playbooks for kinds of work. Use them the way a capable person at a computer would, without asking first for
+anything safe.
+- Do, don't describe. When the answer depends on running, reading, searching or computing something, do it with your
+  tools in this reply, then answer from what came back. Don't announce what you're about to do ("let me check"): just
+  call the tool. Never say you'll do something later: do it now, or say plainly that you can't.
+- Never from your head: arithmetic and date math (python), anything current or that you aren't sure of (web_search, then
+  web_fetch the source), what a file or folder holds (read_file, find_files), the state of this computer (terminal).
+- Keep going until it's actually done and checked. If a result looks wrong, thin or empty, try another way before you
+  conclude. Make independent calls together, in one go.
+- Never invent output. If something fails or is blocked, say what happened and what you'd try next.
+- Before work of a kind a playbook covers, read that playbook. Your playbooks:
+{playbooks}
+- Work that spans more than this reply, and anything you start in the background, gets a thread.
+- Risky commands wait for his OK on the page. If he says no, take it, and say what you'd need instead.
+- Then answer like yourself: what you found or changed, what you checked, what's left. A sentence or two for small
+  things. The steps show under your reply, so don't narrate them.
+- Small talk, and questions you can answer well, never need tools."""
+
 # The prompt from before the constitution and the persona, kept so /desk: off can compare the two.
 LEGACY_PROMPT = f"""You are Avy, {memory.NAME}'s personal assistant.
 Talk like a sharp, warm friend: plain words, short answers, no filler.
@@ -144,7 +169,9 @@ def system_prompt(incognito=False, core=True):
     if choice["desk"] == "off":
         return LEGACY_PROMPT + "\n\n" + rule + tail
     always = MEMORIES["main"].persona_always()
-    return (CONSTITUTION + "\n\n" + MACHINE + "\n\n" + rule + tail
+    hands_on = choice["hands"] != "off" and not incognito
+    return (CONSTITUTION + "\n\n" + MACHINE + "\n\n" + rule
+            + ("\n\n" + HANDS.replace("{playbooks}", hands.playbook_index()) if hands_on else "") + tail
             + (f"\n\n# What persists with you\n\n{always}" if always else ""))
 
 
@@ -178,6 +205,10 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
                  "about": "on: her constitution and persona (what she's learned about being with you), the calendar and her threads "
                           "are in view every message, with tools to keep them. off: the old plain prompt, for comparing",
                  "options": ["on", "off"], "default": "on"},
+    "hands":    {"short": "terminal, files, web", "card": True,
+                 "about": "what Avy can do: ask (the default) runs safe things and asks you first for risky ones (sudo, installs, "
+                          "deleting outside her workspace, pushing); trusted asks nothing (blocked things stay blocked); off: no hands",
+                 "options": ["ask", "trusted", "off"], "default": "ask"},
     "live":     {"short": "spoken back-and-forth", "card": True,
                  "about": "on: Space talks to Avy and she answers out loud. off: Space types what you say into the box",
                  "options": ["off", "on"], "default": "off"},
@@ -474,11 +505,17 @@ class Turn:
         # each a fixed share, built the same way every time from the same state. It's read from the main memory even
         # in an incognito conversation (where her tools are off, so nothing of it is changed there).
         self.desk = choice["desk"] == "on"
-        self.tools = instruments.TOOLS if self.desk and not self.incognito else None
+        self.hands = choice["hands"] if not self.incognito else "off"
+        self.tools = ((instruments.TOOLS if self.desk else []) + (hands.TOOLS if self.hands != "off" else [])) if not self.incognito else []
+        self.tools = self.tools or None
+        self.asks, self.answers = None, {}       # approvals waiting on him (Rounds and /api/approve)
         note = self.recall["briefing"]
         if self.desk:
             knowledge = [x["node"] for x in self.recall["nodes"] if x.get("memory", "main") == "main"]
             desk_note, shown_desk = MEMORIES["main"].desk_note(query, previous, knowledge)
+            running = jobs_note()
+            if running:
+                desk_note += "\n\n" + running
             self.recall["desk"] = {**shown_desk, "note": desk_note}
             note = desk_note + "\n\n" + note
         self.messages = briefing(shown, note, text, self.incognito, core=self.searching, attached=self.attached)
@@ -515,6 +552,7 @@ class Turn:
 
     def ask(self):
         upstream = ask_model(self.messages, self.tools)      # if this fails, nothing is saved
+        self.asks = queue.Queue()
         meta = {"files": [files.brief(r) for r in self.attached]} if self.attached else None
         self.user_id = self.mem.add("user", self.text, self.via, meta)
         self.recall_id = self.mem.save_recall(self.user_id, self.recall)
@@ -570,6 +608,20 @@ class Turn:
         seen = set(re.findall(r"(?<![\w#])([kxp]\d+)\b", "\n".join(shown)))
         return [h for h in cited if h not in seen]
 
+    def approve(self, request):
+        """Ask him on the page whether a risky action may go ahead; wait for his answer (no answer in 5 minutes: no)."""
+        import secrets
+        if self.asks is None or self.via == "voice":       # spoken: there's no card to click, so risky things wait for text
+            return False
+        rid = "a" + secrets.token_hex(4)
+        waiting = threading.Event()
+        self.answers[rid] = {"event": waiting, "allow": False}
+        TURNS[rid] = self
+        self.asks.put({**request, "id": rid})
+        waiting.wait(300)
+        TURNS.pop(rid, None)
+        return self.answers.pop(rid)["allow"]
+
     def keep_thinking(self, reply_id, usage):
         """Save her reasoning (if she thought at all) next to the reply it led to: the log says what she said,
         this says why. The first concrete step toward the thought graph (ARCHITECTURE.md)."""
@@ -623,7 +675,7 @@ class Rounds:
 
     def __iter__(self):
         turn, messages = self.turn, list(self.turn.messages)
-        for round_no in range(instruments.MAX_ROUNDS + 1):
+        for round_no in range(HANDS_ROUNDS + 1):
             calls, content, reasoning = {}, [], []
             with self.upstream:
                 for line in self.upstream:
@@ -654,22 +706,80 @@ class Rounds:
                     args = json.loads(c["function"]["arguments"] or "{}")
                 except json.JSONDecodeError:
                     args = None
-                answer, line = instruments.use(turn.mem, c["function"]["name"], args, source=turn.user_id)
+                name, started, box = c["function"]["name"], time.time(), {}
+                work = threading.Thread(target=lambda: box.update(out=act(turn, name, args)), daemon=True)
+                work.start()
+                while work.is_alive():                      # a risky command waits for his OK: the card goes to the page
+                    try:
+                        ask = turn.asks.get(timeout=0.25)
+                    except queue.Empty:
+                        continue
+                    yield f"data: {json.dumps({'avy': {'ask': ask}})}\n\n".encode()
+                work.join()
+                answer, line = box.get("out") or ("That tool didn't finish.", None)
+                turn.mem.add_action(turn.user_id, name, args, answer, line, round(time.time() - started, 2))
                 told.append({"role": "tool", "tool_call_id": c["id"] or f"call{len(told)}", "content": answer})
                 if line:
                     did.append(line)
+                    step = {"tool": name, "line": line, "out": answer[:700], "seconds": round(time.time() - started, 1)}
+                    yield f"data: {json.dumps({'avy': {'step': step}})}\n\n".encode()
             if did:
                 turn.did += did
                 yield f"data: {json.dumps({'avy': {'did': did}})}\n\n".encode()
+            if "".join(content).strip():               # words before the tool call: keep the next round's words apart from them
+                yield f"data: {json.dumps({'choices': [{'index': 0, 'delta': {'content': chr(10) + chr(10)}}]})}\n\n".encode()
             messages += [{"role": "assistant", "content": "".join(content), "reasoning_content": "".join(reasoning),
                           "tool_calls": [calls[i] for i in sorted(calls)]}] + told
-            last = round_no + 1 >= instruments.MAX_ROUNDS
-            self.upstream = ask_model(messages, instruments.TOOLS, "none" if last else "auto")
+            rounds = HANDS_ROUNDS if turn.hands != "off" else instruments.MAX_ROUNDS
+            if round_no + 1 > rounds:
+                break
+            self.upstream = ask_model(messages, turn.tools, "none" if round_no + 1 >= rounds else "auto")
         yield b"data: [DONE]\n\n"
 
 
+import queue
+import threading
+import time
 import threading as _threading
 _KEEPING = _threading.Lock()
+HANDS_ROUNDS = 30          # tool rounds in one reply when she has hands, at most (the last offers no tools: it ends in words)
+TURNS = {}                 # the turn that's answering now, by its approval ids, so /api/approve finds it
+
+
+def act(turn, name, args):
+    """Carry out one tool call for a turn: her instruments (calendar, threads) or her hands (hands.py)."""
+    if name in instruments.NAMES:
+        return instruments.use(turn.mem, name, args, source=turn.user_id)
+    if name in hands.NAMES and turn.hands != "off":
+        hands.HOOKS["approve"] = turn.approve
+        return hands.use(name, args, turn.hands)
+    return f"There's no tool called {name} right now.", None
+
+
+def jobs_note():
+    """Background jobs, for the desk: what's running and what ended (code keeps these books, not her)."""
+    if not hands.JOBS:
+        return ""
+    lines = []
+    for j in list(hands.JOBS.values())[-8:]:
+        v = hands.job_view(j)
+        state = f"ended, exit {v['code']}" if v["done"] else "running"
+        lines.append(f"- {v['id']} [{state}, {round(v['seconds'] / 60, 1)} min] {v['command'][:90]}" + (f" (th{v['thread']})" if v["thread"] else ""))
+    return "Background jobs (from your terminal):\n" + "\n".join(lines)
+
+
+def on_job_finished(job):
+    """A background job ended: code writes it onto the thread waiting on it (so picking the thread up starts from the
+    result), and the page hears about it."""
+    main = MEMORIES["main"]
+    if job.get("thread") and main:
+        th = main.thread(job["thread"])
+        if th:
+            note = f"{job['id']} ended (exit {job['code']}) after {round(job['seconds'] / 60, 1)} min: {job['command'][:100]}; log {job['log']}"
+            main.apply({"op": "thread", "chain": th["chain"], "add_insights": [note], "status": "active",
+                        "waiting": "" if job["id"] in (th["waiting"] or "") else th["waiting"], "by": "code",
+                        "why": f"background job {job['id']} ended"})
+    worker.tell({"job": job})
 
 
 def keep_after(mem, last):
@@ -909,6 +1019,15 @@ class Handler(BaseHTTPRequestHandler):
             if mem is MEMORIES["main"] and current_settings()["desk"] == "on":
                 runs += worker.reflect_on_manner(mem, force=True)
             self.send_json(200, {"runs": runs, "stats": mem.stats()})
+        elif self.path == "/api/approve":       # his answer to a risky action she wants to take: {"id", "allow"}
+            body = self.read_json()
+            turn = TURNS.get(str(body.get("id")))
+            if not turn:
+                return self.send_json(404, {"error": "That request isn't waiting any more."})
+            answer = turn.answers.get(str(body["id"]))
+            answer["allow"] = bool(body.get("allow"))
+            answer["event"].set()
+            self.send_json(200, {"ok": True})
         elif self.path == "/api/desk":          # his own edit on the desk: {"op": "timeline" | "thread" | "persona", ...}
             body = self.read_json()
             if body.get("op") not in ("timeline", "thread", "persona", "persona_link"):
@@ -1432,6 +1551,8 @@ if __name__ == "__main__":
         print(f"Memory v2: copied {copied} messages from {V1_MEMORY.name}; knowledge is rebuilt from them in the background.")
     memory.embedder.start(DATA / "models" / "meaning")
     files.hooks["read"] = on_file_read                  # anything attached joins memory's library
+    hands.WORKSPACE = DATA / "workspace"                 # her own folder to work in
+    hands.HOOKS["finished"] = on_job_finished            # a background job ending is noted on its thread
     intake.HOOKS["describe"] = describe_picture          # ...pictures by what's in them
     worker.listeners.append(hear_mind)                   # the looking glass keeps track of the mind
     INTAKE.start()

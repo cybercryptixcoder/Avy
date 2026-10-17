@@ -32,6 +32,20 @@ class Log:
                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                               (message, asked, stamp(), source, effort, seconds, tokens, text)).lastrowid
 
+    def add_action(self, asked, tool, args, result, line=None, seconds=None):
+        """Keep what one of her tools did (permanent, like the log). Returns its id."""
+        with self.tx() as db:
+            return db.execute("INSERT INTO actions (asked, tool, args, result, line, seconds, at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                              (asked, tool, json.dumps(args, ensure_ascii=False, default=str)[:20_000], (result or "")[:40_000],
+                               line, seconds, stamp())).lastrowid
+
+    def actions_of(self, asked):
+        """What her tools did while she answered message #asked, in order."""
+        found = self.rows("SELECT * FROM actions WHERE asked = ? ORDER BY id", asked)
+        for a in found:
+            a["args"] = json.loads(a["args"])
+        return found
+
     def reasoning_of(self, mid):
         """What she thought before the reply #mid: {id, text, effort, seconds, tokens}, or None."""
         return self.row("SELECT id, text, effort, seconds, tokens FROM reasoning WHERE message = ? ORDER BY id LIMIT 1", mid)

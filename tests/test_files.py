@@ -316,7 +316,7 @@ ok("...within the room left", "the first 10 of" in app.with_files("x", [notes], 
 mem.add("user", "an old one", "claude", {"files": ["photo.jpg"], "attachments": [{"name": "a.txt", "chars": 5}]})
 ok("imported messages, whose files are only names, don't trip the briefing",
    app.briefing(mem.window(20), "(memory note)", "hi")[-1]["content"] == "hi")
-ok("the system prompt says how files arrive, and how to make one", "<file> tags" in app.SYSTEM_PROMPT and "save" in app.SYSTEM_PROMPT)
+ok("the system prompt says how files arrive, and how to make one", "<file> tags" in app.MACHINE and "save" in app.MACHINE and "<file> tags" in app.LEGACY_PROMPT)
 
 print(f"\n{len(fails)} failed" + (": " + ", ".join(fails) if fails else "") + (f"; skipped: {', '.join(skipped)}" if skipped else ""))
 sys.exit(1 if fails else 0)

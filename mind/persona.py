@@ -143,7 +143,7 @@ def link_ops(links, refs, by, plan):
 # Keep: after every exchange
 # --------------------------------------------------------------------------------------------------------------
 
-KEEP_ASPECTS = ("him", "preference", "pattern", "reaction", "gesture", "term", "situation")
+KEEP_ASPECTS = ("him", "preference", "reaction", "gesture", "term", "situation")   # patterns are reflection's: across sittings
 
 KEEP = f"""You keep Avy's persona: her model of the relationship with {NAME}, a small graph that persists through every
 message so that she stays the same Avy and keeps getting better with him, instead of meeting a stranger each time.
@@ -165,8 +165,7 @@ What you can record (each is a node: a short title, one sentence of text, and hi
   When a reaction undercuts a gesture already recorded, link it (undercuts).
 - term: a word or phrase with a meaning private to the two of them (he coins it, or she does and he picks it up).
   Quote the message where it was born; set message to that message's number.
-- pattern: how he tends to work, think or talk, when he says so himself ("I always..."). Patterns you'd have to infer
-  across conversations are for reflection, not for you.
+Patterns in how he works or talks are not yours to record: they need several conversations, and reflection does that.
 - situation: a new kind of conversation they keep having that none of the existing ones fits. Rarely needed.
 Also say which kind of conversation his newest message is (situation: one of the situation titles, or null if it's no
 particular kind); it becomes an example, so Avy learns how he talks in each kind.
