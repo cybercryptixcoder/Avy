@@ -235,33 +235,106 @@ CREATE TABLE IF NOT EXISTS marks (              -- small bits of state: what ref
   key TEXT PRIMARY KEY, value TEXT
 );
 
--- THE DESK -----------------------------------------------------------------------------------------
--- What's always in view, every message (ARCHITECTURE.md §7.2, "the desk"): small, fixed-size, and never searched.
--- External memory above grows without limit because it's searched; the desk stays the same size because it's shown.
+-- THE PERSONA ---------------------------------------------------------------------------------------
+-- Avy's model of the relationship: who she is with him, and what she's learned about how to be with him. A graph
+-- of its own, next to the world's (knowledge): the same principles (versions, evidence, connections with reasons),
+-- a different job. Searched by the kind of conversation and the topic, not shown whole; its strongest parts are
+-- always in view (ARCHITECTURE.md §7).
 --
---   slots      notes that persist through every message: her character note (how she is with him, in her own
---              words), him (the always-true core of who he is), his preferences, and replies of hers kept as
---              examples of her voice. Each change is a new version of the whole note; old versions stay.
---              Every item cites the messages it rests on (code refuses an item with none).
+--   persona            nodes, by aspect: core (who she is with him: one node that evolves), him (always true about
+--                      him), preference (his rules for her), pattern (how he tends to work and talk), reaction (how he
+--                      responds to specific things she does), gesture (her small moves that land with him), term (words
+--                      the two of them coined, pointing at the message each was born in), situation (a kind of
+--                      conversation), voice (a reply of hers that landed). Versioned chains: pa12 is a node.
+--                      Each aspect has a fixed capacity and each node a fixed size: the persona grows in form, not size.
+--   persona_evidence   the exact words each version rests on (copied by code, like knowledge's evidence)
+--   persona_edges      connections with a kind and a reason: applies_in (a behavior and the situation it's for),
+--                      supports / undercuts (his reaction and the gesture it bears on), refines (a specific rule and
+--                      the general one), about (a term and the world-knowledge node it's about: k12), example_of
+--   persona_seen       every time a connection was seen again (append-only): its strength is counted from these
+--   persona_labels     which kind of conversation each of his messages was (a situation learns from its examples)
+
+CREATE TABLE IF NOT EXISTS persona (
+  id        INTEGER PRIMARY KEY,
+  chain     INTEGER NOT NULL,                   -- pa12
+  version   INTEGER NOT NULL,
+  replaces  INTEGER UNIQUE REFERENCES persona(id),
+  state     TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'retired')),
+  aspect    TEXT NOT NULL CHECK (aspect IN ('core', 'him', 'preference', 'pattern', 'reaction', 'gesture', 'term', 'situation', 'voice')),
+  title     TEXT NOT NULL,                      -- a few words: "metric units", "the hinge", "late-night idea dumps"
+  text      TEXT NOT NULL,                      -- one sentence (the core: a short paragraph)
+  scope     TEXT,                               -- when it applies: 'always', or a situation's title
+  origin    TEXT NOT NULL CHECK (origin IN ('user', 'avy', 'inferred', 'seed')),
+                                                -- user: rests on his words. avy: her own judgment of her replies.
+                                                -- inferred: a pattern worked out across sittings. seed: built in (situations)
+  certainty TEXT CHECK (certainty IN ('likely', 'possible')),
+  message   INTEGER REFERENCES messages(id),    -- voice: her reply. term: the message it was born in
+  why       TEXT,
+  by        TEXT NOT NULL DEFAULT 'mind',       -- keeper, character, seed, him (edited on the page)
+  run       INTEGER,
+  at        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS persona_by_chain ON persona(chain);
+CREATE TRIGGER IF NOT EXISTS persona_is_kept_1 BEFORE UPDATE ON persona
+  BEGIN SELECT RAISE(ABORT, 'persona versions are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS persona_is_kept_2 BEFORE DELETE ON persona
+  BEGIN SELECT RAISE(ABORT, 'persona versions are append-only'); END;
+
+CREATE TABLE IF NOT EXISTS persona_evidence (
+  node     INTEGER NOT NULL REFERENCES persona(id),
+  message  INTEGER NOT NULL REFERENCES messages(id),
+  start    INTEGER NOT NULL,
+  end      INTEGER NOT NULL,
+  quote    TEXT NOT NULL,                       -- copied from the message by code
+  PRIMARY KEY (node, message, start)
+);
+CREATE INDEX IF NOT EXISTS persona_evidence_by_message ON persona_evidence(message);
+
+CREATE TABLE IF NOT EXISTS persona_edges (
+  id      INTEGER PRIMARY KEY,
+  a       INTEGER NOT NULL,                     -- a persona chain
+  b       INTEGER NOT NULL,                     -- a persona chain (for 'about': a knowledge chain, k12)
+  kind    TEXT NOT NULL CHECK (kind IN ('applies_in', 'supports', 'undercuts', 'refines', 'about', 'example_of', 'related')),
+  reason  TEXT NOT NULL,
+  run     INTEGER,
+  at      TEXT NOT NULL,
+  UNIQUE (a, b, kind)
+);
+CREATE INDEX IF NOT EXISTS persona_edges_by_a ON persona_edges(a);
+CREATE INDEX IF NOT EXISTS persona_edges_by_b ON persona_edges(b);
+
+CREATE TABLE IF NOT EXISTS persona_seen (
+  id       INTEGER PRIMARY KEY,
+  edge     INTEGER NOT NULL REFERENCES persona_edges(id),
+  message  INTEGER,
+  note     TEXT,
+  run      INTEGER,
+  at       TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS persona_seen_is_kept_1 BEFORE UPDATE ON persona_seen
+  BEGIN SELECT RAISE(ABORT, 'persona_seen is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS persona_seen_is_kept_2 BEFORE DELETE ON persona_seen
+  BEGIN SELECT RAISE(ABORT, 'persona_seen is append-only'); END;
+
+CREATE TABLE IF NOT EXISTS persona_labels (    -- which kind of conversation each of his messages was: how a situation learns his
+  id        INTEGER PRIMARY KEY,                -- way of talking about it (the next message is classified by the closest examples)
+  message   INTEGER NOT NULL REFERENCES messages(id),
+  situation INTEGER NOT NULL,                   -- a situation chain (pa3)
+  by        TEXT NOT NULL DEFAULT 'keeper',
+  run       INTEGER,
+  at        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS persona_labels_by_situation ON persona_labels(situation);
+CREATE TRIGGER IF NOT EXISTS persona_labels_are_kept_1 BEFORE UPDATE ON persona_labels
+  BEGIN SELECT RAISE(ABORT, 'persona_labels is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS persona_labels_are_kept_2 BEFORE DELETE ON persona_labels
+  BEGIN SELECT RAISE(ABORT, 'persona_labels is append-only'); END;
+
+-- THE DESK'S INSTRUMENTS -----------------------------------------------------------------------------
 --   timeline   dated things: events, deadlines, reminders, and tasks. Versioned like knowledge (t12 = its chain).
 --   threads    work in flight, one row per version: the goal, where it stands, the next step, what it waits on,
---              and the insights behind it, so a task can be picked up exactly where it was left (th3).
-
-CREATE TABLE IF NOT EXISTS slots (
-  id       INTEGER PRIMARY KEY,
-  name     TEXT NOT NULL CHECK (name IN ('character', 'him', 'preferences', 'voice')),
-  version  INTEGER NOT NULL,
-  items    TEXT NOT NULL,                       -- JSON: [{id, text, cites: [41], ...}]
-  why      TEXT,                                -- what changed, in a few words
-  by       TEXT NOT NULL DEFAULT 'mind',        -- keeper (after an exchange), character (reflection), avy (a tool), him (the page)
-  run      INTEGER,
-  at       TEXT NOT NULL,
-  UNIQUE (name, version)
-);
-CREATE TRIGGER IF NOT EXISTS slots_are_kept_1 BEFORE UPDATE ON slots
-  BEGIN SELECT RAISE(ABORT, 'slot versions are append-only'); END;
-CREATE TRIGGER IF NOT EXISTS slots_are_kept_2 BEFORE DELETE ON slots
-  BEGIN SELECT RAISE(ABORT, 'slot versions are append-only'); END;
+--              the insights behind it, and a plan tree (steps and options; dead ends kept with their reasons), so a
+--              task can be picked up exactly where it was left (th3).
 
 CREATE TABLE IF NOT EXISTS timeline (
   id       INTEGER PRIMARY KEY,                 -- this version
@@ -300,6 +373,7 @@ CREATE TABLE IF NOT EXISTS threads (
   next     TEXT NOT NULL DEFAULT '',            -- the next step
   waiting  TEXT NOT NULL DEFAULT '',            -- what it's waiting on (a run finishing, his answer, a date)
   insights TEXT NOT NULL DEFAULT '[]',          -- JSON: short lines worth carrying (why it's set up this way, what a result would mean)
+  steps    TEXT NOT NULL DEFAULT '[]',          -- JSON: the plan tree [{id: s1, text, parent, status: todo|doing|done|dropped, why}]
   source   INTEGER REFERENCES messages(id),
   by       TEXT NOT NULL DEFAULT 'avy',
   why      TEXT,

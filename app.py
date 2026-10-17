@@ -27,7 +27,7 @@ import intake
 import luminal
 import memory
 from memory import recall as recalling
-from mind import dream, explore, llm as mind_llm, worker, writer
+from mind import dream, explore, instruments, llm as mind_llm, persona as persona_jobs, worker, writer
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +58,42 @@ KEYS = {
     luminal.KEY_NAME: "Luminal API key",
 }
 
-SYSTEM_PROMPT = f"""You are Avy, {memory.NAME}'s personal assistant.
+# Who Avy is: her constitution, the fixed core of her character (CONSTITUTION.md, written by hand). Everything that
+# evolves (who she is with him, his preferences, what she's learned) is in the persona graph (memory/persona.py), and
+# what a message pulls from it comes after this, so the constitution is always first and always the same.
+CONSTITUTION = (HERE / "CONSTITUTION.md").read_text().replace("{name}", memory.NAME).strip()
+persona_jobs.CONSTITUTION = CONSTITUTION
+
+# How the machine works: the rules of her memory and her files. The instruction set, kept apart from the character.
+MACHINE = f"""# How your memory works
+
+You see the latest messages word for word. Older things come from your memory, in a note just before his newest
+message, along with your desk: the time, your calendar, the threads you're carrying, and what this moment brings up
+from what you've learned about being with him. Memory holds nodes (things, information and ideas) with handles like
+[k12], in three tiers:
+- what he told you: his exact words are quoted (#41 means message 41). These are facts.
+- what you said before: your own suggestions and ideas. Not facts about him unless he agreed.
+- what you worked out yourself: inferred, with how sure you are and what it rests on. Useful, but when you lean on
+  one, say it's your impression, and never present it as something he told you.
+The note may also bring passages from his library ([p41]): things he added, like documents, papers, code, data or
+conversations he had elsewhere, quoted word for word with where each comes from. Treat them like a document he handed
+you: use their exact words, and only his own words in them are facts about him.
+A node that changed shows its earlier versions; the newest is what's true now. The note also lists how the nodes
+connect, with reasons: follow those, because that's how something from weeks ago turns out to matter now. Use what's
+relevant and ignore the rest. If neither the recent messages nor memory covers something, say you can't find it in
+your memory rather than guessing. The note is what a search turned up, not everything he ever said, so never tell him
+he didn't tell you something just because it isn't there.
+
+Reply in plain text with no markdown, because your replies may be read aloud.
+
+He can attach files of any kind. Their contents come inside <file> tags in his message: text as text, pictures (and
+frames of a video) as images you can see, recordings as transcripts with times. Use them directly. If a file couldn't
+be read, or only its start is shown, say so instead of guessing at the rest. When he asks you to make a file (a
+script, a CSV, notes to keep), put its whole content in one fenced code block with the right language, like ```csv;
+the page shows it with a button that saves it as a file. That is the one place markdown is fine."""
+
+# The prompt from before the constitution and the persona, kept so /desk: off can compare the two.
+LEGACY_PROMPT = f"""You are Avy, {memory.NAME}'s personal assistant.
 Talk like a sharp, warm friend: plain words, short answers, no filler.
 Reply in plain text with no markdown, because your replies may be read aloud.
 Keep it to a few sentences unless he asks for more.
@@ -98,13 +133,19 @@ your memory of the main conversation, but nothing said here will be remembered o
 
 
 def system_prompt(incognito=False, core=True):
-    """Avy's instructions plus the core of her memory (its biggest hubs). It only changes when the network
-    does, so the model's prompt cache can reuse it (the time goes in the memory note instead).
-    core=False when memory search is off: then she gets no memory at all."""
+    """Avy's instructions: her constitution, how the machine works, the persona's always-in-view part (her core, him,
+    his standing preferences) and the core of her memory (its biggest hubs). It changes only when those do, so the
+    model's prompt cache can reuse it (the time, the calendar and the rest of the desk go in the note instead).
+    core=False when memory search is off: then she gets no memory at all. /desk: off gives the old prompt, for comparing."""
     choice = current_settings()
     hubs = MEMORIES["main"].core() if core else ""
-    return (SYSTEM_PROMPT + "\n\n" + (FOOTNOTES if choice["footnotes"] == "on" else NO_FOOTNOTES)
-            + (f"\n\n{INCOGNITO_NOTE}" if incognito else "") + (f"\n\n{hubs}" if hubs else ""))
+    rule = FOOTNOTES if choice["footnotes"] == "on" else NO_FOOTNOTES
+    tail = (f"\n\n{INCOGNITO_NOTE}" if incognito else "") + (f"\n\n{hubs}" if hubs else "")
+    if choice["desk"] == "off":
+        return LEGACY_PROMPT + "\n\n" + rule + tail
+    always = MEMORIES["main"].persona_always()
+    return (CONSTITUTION + "\n\n" + MACHINE + "\n\n" + rule + tail
+            + (f"\n\n# What persists with you\n\n{always}" if always else ""))
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +173,10 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
                  "options": ["off", "light", "normal", "deep", "max"], "default": "normal"},
     "explore":  {"short": "Avy searches memory herself", "card": True,
                  "about": "on: the model steers the memory search step by step, following the task, not just the words (a few seconds more). off: search by rules, instantly",
+                 "options": ["on", "off"], "default": "on"},
+    "desk":     {"short": "her persona and instruments", "card": True,
+                 "about": "on: her constitution and persona (what she's learned about being with you), the calendar and her threads "
+                          "are in view every message, with tools to keep them. off: the old plain prompt, for comparing",
                  "options": ["on", "off"], "default": "on"},
     "live":     {"short": "spoken back-and-forth", "card": True,
                  "about": "on: Space talks to Avy and she answers out loud. off: Space types what you say into the box",
@@ -307,9 +352,12 @@ FriendlyError = luminal.LuminalError        # failures with a message that's saf
 REPLY_TOKENS = 8000                         # the most a reply may say (Luminal caps silently at 8,192 if it isn't sent)
 
 
-def ask_model(messages):
-    """Start a streamed reply, thinking as hard as /thinking: says."""
-    return luminal.open_stream({"messages": messages, "max_tokens": REPLY_TOKENS}, effort=current_settings()["thinking"])
+def ask_model(messages, tools=None, tool_choice=None):
+    """Start a streamed reply, thinking as hard as /thinking: says (with her instruments' tools when given)."""
+    payload = {"messages": messages, "max_tokens": REPLY_TOKENS}
+    if tools:
+        payload.update(tools=tools, tool_choice=tool_choice or "auto")
+    return luminal.open_stream(payload, effort=current_settings()["thinking"])
 
 
 def ask_json(payload):
@@ -422,21 +470,34 @@ class Turn:
             if self.incognito and self.searching:                 # incognito also reads the main memory
                 main = MEMORIES["main"].recall(query, previous, None, **opts)
                 self.recall = recalling.combine(MEMORIES["main"], main, self.mem, self.recall)
-        self.messages = briefing(shown, self.recall["briefing"], text, self.incognito, core=self.searching,
-                                 attached=self.attached)
+        # The desk: the clock, the calendar, the threads in flight, and what this moment pulls from the persona graph,
+        # each a fixed share, built the same way every time from the same state. It's read from the main memory even
+        # in an incognito conversation (where her tools are off, so nothing of it is changed there).
+        self.desk = choice["desk"] == "on"
+        self.tools = instruments.TOOLS if self.desk and not self.incognito else None
+        note = self.recall["briefing"]
+        if self.desk:
+            knowledge = [x["node"] for x in self.recall["nodes"] if x.get("memory", "main") == "main"]
+            desk_note, shown_desk = MEMORIES["main"].desk_note(query, previous, knowledge)
+            self.recall["desk"] = {**shown_desk, "note": desk_note}
+            note = desk_note + "\n\n" + note
+        self.messages = briefing(shown, note, text, self.incognito, core=self.searching, attached=self.attached)
         self.user_id = self.recall_id = self.reply_id = None
         self.effort = choice["thinking"]
         self.thought, self.think_started, self.think_seconds = [], None, None   # what she thinks before answering
+        self.did, self.usages = [], []          # what her tools changed this turn; usage of each round
 
     def stream(self, line):
         """Read one line of the model's stream: keeps her thinking (and how long it took), returns
-        (the answer's words, usage or None)."""
-        import time as _time
+        (the answer's words, usage or None). With tool rounds, usage is the rounds' total so far."""
         words, thinking, usage = luminal.stream_parts(line)
         if thinking:
             self.think(thinking)
         if words:
             self.answered()
+        if usage:
+            self.usages.append(usage)
+            usage = combined_usage(self.usages)
         return words, usage
 
     def answered(self):
@@ -453,20 +514,21 @@ class Turn:
         self.thought.append(piece)
 
     def ask(self):
-        upstream = ask_model(self.messages)                 # if this fails, nothing is saved
+        upstream = ask_model(self.messages, self.tools)      # if this fails, nothing is saved
         meta = {"files": [files.brief(r) for r in self.attached]} if self.attached else None
         self.user_id = self.mem.add("user", self.text, self.via, meta)
         self.recall_id = self.mem.save_recall(self.user_id, self.recall)
-        return upstream
+        return Rounds(self, upstream) if self.tools else upstream
 
     def summary(self):
         """What the page shows under the reply: what memory brought, and where it came from."""
         found = self.recall.get("explore") or {}
+        desk = {k: v for k, v in (self.recall.get("desk") or {}).items() if k != "note"}
         return {"message": self.user_id, "recall": self.recall_id, "memory": self.mem.name,
                 "nodes": len(self.recall["nodes"]), "log": len(self.recall["log"]), "library": len(self.recall.get("library") or []),
                 "explored": bool(found and not found.get("fell_back")),
                 "kept": [x["handle"] for x in self.recall["nodes"]],
-                "visited": found.get("visited", [])}
+                "visited": found.get("visited", []), "desk": desk or None}
 
     def finish(self, text, usage=None, cut=False):
         """Save Avy's reply (only what was actually sent or heard). Returns its number."""
@@ -482,11 +544,15 @@ class Turn:
             meta["cut"] = True
         if self.thought:
             meta["thought"] = True       # the page knows to offer the thinking under it
+        if self.did:
+            meta["did"] = self.did       # what her tools changed on the desk while she answered
         unseen = self.unseen_in(text)
         if unseen:
             meta["unseen"] = unseen      # footnotes to things that weren't in what she was shown
         self.reply_id = self.mem.add("assistant", text.strip(), self.via, meta)
         self.keep_thinking(self.reply_id, usage)
+        if self.desk and not self.incognito:
+            keep_after(self.mem, self.reply_id)    # the keeper reads this exchange into the persona, in the background
         worker.nudge()                 # the mind writes in the background once an episode's worth is waiting
         return self.reply_id
 
@@ -516,6 +582,107 @@ class Turn:
         self.mem.add_reasoning("".join(self.thought), message=reply_id, asked=self.user_id, effort=self.effort,
                                seconds=seconds, tokens=tokens)
         self.thought_saved = True
+
+
+def combined_usage(usages):
+    """The token counts of several rounds of one reply, added up."""
+    if len(usages) == 1:
+        return usages[0]
+    out = {}
+    for u in usages:
+        for k, v in u.items():
+            if isinstance(v, (int, float)):
+                out[k] = out.get(k, 0) + v
+            elif isinstance(v, dict):
+                inner = out.setdefault(k, {})
+                for kk, vv in v.items():
+                    if isinstance(vv, (int, float)):
+                        inner[kk] = inner.get(kk, 0) + vv
+    return out
+
+
+class Rounds:
+    """Her reply's stream across tool rounds, looking like one stream to whoever reads it (the page, voice).
+
+    She answers; if she calls a tool (the calendar, a thread), its words so far and the call are kept, code carries the
+    call out through the one door, an event line tells the page what changed ({"avy": {"did": [...]}}), and a new
+    request continues her reply with the result in front of her. At most instruments.MAX_ROUNDS rounds; the last one
+    offers no tools, so it always ends in words. Only the final round's [DONE] is passed on."""
+
+    def __init__(self, turn, first):
+        self.turn, self.upstream = turn, first
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            self.upstream.close()
+        except Exception:
+            pass
+
+    def __iter__(self):
+        turn, messages = self.turn, list(self.turn.messages)
+        for round_no in range(instruments.MAX_ROUNDS + 1):
+            calls, content, reasoning = {}, [], []
+            with self.upstream:
+                for line in self.upstream:
+                    raw = line.decode(errors="replace").strip() if isinstance(line, bytes) else line.strip()
+                    if raw == "data: [DONE]":
+                        break
+                    if raw.startswith("data:"):
+                        try:
+                            chunk = json.loads(raw[5:])
+                        except json.JSONDecodeError:
+                            chunk = {}
+                        for choice in chunk.get("choices") or []:
+                            delta = choice.get("delta") or {}
+                            content.append(delta.get("content") or "")
+                            reasoning.append(delta.get("reasoning_content") or "")
+                            for tc in delta.get("tool_calls") or []:
+                                c = calls.setdefault(tc.get("index", 0), {"id": "", "type": "function",
+                                                                          "function": {"name": "", "arguments": ""}})
+                                c["id"] = tc.get("id") or c["id"]
+                                c["function"]["name"] += (tc.get("function") or {}).get("name") or ""
+                                c["function"]["arguments"] += (tc.get("function") or {}).get("arguments") or ""
+                    yield line
+            if not calls:
+                break
+            told, did = [], []
+            for c in [calls[i] for i in sorted(calls)]:
+                try:
+                    args = json.loads(c["function"]["arguments"] or "{}")
+                except json.JSONDecodeError:
+                    args = None
+                answer, line = instruments.use(turn.mem, c["function"]["name"], args, source=turn.user_id)
+                told.append({"role": "tool", "tool_call_id": c["id"] or f"call{len(told)}", "content": answer})
+                if line:
+                    did.append(line)
+            if did:
+                turn.did += did
+                yield f"data: {json.dumps({'avy': {'did': did}})}\n\n".encode()
+            messages += [{"role": "assistant", "content": "".join(content), "reasoning_content": "".join(reasoning),
+                          "tool_calls": [calls[i] for i in sorted(calls)]}] + told
+            last = round_no + 1 >= instruments.MAX_ROUNDS
+            self.upstream = ask_model(messages, instruments.TOOLS, "none" if last else "auto")
+        yield b"data: [DONE]\n\n"
+
+
+import threading as _threading
+_KEEPING = _threading.Lock()
+
+
+def keep_after(mem, last):
+    """The keeper (mind/persona.py) reads the newest exchange into the persona graph, in the background, one at a time.
+    It writes to the main memory only (an incognito conversation keeps nothing)."""
+    def run():
+        with _KEEPING:
+            try:
+                if not mem.closed:
+                    worker.run(mem, persona_jobs.Keep(mem, last))
+            except Exception as e:
+                print(f"The keeper hit a problem ({e}); the conversation carries on.")
+    _threading.Thread(target=run, daemon=True).start()
 
 
 FILE_CHARS = 240_000     # all the files in one briefing together, at most (about 60,000 tokens)
@@ -611,6 +778,13 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, IMPORT)
         elif url.path == "/api/glass":
             self.send_json(200, glass())
+        elif url.path == "/api/desk":                # the desk: the persona graph, the calendar, the threads (?node=12: one node's history)
+            main = MEMORIES["main"]
+            n = number(q, "node")
+            if n:
+                node = main.persona_node(n)
+                return self.send_found(node and {**node, "versions": main.persona_versions(n), "links": main.persona_links(n)})
+            self.send_json(200, main.desk_data())
         # --- memory, for the chat history, the inspector and the graph (?memory=main|incognito) ---
         elif url.path in MEMORY_VIEWS:
             mem = memory_for(q)
@@ -732,7 +906,17 @@ class Handler(BaseHTTPRequestHandler):
             mem = talking_to()
             worker.write_due(mem, force=True)
             runs = worker.reflect_now(mem, budget=10_000)
+            if mem is MEMORIES["main"] and current_settings()["desk"] == "on":
+                runs += worker.reflect_on_manner(mem, force=True)
             self.send_json(200, {"runs": runs, "stats": mem.stats()})
+        elif self.path == "/api/desk":          # his own edit on the desk: {"op": "timeline" | "thread" | "persona", ...}
+            body = self.read_json()
+            if body.get("op") not in ("timeline", "thread", "persona", "persona_link"):
+                return self.send_json(400, {"error": "That isn't something the desk can change."})
+            result = MEMORIES["main"].apply({**body, "by": "him", "why": body.get("why") or "edited on the desk"})
+            if not result["applied"]:
+                return self.send_json(400, {"error": result["why"]})
+            self.send_json(200, {"result": result, "desk": MEMORIES["main"].desk_data()})
         elif self.path == "/api/incognito":     # {"on": true} starts one; {"on": false} ends and deletes it
             start_incognito() if self.read_json().get("on") else end_incognito()
             self.send_json(200, {"incognito": MEMORIES["incognito"] is not None, "stats": talking_to().stats()})
@@ -1253,7 +1437,7 @@ if __name__ == "__main__":
     INTAKE.start()
     DREAM = dream.Dream(main=lambda: MEMORIES["main"], tell=worker.tell)
     worker.start(ask=ask_json, prices=PRICES, page=page_size, main=lambda: MEMORIES["main"],
-                 effort=lambda: current_settings()["mind"],
+                 effort=lambda: current_settings()["mind"], desk=lambda: current_settings()["desk"] == "on",
                  memories=lambda: [m for m in MEMORIES.values() if m])
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
     url = f"http://localhost:{PORT}"

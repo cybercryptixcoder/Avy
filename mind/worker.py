@@ -1,7 +1,8 @@
 """When the mind works, in the background.
 
     after each reply   if an episode's worth is waiting (or a sitting has ended): Write it, then
-                       Connect the new knowledge to the rest of memory
+                       Connect the new knowledge to the rest of memory; every dozen of her replies, she reflects on
+                       her own manner (mind/persona.py: the persona's Reflect)
     when it's quiet    (no message for REFLECT_IDLE minutes, the main memory only): Check what's gone
                        stale, Think about one or two focuses, Connect what Think made, measure health
     /index, /reflect   do it now
@@ -16,13 +17,13 @@ from datetime import datetime
 from memory import health as measure_health, record_health
 from memory.common import IMPORTED, minutes_between, stamp
 
-from . import jobs, reflect, writer
+from . import jobs, persona, reflect, writer
 
 REFLECT_IDLE = 30        # minutes of quiet before reflecting
 REFLECT_CALLS = 60       # reflection model calls a day, at most
 THINKS_PER_SITTING = 3   # Think runs per quiet spell
 
-app = {"memories": lambda: [], "main": lambda: None, "page": lambda: writer.PAGE}
+app = {"memories": lambda: [], "main": lambda: None, "page": lambda: writer.PAGE, "desk": lambda: True}
 RUN_LOCK = threading.Lock()      # one job at a time
 WAKE = threading.Event()
 listeners = []                   # functions told about every run (the page's live updates)
@@ -112,6 +113,16 @@ def reflect_now(mem, thinks=THINKS_PER_SITTING, budget=None, rng=None):
     return results
 
 
+def reflect_on_manner(mem, force=False):
+    """Her reflection on her own manner (mind/persona.py): once a dozen of her replies have come since the last one,
+    or now when forced. Main memory only. Returns the runs."""
+    span = persona.reflect_due(mem, force)
+    if not span or mem.closed:
+        return []
+    with RUN_LOCK:
+        return [run(mem, persona.Reflect(mem, *span))]
+
+
 def quiet_minutes(mem):
     last = mem.row("SELECT at FROM messages ORDER BY id DESC LIMIT 1")
     return minutes_between(last["at"], stamp()) if last else 0
@@ -138,17 +149,20 @@ def loop():
         for mem in app["memories"]():
             try:
                 write_due(mem)
+                if mem is app["main"]() and app["desk"]():
+                    reflect_on_manner(mem)
                 if mem is app["main"]() and due_for_reflection(mem):
                     reflect_now(mem)
             except Exception as e:      # never let a bug here take the memory down with it
                 print(f"Memory ({mem.name}): the background mind hit a problem ({e}); it will try again.")
 
 
-def start(ask, prices, memories, main, page, effort=lambda: "none"):
+def start(ask, prices, memories, main, page, effort=lambda: "none", desk=lambda: True):
     """ask: sends one request to the model. memories: the memories to keep written. main: the main one.
-    page: how many messages make an episode right now. effort: how hard the mind thinks (/mind:)."""
+    page: how many messages make an episode right now. effort: how hard the mind thinks (/mind:).
+    desk: whether the persona is in use (/desk:), so she reflects on her manner."""
     from . import llm
     llm.app.update(ask=ask, prices=prices, effort=effort)
-    app.update(memories=memories, main=main, page=page)
+    app.update(memories=memories, main=main, page=page, desk=desk)
     threading.Thread(target=loop, daemon=True).start()
     nudge()

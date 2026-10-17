@@ -112,7 +112,7 @@ ok("a batch with refs goes through the one door", all(x["applied"] for x in r), 
 ok("origin is decided by the evidence: Shreyas's words -> user", mem.current(rohan)["origin"] == "user")
 ok("...and Avy's words -> avy", mem.current(gift)["origin"] == "avy")
 ok("evidence quotes are copied from the log by code", mem.evidence_of(mem.current(bday)["id"])[0]["quote"] == "Rohan's birthday is March 3rd")
-ok("every proposal is journaled", mem.value("SELECT COUNT(*) FROM journal") == 5)
+ok("every proposal is journaled", mem.value("SELECT COUNT(*) FROM journal WHERE op NOT LIKE 'persona%'") == 5)   # (a new memory's seeded situations are journaled too)
 
 
 def refused(op, words):

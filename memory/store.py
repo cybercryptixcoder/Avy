@@ -30,6 +30,8 @@ class Store:
         self.db.execute(f"PRAGMA user_version = {VERSION}")
         self.shelves = {}            # meaning-search vectors, filled in once the model is ready
         self.closed = False
+        if hasattr(self, "seed_persona"):
+            self.seed_persona()      # kinds of conversation for the persona's behaviors to hang from (persona.py)
         embedder.attach(self)
 
     def close(self, delete=False):
