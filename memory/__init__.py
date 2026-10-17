@@ -19,8 +19,10 @@ A Memory is one file. The parts of the class live in their own files:
     search.py     meaning + words          recall.py     what each message brings back
     health.py     the network's shape      inspect.py    what the inspector reads
     library.py    what he added (documents, code, other conversations), kept as passages
+    desk.py       what's always in view: her character, him, his preferences, her voice, the timeline, threads
 """
 
+from .desk import Desk, SLOTS, parse_when, say_when
 from .common import NAME, clock, now, stamp, when, day, tokens, who, clip, terms, locate, same_title, node_ref, edge_ref, message_ref
 from .embed import embedder, EMBED_MODEL
 from .health import measure as health, record as record_health
@@ -35,5 +37,5 @@ from .search import Search, top_score, ECHO
 from .store import Store
 
 
-class Memory(Store, Log, Knowledge, Network, Ops, Search, Recall, Inspect, Sources):
+class Memory(Store, Log, Knowledge, Network, Ops, Search, Recall, Inspect, Sources, Desk):
     """One memory: Memory("data/memory-v2.db"), or Memory(path, name="incognito", letter="x")."""

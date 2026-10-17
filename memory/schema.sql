@@ -235,6 +235,83 @@ CREATE TABLE IF NOT EXISTS marks (              -- small bits of state: what ref
   key TEXT PRIMARY KEY, value TEXT
 );
 
+-- THE DESK -----------------------------------------------------------------------------------------
+-- What's always in view, every message (ARCHITECTURE.md §7.2, "the desk"): small, fixed-size, and never searched.
+-- External memory above grows without limit because it's searched; the desk stays the same size because it's shown.
+--
+--   slots      notes that persist through every message: her character note (how she is with him, in her own
+--              words), him (the always-true core of who he is), his preferences, and replies of hers kept as
+--              examples of her voice. Each change is a new version of the whole note; old versions stay.
+--              Every item cites the messages it rests on (code refuses an item with none).
+--   timeline   dated things: events, deadlines, reminders, and tasks. Versioned like knowledge (t12 = its chain).
+--   threads    work in flight, one row per version: the goal, where it stands, the next step, what it waits on,
+--              and the insights behind it, so a task can be picked up exactly where it was left (th3).
+
+CREATE TABLE IF NOT EXISTS slots (
+  id       INTEGER PRIMARY KEY,
+  name     TEXT NOT NULL CHECK (name IN ('character', 'him', 'preferences', 'voice')),
+  version  INTEGER NOT NULL,
+  items    TEXT NOT NULL,                       -- JSON: [{id, text, cites: [41], ...}]
+  why      TEXT,                                -- what changed, in a few words
+  by       TEXT NOT NULL DEFAULT 'mind',        -- keeper (after an exchange), character (reflection), avy (a tool), him (the page)
+  run      INTEGER,
+  at       TEXT NOT NULL,
+  UNIQUE (name, version)
+);
+CREATE TRIGGER IF NOT EXISTS slots_are_kept_1 BEFORE UPDATE ON slots
+  BEGIN SELECT RAISE(ABORT, 'slot versions are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS slots_are_kept_2 BEFORE DELETE ON slots
+  BEGIN SELECT RAISE(ABORT, 'slot versions are append-only'); END;
+
+CREATE TABLE IF NOT EXISTS timeline (
+  id       INTEGER PRIMARY KEY,                 -- this version
+  chain    INTEGER NOT NULL,                    -- the item itself: t12
+  version  INTEGER NOT NULL,
+  replaces INTEGER UNIQUE REFERENCES timeline(id),
+  title    TEXT NOT NULL,
+  kind     TEXT NOT NULL CHECK (kind IN ('event', 'deadline', 'reminder', 'task')),
+  start    TEXT,                                -- YYYY-MM-DD, or YYYY-MM-DDTHH:MM (his local time); none for an undated task
+  end      TEXT,
+  status   TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'done', 'cancelled', 'missed')),
+  notes    TEXT NOT NULL DEFAULT '',
+  thread   INTEGER,                             -- the thread it belongs to (th3), if any
+  source   INTEGER REFERENCES messages(id),      -- the message it came from
+  quote    TEXT,                                -- his words there, copied by code
+  by       TEXT NOT NULL DEFAULT 'avy',
+  why      TEXT,
+  run      INTEGER,
+  at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS timeline_by_chain ON timeline(chain);
+CREATE TRIGGER IF NOT EXISTS timeline_is_kept_1 BEFORE UPDATE ON timeline
+  BEGIN SELECT RAISE(ABORT, 'timeline versions are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS timeline_is_kept_2 BEFORE DELETE ON timeline
+  BEGIN SELECT RAISE(ABORT, 'timeline versions are append-only'); END;
+
+CREATE TABLE IF NOT EXISTS threads (
+  id       INTEGER PRIMARY KEY,
+  chain    INTEGER NOT NULL,                    -- th3
+  version  INTEGER NOT NULL,
+  replaces INTEGER UNIQUE REFERENCES threads(id),
+  title    TEXT NOT NULL,
+  status   TEXT NOT NULL CHECK (status IN ('active', 'waiting', 'paused', 'done', 'dropped')),
+  goal     TEXT NOT NULL DEFAULT '',
+  state    TEXT NOT NULL DEFAULT '',            -- where it stands now
+  next     TEXT NOT NULL DEFAULT '',            -- the next step
+  waiting  TEXT NOT NULL DEFAULT '',            -- what it's waiting on (a run finishing, his answer, a date)
+  insights TEXT NOT NULL DEFAULT '[]',          -- JSON: short lines worth carrying (why it's set up this way, what a result would mean)
+  source   INTEGER REFERENCES messages(id),
+  by       TEXT NOT NULL DEFAULT 'avy',
+  why      TEXT,
+  run      INTEGER,
+  at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS threads_by_chain ON threads(chain);
+CREATE TRIGGER IF NOT EXISTS threads_are_kept_1 BEFORE UPDATE ON threads
+  BEGIN SELECT RAISE(ABORT, 'thread versions are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS threads_are_kept_2 BEFORE DELETE ON threads
+  BEGIN SELECT RAISE(ABORT, 'thread versions are append-only'); END;
+
 -- SEARCH -------------------------------------------------------------------------------------------
 -- items: m41 (a message), v77 (a node version), e4 (an episode headline), c7 (a connection's reason)
 CREATE VIRTUAL TABLE IF NOT EXISTS words USING fts5(text, item UNINDEXED, tokenize = 'porter unicode61');
