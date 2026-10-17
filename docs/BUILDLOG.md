@@ -94,7 +94,10 @@ Work is on the branch **`desk`** (not merged into `main` yet; merge once the pag
    graph's three hubs with strength and evidence; her core as a serif italic pull-quote; steps folded under each reply
    (like thinking, drawn from `m.steps` in history and `avy.step` live); approval cards for `avy.ask`; coined terms
    inside her mono replies set in Instrument Serif italic; chapter markers as serif italic ("Sunday evening") with
-   the time in mono; the masthead "AVY's desk" (Archivo 900 for AVY, serif italic for 's desk). Add `jobs` to
+   the time in mono; the masthead "AVY's desk" (Archivo 900 for AVY, serif italic for 's desk). **His request (Oct 17,
+   16:52): the big AVY wordmark on the left must itself show the fusion, in the serif** (e.g. the word starting in
+   Archivo 900 and ending in Instrument Serif italic, or the reverse; judge by screenshots in light and dark, phone
+   width too); everything else mostly as is, plus any small touch that genuinely looks good. Add `jobs` to
    `/api/desk`. Then the page tests (`tests/page/`), contrast audit in both themes.
 3. Docs: `docs/PERSONA.md` (the research: Anthropic's constitution, "Claude's character", Constitutional AI, persona
    vectors and the assistant axis; how each maps to Avy), `docs/HANDS.md` (what was learned from Hermes Agent and

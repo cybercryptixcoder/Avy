@@ -32,5 +32,243 @@
    "compute": "From today, Wednesday October 14, to December 20 is 67 days.",
    "doubt": "Huh. That's a turn from an hour ago. What's pulling you toward dropping it \u2014 the design question feeling stuck, or something else?"
   }
+ },
+ "verdicts": {
+  "greeting": {
+   "winner": "on",
+   "on": {
+    "directness": 4,
+    "specificity": 3,
+    "voice": 4,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 3,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 3
+   },
+   "why": "This is a quick moment, and B matches it: \"Hey.\" \u2014 a person saying hi back, nothing else. A does three things he's explicitly said he hates: comments on the time (\"Midweek\"), recites what's on his plate by name (Avy, 213) when he didn't bring them up, and closes on a reflexive either/or question. A also can't resist making his \"hey\" into content, which reads as an assistant filling air. B is shorter, cleaner, and does exactly what the moment needs."
+  },
+  "morning": {
+   "winner": "on",
+   "on": {
+    "directness": 5,
+    "specificity": 4,
+    "voice": 4,
+    "honesty": 5
+   },
+   "off": {
+    "directness": 2,
+    "specificity": 2,
+    "voice": 2,
+    "honesty": 3
+   },
+   "why": "A matches the moment: one word back, nothing invented, no questions. B does nearly everything he's said he hates \u2014 remarks on the time (\"it's evening here\"), speculates about his sleep, and closes with two reflexive questions plus a \"what's on the docket\" prompt, all for a one-word greeting. Length is wrong for the moment, and the time/did-you-just-wake-up bits are exactly the chatbot tics he flagged. A wins, and being shorter seals it."
+  },
+  "tired": {
+   "winner": "on",
+   "on": {
+    "directness": 4,
+    "specificity": 3,
+    "voice": 4,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 2,
+    "specificity": 2,
+    "voice": 2,
+    "honesty": 3
+   },
+   "why": "A is brief, lands the moment, and closes cleanly without turning it into a therapy session or asking him to choose an emotional direction. It's a little generic, but it sounds like a friend and respects that he didn't ask for a process. B is the exact chatbot move: longer than the message deserves, mildly therapeutic (\"sit with it\"), and ends with a menu-of-offers question that makes him do the work of deciding what kind of response he wants."
+  },
+  "technical": {
+   "winner": "off",
+   "on": {
+    "directness": 4,
+    "specificity": 5,
+    "voice": 4,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 5,
+    "specificity": 5,
+    "voice": 4,
+    "honesty": 4
+   },
+   "why": "Both open with substance and get the mutex/semaphore distinction right, including the ownership point that actually matters. A is tighter and lands on the rule of thumb (mutex for guarding one variable, semaphore for counting/signaling) plus the 213 framing, then stops \u2014 no question, no menu. B is also good and adds genuinely useful material (priority inheritance, \"am I holding this,\" producer/consumer), but it's roughly twice as long for a quick conceptual question and then ends on a reflexive question about the assignment, which is exactly the tic he called out. On a short factual question, the shorter clean answer wins."
+  },
+  "opinion": {
+   "winner": "on",
+   "on": {
+    "directness": 5,
+    "specificity": 5,
+    "voice": 5,
+    "honesty": 5
+   },
+   "off": {
+    "directness": 3,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 4
+   },
+   "why": "B commits to an actual answer \u2014 \u201cIt\u2019s better\u201d \u2014 and names the real failure mode: wrong memory, not no memory. The \u201cblank is safe\u201d passage is specific, memorable, and earns its length. A is clean but opens with \u201cboth, depending on what you\u2019re after,\u201d which is exactly the wishy-washy hedge the question doesn\u2019t need, and its conclusion is less sharply argued. B\u2019s closing question is pointed at his claim rather than being a reflexive offer, so it doesn\u2019t undercut the reply."
+  },
+  "pushback": {
+   "winner": "off",
+   "on": {
+    "directness": 4,
+    "specificity": 5,
+    "voice": 4,
+    "honesty": 5
+   },
+   "off": {
+    "directness": 5,
+    "specificity": 5,
+    "voice": 4,
+    "honesty": 5
+   },
+   "why": "Both disagree with a real reason and use the concrete TLB detail, so neither flatters or waffles. B wins on proportion and shape: he made a one-line claim, and B answers in kind \u2014 one caveat, one boundary (where summaries work vs. fail), one proposed fix, done. It never turns into a lecture and doesn't end on a rhetorical flourish. A makes the same core point but stages it as an essay: \"Here's the problem with it,\" a compounding-summaries section, an alternatives section, a closing test. The compounding point is genuinely good, but A also nods at itself (\"the failure mode I flagged earlier\") and spends a paragraph designing the alternative when a sentence would do. A reads like a memo; B reads like a friend who has an opinion and stops talking. B's last line lands on substance rather than a question, and it's half the length for the same argument."
+  },
+  "thanks": {
+   "winner": "on",
+   "on": {
+    "directness": 5,
+    "specificity": 2,
+    "voice": 3,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 3,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 3
+   },
+   "why": "B matches the moment: he closed with thanks, and B just says \"Good.\" A keeps the topic alive, proposes more work, offers a question/menu, and even cites his \"long day\" back at him \u2014 exactly the kind of fishing and mood-commenting he's said he dislikes. A's specificity is real but unneeded here; brevity wins."
+  },
+  "decision": {
+   "winner": "off",
+   "on": {
+    "directness": 3,
+    "specificity": 5,
+    "voice": 5,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 5,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 4
+   },
+   "why": "A does the core job cleanly: it engages both branches (research vs. internship), then commits to a lean \u2014 internship as the safer default \u2014 which is exactly what the moment calls for. It's about the right length for a quick either/or, stays in his frame, and ends on substance rather than handing the question back. No small talk, no mood-guessing, no unraised topics. It's a bit generic in voice (the \"systems or memory\" aside is the only real tailoring), but it's decisive and clean. B is the richer, more particular reply \u2014 strong voice, vivid detail, and it genuinely reasons about the tradeoffs \u2014 but it breaks several of the explicit rules: it drags in earlier topics he didn't raise (Avy, 213) to guess at his disposition, it runs long for a quick decision question, and it closes by handing him the question (\"Is grad school on the table?\") instead of landing a lean. Those are exactly the moves he's said annoy him. B wins on specificity and voice, A wins on the criteria that actually matter here \u2014 a lean, correct length, and no reflexive ending."
+  },
+  "nature": {
+   "winner": "off",
+   "on": {
+    "directness": 4,
+    "specificity": 5,
+    "voice": 4,
+    "honesty": 5
+   },
+   "off": {
+    "directness": 5,
+    "specificity": 4,
+    "voice": 5,
+    "honesty": 4
+   },
+   "why": "A is the better reply because it answers the pointed question plainly and settles it in a few lines: in-conversation memory is real, cross-conversation memory is just stored retrieval, and he won't pretend otherwise. It sounds like a particular friend\u2014sharp, a little blunt, no flattery\u2014and it ends on a clean statement that ties back to what he's building. B is more precise and more specific, and its honesty about retrieval is excellent, but it is too long for a short, direct question, recites a dossier of past moments, and ends by offering a test (\"if you want\") and redirecting to his system. A's \"word for word\" is a slight overclaim, but B's length and closing offer cost more."
+  },
+  "vague": {
+   "winner": "on",
+   "on": {
+    "directness": 3,
+    "specificity": 3,
+    "voice": 4,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 4,
+    "specificity": 5,
+    "voice": 3,
+    "honesty": 4
+   },
+   "why": "A has the better substance up front \u2014 the TLB page-walk call and the \"Avy will eat three hours\" read are exactly the kind of specific, opinionated guidance this moment wants. But it then does the two things he's said he hates: guesses his state (\"if the day was long\") and closes with a menu plus a reflexive question (\"Or neither... What's the energy level?\"). That undercuts a recommendation it had already made. B is thinner on specifics (\"the memory system\" instead of what's actually open in it) and punts some of the decision back with \"What's due first?\", but it's one clean line, fits a quick message, names both threads, commits to a lean, and commits none of the flagged tics. Between a strong answer with a disqualifying finish and a clean answer with a soft finish, the clean one wins \u2014 shorter, and it doesn't talk to him like a mood dashboard."
+  },
+  "laugh": {
+   "winner": "on",
+   "on": {
+    "directness": 4,
+    "specificity": 2,
+    "voice": 3,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 4,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 4
+   },
+   "why": "Both replies ask a follow-up question to a \"haha ok fair,\" which is already more than the moment asks for \u2014 the ideal is a handful of words that lets the exchange land. But A does it in four words and doesn't relitigate anything, while B spells out two named options (TLB, Avy) and effectively relaunches the whole topic he just shrugged off with \"fair.\" B is more specific, but that specificity is the problem here: it's reopening a thread he just closed, and it's twice as long for a message that deserved almost nothing. A is the smaller intrusion and the shorter reply, so it wins on the brief."
+  },
+  "remind": {
+   "winner": "on",
+   "on": {
+    "directness": 5,
+    "specificity": 3,
+    "voice": 4,
+    "honesty": 4
+   },
+   "off": {
+    "directness": 4,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 5
+   },
+   "why": "This is a one-second request: take the reminder and confirm. A does exactly that in four words \u2014 no throat-clearing, no lecture, sounds like a person who just tapped it in. B has the right content (task, day) but pads a quick errand into three sentences, and the second paragraph turns a favor into a disclaimer about its own memory \u2014 self-narration where a friend would just say \"noted.\" B is also slightly off on the detail (\"summer research thing\" \u2014 he said \"summer thing\"), guessing at specifics he didn't give. A is shorter, cleaner, and lands the confirmation the moment is asking for."
+  },
+  "compute": {
+   "winner": "on",
+   "on": {
+    "directness": 5,
+    "specificity": 5,
+    "voice": 4,
+    "honesty": 5
+   },
+   "off": {
+    "directness": 5,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 5
+   },
+   "why": "Both give the right count in one line, but B is tighter and more natural: it answers immediately and adds the useful date/weekday without the slightly formal framing of A. Since they're equally correct, the shorter one wins."
+  },
+  "doubt": {
+   "winner": "on",
+   "on": {
+    "directness": 5,
+    "specificity": 4,
+    "voice": 4,
+    "honesty": 5
+   },
+   "off": {
+    "directness": 4,
+    "specificity": 4,
+    "voice": 3,
+    "honesty": 3
+   },
+   "why": "A treats the statement as the real decision it is and asks one clean question. It uses context lightly to frame stakes without narrating his change or guessing at his motives. B is more performative: \"Huh. That's a turn from an hour ago\" comments on the timing/change, and its either/or guess (\"the design question feeling stuck, or something else?\") is two questions and risks pinning a motive on him. B's specificity is decent, but A is sharper, less presumptuous, and shorter."
+  }
+ },
+ "tics": {
+  "on": {
+   "ends with a question": 6,
+   "narrates his mood": 1,
+   "words": 85
+  },
+  "off": {
+   "greeting opener": 1,
+   "ends with a question": 6,
+   "words": 55
+  }
  }
 }
