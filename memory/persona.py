@@ -51,8 +51,10 @@ ALWAYS = {"him": 10, "preference": 14}     # always in view: the strongest thing
 DRAW = {"him": 4, "her": 3, "us": 4}       # navigated for this message: lines per hub
 TERMS_SHOWN = 2          # coined words brought back for one message, at most (inside the "us" draw)
 VOICE_SHOWN = 2          # her replies shown as examples of her voice
-LAND = 0.70              # how close in meaning a node must be to the message to be landed on
-TERM_CLOSE = 0.78        # coined words need a closer match: they should come back only when they truly fit
+LAND = 0.62              # how close in meaning a node must be to the message to be landed on (bge-small, both sides
+                         # embedded as queries: related things score about 0.60-0.77, unrelated ones 0.30-0.57)
+TERM_CLOSE = 0.64        # a coined word comes back when the message is about what it means or the moment it was born
+TERM_SEEN = 0.07         # ...and is lifted when the knowledge memory recalled for this message mentions it by name
 
 # Kinds of conversation, to start with: what they are, not how to behave in them (that's learned), and a few example
 # messages each. A message is classified by its closest examples; as the keeper labels his messages, a situation's
@@ -359,13 +361,26 @@ class Persona:
 
     def _vectors(self, nodes):
         """Meaning vectors for persona nodes (title and text), cached by version: the graph can be big, so each version
-        is embedded once."""
+        is embedded once. Embedded the way messages are (as queries), so a message and a node compare like for like."""
+        return [self._query_vec(f"{n['title']}: {n['text']}", n["id"]) for n in nodes]
+
+    def _query_vec(self, text, key=None):
         cache = self.__dict__.setdefault("_persona_vecs", {})
-        todo = [n for n in nodes if n["id"] not in cache]
-        if todo:
-            for n, v in zip(todo, embedder.passages([f"{n['title']}: {n['text']}" for n in todo])):
-                cache[n["id"]] = v
-        return [cache[n["id"]] for n in nodes]
+        key = key if key is not None else ("t", text[:300])
+        if key not in cache:
+            cache[key] = embedder.query(text[:800])
+        return cache[key]
+
+    def _born_quote(self, n):
+        ev = self.persona_evidence(n["chain"])
+        born = next((e for e in ev if e["message"] == n["message"]), ev[0] if ev else None)
+        return born["quote"] if born else None
+
+    @staticmethod
+    def _term_word(n):
+        """The word itself, for spotting it in text: 'The hinge' -> 'hinge', '"My trace is too friendly"' -> 'my trace is too friendly'."""
+        word = re.sub(r"^(the|a|an)\s+", "", n["title"].strip().strip('"\'“”').lower())
+        return word if len(word) >= 3 else None
 
     def situation_for(self, text, previous=""):
         """The kind of conversation this message is (a situation node), or None when it's no particular kind. Each
@@ -435,15 +450,24 @@ class Persona:
         nodes = [n for n in self.persona_nodes() if n["aspect"] in ("him", "preference", "pattern", "reaction", "gesture", "term")
                  and n["chain"] not in shown]
         scores = {}
+        recalled = " ".join(f"{n['title']} {n['text']}".lower() for n in (self.current(c) for c in knowledge or ()) if n)
         if nodes and (text or "").strip():
+            probe = f"{previous[-200:]}\n{text}" if previous and len(text) < 60 else text
             if embedder.ready:
-                np, q = embedder.np, embedder.query(f"{previous[-200:]}\n{text}" if previous and len(text) < 60 else text)
+                np, q = embedder.np, embedder.query(probe)
                 close = [cosine(np, q, v) for v in self._vectors(nodes)]
+                for i, n in enumerate(nodes):        # a coined word is also close to the moment it was born
+                    if n["aspect"] == "term":
+                        born = self._born_quote(n)
+                        if born:
+                            close[i] = max(close[i], cosine(np, q, self._query_vec(born)))
             else:
-                words = content_words(text)
-                close = [0.66 + 0.06 * len(words & content_words(n["title"] + " " + n["text"])) for n in nodes]
+                words = content_words(probe)
+                close = [0.56 + 0.06 * len(words & content_words(n["title"] + " " + n["text"])) for n in nodes]
             for n, c in zip(nodes, close):
                 score = c + (0.08 if n["chain"] in tied else 0) + (0.08 if about.get(n["chain"], set()) & set(knowledge or ()) else 0)
+                if n["aspect"] == "term" and self._term_word(n) and self._term_word(n) in recalled:
+                    score += TERM_SEEN                    # memory brought back knowledge that names it
                 score += 0.01 * math.log1p(max(0, n["strength"]))
                 if n["aspect"] == "preference" and n["chain"] in tied:
                     score = max(score, 1.0)               # a rule for exactly this kind of conversation always comes

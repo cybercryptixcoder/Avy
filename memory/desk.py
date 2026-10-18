@@ -39,6 +39,13 @@ THREAD_LINES = 8         # one line per open thread, at most this many
 MAX_INSIGHTS = 8         # what a thread carries forward
 MAX_STEPS = 24           # a thread's plan tree
 
+# The length gauge: a word budget per kind of conversation (a model keeps to a number better than to "be brief"),
+# halved from the shortest reply he called too long in the last few weeks.
+LENGTH_BY_SITUATION = {"casual": 30, "planning": 70, "technical work": 140, "ideas": 160, "life": 100, None: 110}
+LENGTH_MEMORY_DAYS = 30
+TOO_LONG = re.compile(r"\b(too long|way too long|shorter|short version|tl;?dr|wall of text|too wordy|fewer words|less words|keep it short|too much text)\b", re.I)
+DEPTH_ASKED = re.compile(r"\b(in detail|in depth|go deep|deep dive|long version|walk me through|explain (it|this|that)? ?(fully|properly|thoroughly)|step by step|everything about)\b", re.I)
+
 
 def parse_when(value):
     """'2026-10-20' or '2026-10-20T15:00' -> (datetime in his time zone, has a time). None if it isn't one."""
@@ -471,9 +478,37 @@ class Desk:
         moment = self.persona_moment(text, previous, knowledge)
         if moment["note"]:
             parts.append(moment["note"])
+        gauge = self.length_gauge(text, moment["situation"])
+        parts.append(gauge["note"])
         shown = {"situation": moment["situation"], "persona": moment["lines"], "terms": moment["terms"],
-                 "voice": moment["voice"], "thread": here["chain"] if here else None}
+                 "voice": moment["voice"], "thread": here["chain"] if here else None, "length": gauge["words"]}
         return "\n\n".join(parts), shown
+
+    def length_gauge(self, text, situation=None):
+        """How long this reply should be, worked out by code (a model holds a number better than "keep it short"):
+        a budget for this kind of conversation, shorter for a short message, longer when he asks for depth, and cut
+        when he has recently called her replies too long (with those replies' lengths as the evidence).
+        Returns {"words", "note"}."""
+        budget = LENGTH_BY_SITUATION.get(situation, LENGTH_BY_SITUATION[None])
+        n = len((text or "").split())
+        if n <= 4 and not DEPTH_ASKED.search(text or ""):
+            budget = min(budget, 40)
+        if DEPTH_ASKED.search(text or ""):
+            budget *= 2
+        since = (now() - timedelta(days=LENGTH_MEMORY_DAYS)).isoformat(timespec="seconds")
+        long_ones = []
+        for m in self.rows("SELECT id, text FROM messages WHERE role = 'user' AND at >= ? AND via != 'claude' ORDER BY id DESC LIMIT 400", since):
+            if TOO_LONG.search(m["text"]):
+                before = self.row("SELECT text FROM messages WHERE id < ? AND role = 'assistant' ORDER BY id DESC LIMIT 1", m["id"])
+                if before:
+                    long_ones.append(len(before["text"].split()))
+        note = f"Length: aim for about {budget} words or fewer, and put the answer itself in the first sentence or two."
+        if long_ones:
+            budget = max(30, min(budget, int(0.5 * min(long_ones))))
+            note = (f"Length: aim for about {budget} words or fewer, the answer itself first. He has called {len(long_ones)} of your "
+                    f"recent replies too long (they ran {', '.join(str(x) for x in sorted(long_ones)[:4])} words); give the short "
+                    "version and let him ask for more.")
+        return {"words": budget, "note": note}
 
     def desk_data(self):
         """Everything the page's desk panel shows."""
