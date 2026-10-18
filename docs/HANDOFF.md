@@ -71,13 +71,21 @@ files.py          attached files: kept, read into text and pictures, given to th
 intake.py         the library's intake: anything (files, folders, archives, chat exports) read into passages; one queue
 voice.py          push-to-talk: faster-whisper (ears), Kokoro (mouth), a WebSocket on 8001; transcribing attached recordings
 index.html        the whole page (HTML, CSS, JS in one file, sections numbered)
-memory/           stores and searches; never calls the model (MEMORY.md)
-mind/             where the model works on memory: llm (one strict tool call), jobs (the engine), writer,
+CONSTITUTION.md   who she is: the fixed core of her instructions (docs/PERSONA.md)
+hands.py          her hands: terminal, files, python, web, jobs, playbooks; safety tiers (docs/HANDS.md)
+connectors.py     toolboxes over MCP: data/connectors.json, the browser by default (docs/CONNECTORS.md)
+playbooks/        how she goes about kinds of work, read on demand
+memory/           stores and searches; never calls the model (MEMORY.md); persona.py (the persona graph),
+                  desk.py (the clock, timeline, threads, length gauge, the desk note and its formats)
+mind/             persona.py (Keep after each exchange, Reflect on her manner), instruments.py (calendar and thread
+                  tools mid-reply); where the model works on memory: llm (one strict tool call), jobs (the engine), writer,
                   reflect (Connect, Think, Check), explore (Avy's own search), worker (when things run),
                   dream (hours of max-thinking reflection, by hand)
 tools/            claude_export.py (reads an export), claude_import.py (inspect/import/plan/run/status),
                   copy_log.py (carry a log between memory files)
-tests/            test_memory, test_luminal, test_import, test_files (offline); bench/ (the benchmark);
+jobs/             every test packaged to run elsewhere: run.py, facts.py, QUESTIONS.md (jobs/README.md)
+tests/            test_memory, test_luminal, test_import, test_files, test_desk (offline); persona/ (the persona eval, the
+                  long run), hands/ (the hands eval); bench/ (the benchmark);
                   page/ (browser tests against a fake Luminal)
 docs/             these documents
 data/             everything Avy saves (gitignored)

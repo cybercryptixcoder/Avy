@@ -59,8 +59,10 @@ inspector, what the model sees): `#41` message, `k12` node, `c7` connection, `ep
 | **search** (`words`, `vectors`) | FTS5 rows and 384-number meaning vectors for messages, node versions, episode headlines, connection reasons, passages | inverted index + flat vector shelves in memory | rows added | built |
 | **what happened** (`runs`, `journal`, `recalls`, `health`, `marks`) | every model job (prompt, replies, problems, cost), every proposed change, what each recall brought, the network's shape over time, small cursors | logs | written once (marks: updated) | built |
 | **thought graph** | her reasoning, as linked thought nodes | a DAG per session (§7) | new nodes and versions | planned |
-| **slots** (preferences, character) | fixed-size notes always in view | single versioned documents with a hard budget | overwritten as a new version | planned |
-| **self model** | situational behaviors | a small graph keyed by kinds of conversation | versioned, like knowledge | planned |
+| **persona** (`persona`, `persona_evidence`, `persona_edges`, `persona_seen`, `persona_labels`) | the model of the relationship: him, her, us (§7) | a graph of its own; versioned chains (pa12), edges with reasons | new versions; nodes added or retired, never deleted | built (Oct 17) |
+| **timeline** | dated things and tasks (t12) | versioned chains | new versions | built (Oct 17) |
+| **threads** | work in flight (th3): goal, state, next, waiting, insights, a plan tree | versioned chains | new versions | built (Oct 17) |
+| **actions** | every tool call she made, with what came back, by the message it served | a sequence | never | built (Oct 17) |
 
 ---
 
@@ -252,59 +254,78 @@ what came back → thought, which is exactly what the thought graph (§7) is bui
 
 ---
 
-## 7. Internal memory (planned)
+## 7. Internal memory: the persona and the desk (built Oct 17–18), the thought graph (planned)
 
-### 7.1 The thought graph
+### 7.1 The thought graph (planned)
 
-Built from the saved reasoning (`reasoning` table) after each turn, by a small job (`Reflect-on-turn`):
+Built from the saved reasoning (`reasoning` table) after each turn: thought nodes (attempt, finding, conclusion,
+commitment, suspicion, dead end, question), each pointing at a span of the reasoning it came from, linked by
+dependency (`rests_on`, `rejects`, `revises`); the open ones are the frontier. Threads (§7.3) already hold a frontier
+written by her tools; the thought graph would write it from her reasoning instead.
+
+### 7.2 The persona graph (`memory/persona.py`, `mind/persona.py`)
+
+A graph of its own, separate from the world's knowledge, with the same principles (versions, evidence copied by code,
+connections with reasons). Three hubs, each navigated on its own:
+
+| hub | aspects | what it holds |
+|---|---|---|
+| him | him · preference · pattern | what's lasting about him; his rules for her (a cascade: `refines` from a specific rule to the general one; a scope of "always" or a situation); how he works and talks (inferred across sittings) |
+| her | core · gesture · voice | who she is with him, in her own words (one node, evolving); her small moves that land; replies of hers that landed |
+| us | reaction · term · situation | his micro-reactions to specific things she did; words they coined (with the message each was born in); kinds of conversation |
+
+Edges: `applies_in` (a behavior → the situation it's for), `supports` / `undercuts` (a reaction → the gesture it bears
+on), `refines`, `about` (a term → a knowledge node), `example_of` (a voice → a situation), `related`. Seeing an edge
+again is an append-only `persona_seen` row. **Strength is computed**: distinct messages behind a node (his own count
+double), edges seen again, minus reactions that undercut it.
+
+**Rules (code)**: every node quotes the messages it rests on; him, preference and reaction must rest on his own words;
+each aspect has a fixed size per node (28–150 words); a scope names a real situation; the cascade can't loop; her core
+is one node, can't be retired, and a new version must keep at least 35% of the last one's words (evolve, don't jump);
+the same title again is a new version, not a duplicate. His own edit on the desk is its own evidence.
+
+**What a message pulls** (`navigate_persona`, deterministic): always, in the cached instructions, her core, up to 10
+things about him and up to 14 standing preferences. Then: the situation (his message against each kind's examples:
+seed sentences, then his own labeled messages); landing (every node scored by meaning against the message, both
+embedded alike; +0.08 for hanging from this situation; a term also by the moment it was born, and +0.07 when the
+knowledge recalled for the message names it); one step out (a specific rule brings its general one, a reaction its
+gesture); keep the best per hub within its draw (him 4, us 4, her 3), terms above 0.64, up to 2 voice examples.
+
+**Who writes it**: **Keep** after every exchange (thinking off): his newest message against her reply before it; most
+exchanges change nothing. Also labels the message's situation and writes dated things to the calendar. **Reflect**
+every 12 of her replies (thinking low): critiques each reply against the constitution and his reactions
+(landed / flat / missed / corrected), writes the next version of her core, records gestures, keeps voice examples,
+infers patterns across two or more sittings.
+
+### 7.3 The desk (`memory/desk.py`)
+
+Built fresh for every message, the same way from the same state, placed before the memory note:
 
 ```
-thought node:  kind (attempt | finding | conclusion | commitment | suspicion | dead_end | question),
-               text (one line), status (open | done | dropped | superseded), session, turn,
-               evidence: a span of the reasoning it came from (like a node's quote in a message),
-               cites: knowledge nodes it relies on (k12)
-thought edge:  rests_on (dependency, not order) · rejects (a dead end, with its reason) · revises
-frontier:      the open nodes of the session: unchecked suspicions, open commitments, the latest conclusion
+Your desk (for knowing where things stand, never for reciting)
+  the clock          now, how long since his last message, the next two weeks spelled out
+  the calendar       past due · the next 14 days · undated tasks · further out · just happened   (at most 14 lines)
+  threads            one line each (up to 8), and the frontier of the one this message is about: goal, state, next,
+                     waiting, the plan tree (✓ ✗ →, next step worked out by code), insights carried forward
+  background jobs    running and ended (from her terminal)
+  the persona        this moment's share (above), coined words with the moment each was born, her voice
+  length             a word budget by kind of conversation, halved from the shortest reply he called too long
 ```
 
-Rules (code-enforced, like knowledge): every thought points to a real span of real reasoning; a
-commitment closes only by pointing at the thought or turn where it was done; a correction marks everything
-that rested on the corrected thought for re-checking (the Check move); depth-limited trace-back.
+**Formats** (his instruction-format parallel): the situation is the opcode. *conversation* (casual, life, none) gives
+two voice examples and keeps threads to a count; *task* (technical, planning) and *ideas* give the threads list and
+the frontier. **Instruments**: code decides what's coming up, past due, the next plan step and the length budget; she
+writes to them with the `timeline` and `thread` tools mid-reply (`mind/instruments.py`).
 
-**Each turn starts at the frontier** (a handful of nodes, fixed budget) plus the knowledge found for the
-message. "How did I get here?" is a trace back along `rests_on`. The working state *is* the frontier; a
-checklist is the commitments, with status and evidence.
+### 7.4 Speaking first (`app.py`)
 
-**Session memory**: a sitting's thought graph is its scratch space, searched within the sitting. At the
-sitting's end, Write decides what gets **promoted** to long-term knowledge (conclusions worth keeping, with
-the thought graph kept as their basis, so a node can answer "how did you work that out?").
+An **event turn**: something woke her; the event is the prompt (never saved as his words), her reply is saved with
+`meta.event`. A background job tied to a thread ending is an **interrupt** (§9): the thread gets the result as an
+insight and she picks it up from its frontier (held while a reply is in progress; skipped if she already read the
+result). A **ticker** each minute: a reminder at its time, a timed event an hour before, a deadline at 9 AM on its day,
+each once (`marks`).
 
-**The catch** (from the concept): search is triggered by the message, not by what she's about to do. So
-the frontier keeps short pointers to what's been ruled out, or she checks her plan against session memory
-before acting; with search inside thinking (§6.3) she can do that herself.
-
-### 7.2 Fixed slots
-
-| slot | budget | updated | evidence |
-|---|---|---|---|
-| system prompt | fixed text | by hand | — |
-| preferences note | ~150 words, a list of short rules | when he states or changes a preference (detected by Write), not every turn | each rule cites the message |
-| character note | ~150 words | by reflection, slowly | cites her replies |
-| voice examples | 2–3 of her recent replies, word for word | rotated | they are the evidence |
-| self-model slice | core + up to ~6 situational rules | per message | each rule has an origin (said / inferred) |
-| working frontier | ~8 open thoughts | per turn | each points into reasoning |
-
-Every slot update is a new version (old kept); what no longer fits moves to external memory as a node with
-evidence. Code enforces the budgets.
-
-### 7.3 The self model
-
-A small graph of **situational behaviors**: `(kind of conversation) → behavior`, e.g. *technical work →
-precise, concise, code first*; *life, philosophy → warmer, deeper*. Each turn first classifies the kind of
-conversation (cheaply, or as part of the thinking-chain search), then retrieves the matching behaviors into
-the slot. Origins carry over: what he said vs what she inferred (labeled as her impression until confirmed).
-
-### 7.4 How to test it: the fork test
+### 7.5 How to test it: the fork test
 
 Stop a long conversation at a message; continue it twice, once with the full transcript and once fresh with
 only memory plus the internal state; have a blind judge compare the next several replies (same plan? avoids
@@ -352,7 +373,7 @@ Until then, the library is the log's sibling: raw, permanent, searchable, cited 
 
 ---
 
-## 9. Parallel work (planned)
+## 9. Parallel work (threads and interrupts built Oct 17–18; the stale-assumption check planned)
 
 Each task is a **thread**: its own session thought graph and frontier (saved state), sharing the one
 knowledge graph. A completion ping or scheduled wake-up is an **interrupt**: load that thread's frontier,
@@ -381,11 +402,14 @@ compaction (summaries); facts-only memory. The field's nearest benchmarks are in
 ## 10. Turn assembly and budgets (built parts)
 
 ```
-system   : instructions + footnote rule (+ incognito note) + core (the 10 biggest said hubs)   ~1.5k tokens, cached
+system   : the constitution + how memory works + footnote rule + her hands (playbooks, toolboxes) (+ incognito note)
+           + core (the 10 biggest said hubs) + the persona's always part (her core, him, standing preferences)   cached
 window   : the newest /window: messages (default 20, ≤ 48k chars; files attached to them while room)
-system   : the memory note (recall or explore), ≤ the depth's token budget (normal: 7k)
+system   : the desk note (§7.3) + the memory note (recall or explore), ≤ the depth's token budget (normal: 7k)
 user     : the message + its files in <file> tags (≤ 150k chars a file, 240k in all) + pictures (≤ 16)
-model    : DeepSeek-V4.1-Flash, reasoning_effort = /thinking:, max_tokens 8000 (+24k when thinking), streamed
+model    : DeepSeek-V4.1-Flash, reasoning_effort = /thinking:, max_tokens 8000 (+24k when thinking), streamed, with her
+           tools (calendar, threads, hands, open_toolbox); up to 30 tool rounds (app.Rounds), each call carried out by
+           code through the one door or hands.py / connectors.py, and kept (actions)
 saved    : his message (meta.files), the recall, her reply (meta: model, recall, usage, cut, thought), her reasoning
 ```
 

@@ -13,6 +13,12 @@ living network of knowledge that she thinks about when it's quiet.
 - **[docs/HANDOFF.md](docs/HANDOFF.md)**: everything a builder needs: the map, the contracts, running and testing.
 - **[docs/BUILDLOG.md](docs/BUILDLOG.md)**: the running record of the build: what was done, learned and tried, the
   state of the code, what's next. A new session picks up from here.
+- **[CONSTITUTION.md](CONSTITUTION.md)**: who Avy is: her fixed core, always first in her instructions.
+- **[docs/PERSONA.md](docs/PERSONA.md)**: her persona: what it's built from (Claude's constitution, Constitutional AI)
+  and how the persona graph grows without drifting.
+- **[docs/HANDS.md](docs/HANDS.md)**: what she can do: her instruments, her hands, speaking first; what was learned
+  from Hermes Agent and OpenClaw. **[docs/CONNECTORS.md](docs/CONNECTORS.md)**: toolboxes others built (a browser, git…).
+- **[jobs/README.md](jobs/README.md)**: every test, packaged to run elsewhere, with questions for whoever reads the results.
 - **[docs/LUMINAL.md](docs/LUMINAL.md)**: the model provider and its rules.
 - **[docs/FILES.md](docs/FILES.md)**: attaching files of any kind, and getting things out.
 - **[docs/IMPORT.md](docs/IMPORT.md)**: bringing in your Claude history.
@@ -67,6 +73,19 @@ into its own `data/memory-v2.db`, and rebuilds memory from it in the background 
 old file is left exactly as it was.
 
 ## Using it
+
+- **She's someone.** Her constitution and her persona (what she's learned about being with you: your preferences,
+  how you react, words you've coined together) are with her every message; `/persona: off` gives the old plain prompt,
+  for comparing. Words you've coined show in the serif when she uses them.
+- **Her desk:** `/desk` (or the Desk button): the next two weeks of her calendar, the threads she's carrying with their
+  plans, and who she is with you, with the words behind everything she's learned. Mark things done, move them, add
+  them, reword or retire what she's learned. The next thing on it sits in the conversation's footer.
+- **She can act:** a terminal, files, Python, web search and fetch, jobs that keep running in the background, and
+  toolboxes (a real browser by default; add more in `data/connectors.json`, docs/CONNECTORS.md). What she did folds
+  above each reply (`▸ did 3 things`). Risky things (sudo, installs, deleting outside her workspace) wait for your
+  [ allow ]; `/hands: ask` (default), `trusted`, or `off`. Her workspace is `data/workspace`.
+- **She speaks first** when a background job she started ends (she picks its thread up and says what the result
+  means) and when something on her calendar comes due. `/proactive: off` to stop.
 
 - **Type** at the prompt, Enter to send.
 - **Dictate:** hold Space and talk; let go and your words appear in the text box, to edit and send yourself.
@@ -135,6 +154,8 @@ Everything stays in this folder:
 - `data/memory-v2.db`: everything ever said, and the knowledge and network built from it.
 - `data/memory.db`: version 1's memory, if you used it (left as it was).
 - `data/settings.json`: your choices from the system card or `/` commands.
+- `data/workspace/`: her own folder to work in (scripts she writes, background jobs' logs).
+- `data/connectors.json`: the toolboxes she can open (optional; without it, the browser if Node is installed).
 - `data/models/`: the speech models (about 0.7 GB) and the meaning-search model (about 65 MB), downloaded on the first run.
 - `data/recordings/`: a backup of everything you say, written as you talk, with its transcript next to it.
   The newest 50 (up to 300 MB) are kept; older ones are deleted. `/retry` re-transcribes the newest one.
@@ -149,10 +170,17 @@ Everything stays in this folder:
 
 - `app.py`: the server: the page, keys, settings, files, exports, and every exchange with the model (typed or spoken).
 - `luminal.py`: the only model client, and the rules it follows (docs/LUMINAL.md).
+- `CONSTITUTION.md`: who she is (her fixed core).
+- `hands.py`: her hands (terminal, files, Python, web, jobs, playbooks) and their safety tiers; `playbooks/`: how she
+  goes about kinds of work.
+- `connectors.py`: toolboxes over the Model Context Protocol (data/connectors.json; the browser by default).
 - `files.py`: attached files: kept as they came, read into text and pictures for the model.
 - `intake.py`: the library's intake: anything (files, folders, codebases, chat exports) read into passages.
-- `memory/`: the log, knowledge, the network, the rules, search, recall. Never calls the model.
-- `mind/`: where the model works on memory: writing, connecting, thinking, re-checking, searching, dreaming.
+- `memory/`: the log, knowledge, the network, the rules, search, recall, the persona graph (`persona.py`) and the
+  desk's instruments (`desk.py`: the clock, the calendar, threads, the length gauge). Never calls the model.
+- `mind/`: where the model works on memory: writing, connecting, thinking, re-checking, searching, dreaming; the
+  persona's keeper and her reflection on her manner (`persona.py`); her calendar and thread tools (`instruments.py`).
+- `tools/talk.py`: talk to her from the terminal, with a clock you control (`--at`, `--after`, `--script`).
 - `voice.py`: push-to-talk. faster-whisper writes down what you said; in live mode Kokoro speaks the
   answer sentence by sentence. Started by app.py when the voice packages are installed.
 - `index.html`: the page.

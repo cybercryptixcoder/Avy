@@ -236,6 +236,33 @@ was born in, and connections lead from related topics to it. The test: plant coi
 topic months later without the term, and measure whether she uses it unprompted and appropriately, against
 no memory and against a dictionary (ARCHITECTURE §7.4).
 
+### The persona as a graph that grows *(Shreyas, Oct 17; built)*
+
+*"When we say persistent nodes that grow, it means grow in form, not in size... It evolves."* Then, refining it:
+*"The persona can be growing even in size as a graph. That's fine, but what part of it gets added to the desk at any
+given moment depends on that interaction... any given interaction only pulls a specific part of it... How much is
+pulled? That's a fixed amount."* It keeps track of *"preferences, patterns, micro-reactions, micro-gestures"*, and of
+coined words: *"something that we coined... six months ago should now be part of the persona. That's part of the
+vocabulary, and now that also just shows up sometimes"*, not hard-coded. And: *"Drift is exactly what we don't want
+because we need this system to feel like it's growing as the same system."*
+
+Built (Oct 17–18; how it works in docs/PERSONA.md and ARCHITECTURE §7):
+- **A constitution** (CONSTITUTION.md): the fixed core, written the way Anthropic writes Claude's: who she is, with
+  reasons, aimed at the tics of small models.
+- **The persona graph**, one graph with three hubs kept apart: *him* (lasting facts, preferences as a cascade,
+  patterns), *her* (her core in her own words, gestures, voice), *us* (his micro-reactions, coined words, kinds of
+  conversation). It grows; each node evolves by versions resting on quoted messages; each message pulls a fixed share.
+- **Growth without drift**: her core evolves a little per version (code refuses a rewrite that keeps too little);
+  a keeper after every exchange; Constitutional-AI-style reflection on her own replies every dozen.
+
+### Several models at once, like an NFA *(Shreyas, Oct 17)*
+
+*"Our agent creates different models for itself... about the user, about itself, about the world, about the
+intersection of the user and itself, and about that interaction with specific projects... It reads a lot of these in
+parallel... It's kind of like running an NFA... Each of those contributes to different parts of the desk."* Built as:
+world knowledge (recall/explore), the persona's three hubs, the projects (threads and plan trees), time (the calendar),
+each entered from where the message lands and each bringing back its own fixed share of the desk.
+
 ## 9. Putting it together: one turn's context
 
 Each turn's context is built like allocated memory: **fixed slots that are always shown**, filled partly by
@@ -463,15 +490,18 @@ multitasking (§10) is where memory and acting meet.
 | Dark mode, sounds | built (Oct 15) |
 | Knowledge written *from* the library (nodes citing passages) | next; needs his decisions (§16) |
 | Search inside the thinking chain | next |
-| The thought graph, working frontier, session memory, promotion at sitting's end | designed |
-| Preferences note, character note, self model | designed |
-| Parallel threads (frontiers as saved state, interrupts, stale-assumption check) | designed |
+| The thought graph (from her saved reasoning), session memory, promotion at sitting's end | designed |
+| **The constitution and the persona graph** (him, her, us; grows; fixed share per message; keeper, reflection) | built (Oct 17) |
+| **The desk's instruments**: clock, calendar (timeline), threads with plan trees, the length gauge, formats per message | built (Oct 17–18) |
+| Threads as saved frontiers, **interrupts** when a background job ends | built (Oct 18); stale-assumption check: designed |
 | Fork test, interleaved-tasks test | designed |
 | Live scenario tests, a live dream test; findings in tests/live/RESULTS.md | built (Oct 15) |
 | Benchmarks against others: LongMemEval-S, CL-Bench, the fork test, interleaved tasks (Flash only) | next (§17) |
-| Avy as an agent: web search, a terminal, acting | later (§13) |
+| **Avy as an agent**: terminal, files, Python, web search and fetch, background jobs, playbooks, approvals | built (Oct 17) |
+| **Connectors**: toolboxes others built over MCP; a real browser by default | built (Oct 18) |
 | The real-scale test: years of Claude conversations built into memory | ready to run (his to start) |
-| Proactivity | later |
+| Proactivity, first step: she speaks first when a job ends or something comes due | built (Oct 18) |
+| Jobs: every test packaged to run elsewhere, with questions for the reader (jobs/) | built (Oct 18) |
 
 ## 16. Open decisions (his to make)
 
@@ -494,7 +524,8 @@ Each of these blocks something in §15. The trade-offs are in ARCHITECTURE.md.
    only the first is recorded.
 3. **Search in thinking**: replace the pre-search entirely, or keep a quick pre-search as a starting point
    and let thinking search further?
-4. **Internal memory's first build**: the thought graph first (conclusions/commitments/suspicions from her
+4. *(Decided Oct 17: the persona graph and the desk's instruments first, built; the thought graph next.)*
+   **Internal memory's first build**: the thought graph first (conclusions/commitments/suspicions from her
    saved reasoning), or the fixed slots first (preferences and character notes)? *Evidence from the live
    tests (tests/live/RESULTS.md):* standing preferences said once (a tl;dr line, metric units) were lost on
    questions whose search didn't bring them up, and his own birth date wasn't found for "how old will I be?"
@@ -515,7 +546,8 @@ Each of these blocks something in §15. The trade-offs are in ARCHITECTURE.md.
    *His leaning (Oct 16):* long-horizon multitasking is "the door we want to knock on", the one to target and
    call ours; and the evolving persona, a single entity that grows into what you'd want, as what makes it
    sticky.
-9. **Tools for Avy**: web search, a terminal, acting on his behalf. When, and with what limits.
+9. *(Decided Oct 17: now, with two safety tiers and his OK on risky actions; docs/HANDS.md.)* **Tools for Avy**:
+   web search, a terminal, acting on his behalf. When, and with what limits.
 
 ## 17. The challenge *(Shreyas, Oct 15–16)*
 
