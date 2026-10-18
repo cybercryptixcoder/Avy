@@ -6,7 +6,7 @@
 <title>Avy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Instrument+Serif:ital@0;1&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <meta name="color-scheme" content="light dark">
 <script>
   // The theme, before anything is drawn (so a dark page never flashes light): what /theme: was last set to here.
@@ -45,6 +45,7 @@
   --thick: 3px solid var(--ink);
   --thin:  2px solid var(--ink);
   --mono: "Space Mono", ui-monospace, monospace;
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;   /* the few display moments: her name, days, her core, shared words */
 }
 
 /* The dark theme: the same paper and ink, at night. The paper becomes a warm charcoal, the ink a warm
@@ -154,12 +155,16 @@ button { cursor: pointer; background: none; border: 0; }
 /* ===================================================================
    3. The left side: wordmark + voice badge, the system card, counters
    =================================================================== */
-.hero { container-type: inline-size; padding-top: 6px; display: flex; align-items: center; justify-content: space-between; }
+.hero { container-type: inline-size; padding-top: 6px; padding-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
 .wordmark {
   font-weight: 900; font-stretch: 125%;
   font-size: 27cqi; line-height: .86; letter-spacing: -.045em;
   margin-left: -.03em;
+  display: flex; align-items: baseline; white-space: nowrap;
 }
+/* The fusion: AV in the heavy wide grotesk, the y in Instrument Serif's italic, its tail sweeping under the line */
+.wordmark .wm-s { font-family: var(--serif); font-style: italic; font-weight: 400; font-stretch: 100%;
+                  font-size: 1.36em; letter-spacing: -.02em; margin-left: -.075em; line-height: .5; }
 
 /* The badge: the ring says what Avy is doing; the bars move with your voice and hers. */
 .badge { flex: none; width: 23cqi; height: auto; transform: rotate(-9deg); }
@@ -270,6 +275,25 @@ button { cursor: pointer; background: none; border: 0; }
 .earlier:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
 .chat.busy .prompt { display: none; }   /* like a terminal: no prompt while it's running */
 
+/* Words the two of you coined, wherever they turn up in her replies: set in the serif's italic, inside the mono */
+.line .term { font-family: var(--serif); font-style: italic; font-size: 1.2em; line-height: 1; letter-spacing: .01em; }
+/* What her hands did while she answered, folded like her thinking: "▸ did 3 things · searched 2, ran 1" */
+.line.steps .thought-body { opacity: .8; white-space: normal; }
+.step { padding: 2px 0; }
+.step .ln { font-weight: 700; }
+.step .sec { opacity: .5; }
+.step pre { margin: 2px 0 4px; font: inherit; font-size: 12px; opacity: .65; white-space: pre-wrap; max-height: 9.5em; overflow: hidden; }
+/* She wants to do something risky: it waits for your answer, here */
+.line.ask { margin-top: 12px; padding: 9px 13px 10px; border: 1.5px solid var(--ink); border-left: 7px solid var(--orange);
+            box-shadow: 4px 4px 0 var(--shadow); font-size: 13.5px; width: fit-content; max-width: 100%; }
+.line.ask .what { font-weight: 700; }
+.line.ask code { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent); padding: 0 .4ch; }
+.line.ask .why { opacity: .6; }
+.line.ask .acts { margin-top: 6px; display: flex; gap: 2ch; }
+.line.ask button { font-weight: 700; }
+.line.ask button:hover, .line.ask button:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.line.ask.answered { border: 0; box-shadow: none; padding: 0; opacity: .5; font-size: 13px; }
+
 /* Footnotes: where a reply leans on memory, a small raised number. Hover: what memory said. Click: open it. */
 .line .fn { font-size: 10px; font-weight: 700; vertical-align: super; line-height: 0; padding: 1px .3ch; margin-left: 1px;
             border-radius: 3px; cursor: pointer; opacity: .5; user-select: none; }
@@ -284,8 +308,9 @@ button { cursor: pointer; background: none; border: 0; }
 .fn-card .q { margin-top: 5px; padding-left: 9px; border-left: 1.5px solid var(--ink); opacity: .85; }
 
 /* Chapters: the endless conversation, marked where each sitting begins (with what it was about, once written) */
-.chapter { margin: 34px 0 -12px; font-size: 12px; opacity: .5; display: flex; gap: 1ch; align-items: baseline; white-space: nowrap; }
+.chapter { margin: 34px 0 -12px; font-size: 12px; opacity: .58; display: flex; gap: 1ch; align-items: baseline; white-space: nowrap; }
 .chapter .when { flex: none; }
+.chapter .day { flex: none; font-family: var(--serif); font-style: italic; font-size: 18px; line-height: 1; letter-spacing: .005em; }
 .chapter button { font: inherit; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .chapter button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .chapter::after { content: ""; flex: 1 0 3ch; border-bottom: 1px dashed currentColor; opacity: .7; transform: translateY(-.3em); }
@@ -520,6 +545,51 @@ button { cursor: pointer; background: none; border: 0; }
                  white-space: pre-wrap; max-height: 32vh; overflow: auto; }
 @media (max-width: 900px) { .glass { inset: 8px; border-radius: 22px; } .glass-head, .glass-body { padding-left: 14px; padding-right: 14px; } }
 
+/* Her desk (/desk): what she keeps in view every message. Same full-page sheet as the looking glass; the serif carries
+   the dates, her core, and the words you share. */
+.desk-mast { display: flex; align-items: baseline; font-size: 30px; line-height: 1; margin-right: 1ch; white-space: nowrap; }
+.desk-mast .g { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 125%; letter-spacing: -.045em; }
+.desk-mast .s { font-family: var(--serif); font-style: italic; font-size: 1.22em; letter-spacing: -.01em; margin-left: .04em; }
+#desk .glass-head { align-items: center; }
+#desk .glass-body { grid-template-columns: repeat(auto-fit, minmax(min(100%, 40ch), 1fr)); }
+.cal-day { display: grid; grid-template-columns: 7ch minmax(0, 1fr); gap: 0 14px; padding: 5px 0 4px;
+           border-top: 1px dashed color-mix(in srgb, var(--ink) 25%, transparent); align-items: baseline; }
+.cal-day .num { font-family: var(--serif); font-size: 32px; line-height: .9; text-align: right; font-variant-numeric: lining-nums; }
+.cal-day .wd { display: block; font-size: 11px; opacity: .55; text-align: right; margin-top: 2px; text-transform: lowercase; }
+.cal-day.empty { padding: 2px 0 1px; }
+.cal-day.empty > div:first-child { text-align: right; white-space: nowrap; }
+.cal-day.empty .num { font-size: 19px; opacity: .4; }
+.cal-day.empty .wd { display: inline; margin-left: .7ch; opacity: .4; }
+.cal-day.today .num, .cal-day.today .wd { opacity: 1; }
+.cal-day.weekend:not(.today) .num { opacity: .6; }
+.cal-day.today .num { color: var(--orange); }
+.cal-day.today { border-top: 2px solid var(--ink); }
+.cal-item { display: flex; gap: 1ch; align-items: baseline; }
+.cal-item .at { flex: none; opacity: .6; font-variant-numeric: tabular-nums; min-width: 8ch; }
+.cal-item .kind { flex: none; font-size: 11px; padding: 0 .6ch; border: 1px solid var(--ink); border-radius: 999px; }
+.cal-item.done .what { text-decoration: line-through; opacity: .55; }
+.cal-now { font-size: 11px; color: var(--orange); }
+.core-q { font-family: var(--serif); font-style: italic; font-size: 22px; line-height: 1.3; margin: 2px 0 6px; text-wrap: pretty; }
+.core-q::before { content: "“"; } .core-q::after { content: "”"; }
+.hub { margin-top: 14px; }
+.hub h4 { font: inherit; font-weight: 400; display: flex; align-items: baseline; gap: 1ch; margin-bottom: 2px; }
+.hub h4 .n { font-family: var(--serif); font-style: italic; font-size: 20px; }
+.hub h4 .c { opacity: .5; }
+.pnode { padding: 4px 6px 5px; margin: 0 -6px; border-top: 1px dashed color-mix(in srgb, var(--ink) 22%, transparent); cursor: pointer; }
+.pnode:hover, .pnode:focus-visible { background: color-mix(in srgb, var(--ink) 8%, transparent); outline: none; }
+.pnode .top { display: flex; gap: 1ch; align-items: baseline; }
+.pnode .t { font-weight: 700; min-width: 0; }
+.pnode .a { flex: none; opacity: .5; font-size: 11.5px; margin-left: auto; }
+.pnode .x { opacity: .78; }
+.pnode.term .t { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 19px; line-height: 1.1; }
+.pnode .ev { margin-top: 4px; padding-left: 9px; border-left: 1.5px solid var(--ink); opacity: .75; font-size: 12px; }
+.strength { letter-spacing: -.08em; opacity: .7; }
+.plan { margin: 4px 0 2px; }
+.plan div { white-space: pre-wrap; }
+.plan .done { opacity: .55; }
+.plan .dropped { opacity: .45; text-decoration: line-through; }
+.plan .next { font-weight: 700; }
+
 /* ===================================================================
    5. The keys panel
    =================================================================== */
@@ -558,7 +628,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   .nav-items, .nav-globe { display: none; }
   .nav-pill { justify-content: space-between; height: 54px; gap: 6px; padding-left: 6px; }
   .nav .pill-btn { padding: 0 11px; gap: 6px; }
-  #openGlass { font-size: 0; gap: 0; }                 /* the glass: just its icon on a phone */
+  #openGlass, #openDesk { font-size: 0; gap: 0; }                 /* the glass: just its icon on a phone */
   .round-btn { width: 54px; height: 54px; }
   .main { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .side { display: contents; }
@@ -616,6 +686,9 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
     <circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>
   </symbol>
+  <symbol id="i-desk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14.5h3"/>
+  </symbol>
   <symbol id="i-glass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
     <circle cx="10" cy="10" r="6.2"/><path d="m14.6 14.6 6 6"/><path d="M7.2 8.4a3.2 3.2 0 0 1 2.4-1.9" opacity=".7"/>
   </symbol>
@@ -634,6 +707,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
         <li><span class="dot" id="memDot"></span><span id="memText">Memory</span></li>
         <li title="What's left on your Luminal account (checked once a minute)"><span class="dot" id="rateDot"></span><span id="rateText">Luminal</span></li>
       </ul>
+      <button class="pill-btn" id="openDesk" type="button" title="Her desk: the calendar, her threads, who she is with you (/desk)">Desk <svg class="icon"><use href="#i-desk"/></svg></button>
       <button class="pill-btn" id="openGlass" type="button" title="The looking glass: what's loading into memory, what the mind is doing, how it's going (/glass)">Glass <svg class="icon"><use href="#i-glass"/></svg></button>
       <button class="pill-btn" id="openMemory" type="button" title="Look inside Avy's memory (/memory)">Memory <svg class="icon"><use href="#i-arrow"/></svg></button>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Dark mode" title="Dark mode (/theme: auto follows your system)"><svg class="icon"><use href="#i-moon"/></svg></button>
@@ -646,7 +720,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
     <!-- ---------- left: wordmark, system card, counters ---------- -->
     <aside class="side">
       <div class="hero">
-        <h1 class="wordmark">AVY</h1>
+        <h1 class="wordmark" aria-label="Avy"><span class="wm-g" aria-hidden="true">AV</span><span class="wm-s" aria-hidden="true">y</span></h1>
 
         <!-- the voice badge: the ring says what Avy is doing; the bars follow your voice and hers -->
         <svg class="badge" id="badge" viewBox="0 0 200 200" role="img" aria-label="Voice status">
@@ -753,6 +827,14 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   <div class="graph-card" id="graphCard" hidden></div>
   <div class="graph-foot"><span>● thing · information ○ idea ◌ inferred &nbsp; line weight: how strong</span>
     <span>drag to turn · scroll to zoom · click a node · esc to close</span></div>
+</div>
+
+<!-- ---------- her desk (/desk) ---------- -->
+<div class="glass" id="desk" hidden aria-label="Her desk: the calendar, her threads, and who she is with you">
+  <div class="glass-head"><span class="desk-mast" aria-label="Avy's desk"><span class="g">AV</span><span class="s">y’s desk</span></span>
+    <span class="n" id="deskSub"></span>
+    <button id="deskClose" type="button">[ close ]</button></div>
+  <div class="glass-body" id="deskBody"></div>
 </div>
 
 <!-- ---------- the looking glass (/glass) ---------- -->
@@ -1065,7 +1147,7 @@ async function send() {
   setBusy(true);
 
   // Only your message goes to the server: it builds the rest from memory.
-  let reply = "", usage = null, failed = null, thought = null, turn = null, trace = null, stopped = false, searching = null, unseen = null;
+  let reply = "", usage = null, failed = null, thought = null, turn = null, trace = null, stopped = false, searching = null, unseen = null, steps = null;
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -1084,6 +1166,9 @@ async function send() {
           lightUp([...(chunk.avy.searching.open || []), ...(chunk.avy.searching.follow || []), ...(chunk.avy.searching.keep || [])]);
         }
         if (chunk.avy.error) failed = chunk.avy.error;
+        if (chunk.avy.step) { searching?.done(); (steps ||= stepsBlock(avyLine)).add(chunk.avy.step); scrollDown(); }
+        if (chunk.avy.ask) { askCard(avyLine, chunk.avy.ask); scrollDown(); }
+        if (chunk.avy.did) deskSoon();
         if (chunk.avy.unseen) unseen = chunk.avy.unseen;
         if (chunk.avy.turn) { searching?.done(); turn = chunk.avy.turn; trace = addTrace(avyLine, turn); lightUp(turn.kept); }
         return;
@@ -1104,16 +1189,17 @@ async function send() {
   }
 
   thought?.finish();
+  steps?.finish();
   searching?.done();
   block.remove();
   setBusy(false);
   countUsage(usage);
-  if (reply) { words.innerHTML = renderMarkdown(reply); markUnseen(words, unseen); }
+  if (reply) { words.innerHTML = renderMarkdown(reply); markUnseen(words, unseen); markTerms(words); }
 
   if (reply && stopped) avyLine.classList.add("cut");     // saved as cut off, too
   if (reply && !stopped && !failed) sound("receive");
   if (!reply) {
-    avyLine.remove(); trace?.remove(); thought?.line.remove();
+    avyLine.remove(); trace?.remove(); thought?.line.remove(); steps?.line.remove();
     if (!turn) {          // nothing reached the log: undo this turn and put your message (and files) back
       yourLine.remove();
       input.value = text; grow(); drawCursor();
@@ -1123,6 +1209,7 @@ async function send() {
   if (failed) addLine("error", failed);
   drawChapters();
   refreshMemory();
+  deskSoon();
   scrollDown();
   input.focus();
 }
@@ -1216,6 +1303,85 @@ function thoughtBlock(before, saved = null) {
       this.finish = () => {};
     },
   };
+}
+
+
+// What her hands did while she answered (searching, reading, running, writing, the calendar), folded above the reply
+// like her thinking: "▸ did 3 things · searched 2, ran 1". Open it to see each step and the start of what came back.
+const STEP_VERBS = { web_search: "searched", web_fetch: "read", read_file: "read", find_files: "looked", terminal: "ran", python: "ran",
+                     write_file: "wrote", edit_file: "edited", jobs: "checked jobs", playbook: "playbook", timeline: "calendar", thread: "thread" };
+function stepsBlock(before, saved = null) {
+  const line = el("div", "line thought steps"), head = el("button", "thought-head"), body = el("div", "thought-body");
+  head.type = "button"; head.setAttribute("aria-expanded", "false"); body.hidden = true;
+  line.append(head, body);
+  log.insertBefore(line, before);
+  const all = [];
+  const label = (working) => {
+    const counts = {};
+    for (const st of all) { const v = STEP_VERBS[st.tool] || st.tool; counts[v] = (counts[v] || 0) + 1; }
+    const what = Object.entries(counts).map(([v, n]) => n > 1 ? `${v} ${n}` : v).join(", ");
+    head.replaceChildren(el("span", "caret", body.hidden ? "▸" : "▾"), ` ${working ? "working" : "did"} ${plural(all.length, "thing")} · ${what}${working ? "…" : ""}`);
+  };
+  head.onclick = (e) => { e.stopPropagation(); body.hidden = !body.hidden; head.setAttribute("aria-expanded", String(!body.hidden)); label(false); };
+  const add = (st) => {
+    all.push(st);
+    const out = (st.out || "").split("\n").slice(0, 7).join("\n");
+    body.append(el("div", "step", el("span", "ln", st.line), st.seconds != null ? el("span", "sec", `  ${Number(st.seconds).toFixed(1)}s`) : null,
+                   out.trim() ? el("pre", "", out) : null));
+  };
+  (saved || []).forEach(add);
+  label(!saved);
+  return { line, add(st) { add(st); label(true); }, finish() { label(false); } };
+}
+
+// She wants to do something risky (sudo, an install, deleting outside her workspace): it waits here for your answer.
+function askCard(before, ask) {
+  const card = el("div", "line ask");
+  const what = ask.kind === "command" ? ["run ", el("code", "", ask.detail)] : ask.kind === "write" ? ["write to ", el("code", "", ask.detail)] : [ask.detail];
+  const answer = async (allow) => {
+    card.querySelectorAll("button").forEach((b) => (b.disabled = true));
+    try { await postJSON("/api/approve", { id: ask.id, allow }); } catch (e) { addLine("error", e.message); }
+    card.classList.add("answered");
+    card.replaceChildren((allow ? "allowed: " : "said no: "), ...what);
+  };
+  const yes = el("button", "", "[ allow ]"), no = el("button", "", "[ no ]");
+  yes.type = no.type = "button";
+  yes.onclick = () => answer(true); no.onclick = () => answer(false);
+  card.append(el("div", "what", "Avy wants to ", ...what), el("div", "why", ask.why), el("div", "acts", yes, no));
+  log.insertBefore(card, before);
+  sound("error");
+  yes.focus({ preventScroll: true });
+}
+
+// Words the two of you coined (the persona's terms), set in the serif wherever they turn up in her replies.
+let termPattern = null;
+async function loadTerms() {
+  try {
+    const d = await getJSON("/api/desk");
+    const words = d.persona.nodes.filter((n) => n.aspect === "term" && n.state === "active")
+      .map((n) => n.title.trim().replace(/^["'“”]+|["'“”]+$/g, "").replace(/^(the|a|an)\s+/i, ""))
+      .filter((w) => w.length >= 3).sort((a, b) => b.length - a.length);
+    termPattern = words.length ? new RegExp(`\\b((?:the\\s+)?(?:${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[- ]/g, "[- ]?")).join("|")}))\\b`, "gi") : null;
+  } catch { termPattern = null; }
+}
+function markTerms(root) {
+  if (!termPattern || !root) return;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) =>
+    n.parentElement.closest("code, pre, a, .fn, .term, .codebox") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const hits = [];
+  while (walk.nextNode()) if (termPattern.test(walk.currentNode.nodeValue)) hits.push(walk.currentNode);
+  for (const node of hits) {
+    termPattern.lastIndex = 0;
+    const text = node.nodeValue, frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = termPattern.exec(text))) {
+      frag.append(text.slice(last, m.index), el("span", "term", m[0]));
+      last = m.index + m[0].length;
+    }
+    frag.append(text.slice(last));
+    node.replaceWith(frag);
+  }
+  termPattern.lastIndex = 0;
 }
 
 
@@ -1353,7 +1519,9 @@ function showMessage(m, before) {
   else {
     line = addLine("avy", "", before);
     if (m.thinking) thoughtBlock(line, m.thinking);           // what she thought, folded above what she said
+    if (m.steps?.length) stepsBlock(line, m.steps);            // what her hands did while she answered
     line.innerHTML = renderMarkdown(m.text);
+    markTerms(line);
     markUnseen(line, m.meta.unseen);
     if (m.meta.cut) line.classList.add("cut");
     if (m.recalled) addTrace(line, m.recalled);
@@ -1373,7 +1541,7 @@ function drawChapters() {
     const at = line.dataset.at ? new Date(line.dataset.at) : null;
     if (!at) continue;
     if (!previous || at - previous > 30 * 60 * 1000) {
-      const marker = el("div", "chapter", el("span", "when", chapterTime(at)));
+      const marker = el("div", "chapter", el("span", "day", chapterDay(at)), el("span", "when", chapterTime(at)));
       const headline = line.dataset.headline;
       if (headline) {
         const b = el("button", "", "· " + headline.toLowerCase());
@@ -1387,12 +1555,16 @@ function drawChapters() {
     previous = at;
   }
 }
-function chapterTime(d) {
-  const today = new Date(), sameYear = d.getFullYear() === today.getFullYear();
-  const dayText = d.toDateString() === today.toDateString() ? "today"
-    : d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
+function chapterDay(d) {            // "Sunday evening", "Today, late night": the day and the part of it, in the serif
+  const today = new Date(), yesterday = new Date(Date.now() - 864e5);
   const hour = d.getHours(), part = hour < 5 ? "late night" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
-  return `${dayText} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · ${part}`.toLowerCase();
+  const day = d.toDateString() === today.toDateString() ? "Today," : d.toDateString() === yesterday.toDateString() ? "Yesterday,"
+    : d.toLocaleDateString([], { weekday: "long" });
+  return `${day} ${part}`;
+}
+function chapterTime(d) {           // the date and time, in the mono
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" })} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`.toLowerCase();
 }
 
 // Hovering a footnote shows what memory said; clicking opens it in the inspector.
@@ -1641,6 +1813,7 @@ const ACTIONS = {
                run: (words) => words ? inspect("search", words) : inspect("memory") },
   graph:     { short: "memory as a living network", about: "see memory as a network, in 3D (Esc closes)", run: () => openGraph() },
   dream:     { short: "let Avy dream (long, deep reflection)", about: "dreaming: hours of reflection at full thinking over all of memory (opens the looking glass, where it's started and woken)", run: () => openGlass() },
+  desk:      { short: "calendar, threads, who she is", about: "her desk: the calendar, the threads she's carrying, and her persona (who she is with you, and what she's learned about you, with the words behind each)", run: () => openDesk() },
   glass:     { short: "memory loading, the mind working", about: "the looking glass: what's loading into memory (and how long it'll take), what the mind is doing, your Claude history's build, dreaming, costs", run: () => openGlass() },
   library:   { short: "everything you've added", about: "the library: documents, code, data and conversations you've added, read into passages memory can search", run: () => inspect("library") },
   index:     { short: "write what's waiting now", about: "turn the messages waiting into knowledge now, instead of at the end of the sitting", run: indexNow },
@@ -1869,6 +2042,12 @@ function listenToMind() {
   source.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.hello) return void pageIsStale(data.page);
+    if (data.finished) {               // a background job she started ended
+      const j = data.finished;
+      addLine("note", `${j.id} ended (exit ${j.code}) after ${Math.round(j.seconds)}s: ${j.command.slice(0, 80)}`);
+      deskSoon();
+      return;
+    }
     if (data.intake || data.history || data.dream) {
       glassSoon();
       if (data.intake?.state === "stored") { refreshMemory(); sound("mind"); }
@@ -3501,6 +3680,163 @@ async function importExport(f) {
 
 
 /* ===================================================================
+   17. Her desk (/desk): what she keeps in view every message. The next two weeks of her calendar (code keeps it;
+       she writes to it), the threads she's carrying with their plans, and her persona: who she is with you, and
+       what she's learned (about you, about the two of you, about herself), each with the words behind it.
+   =================================================================== */
+const deskState = { open: false, data: null, problem: null, openNode: null, soon: null };
+
+function openDesk() {
+  closeInspector();
+  if (graph.open) closeGraph();
+  if (glassState.open) closeGlass();
+  sound("open");
+  deskState.open = true;
+  $("desk").hidden = false;
+  refreshDesk();
+}
+function closeDesk() {
+  if (!deskState.open) return;
+  sound("close");
+  deskState.open = false;
+  $("desk").hidden = true;
+  input.focus();
+}
+function deskSoon() {                  // something changed (a reply, a tool, a job): redraw shortly, once; and the shared words
+  loadTerms();
+  if (!deskState.open || deskState.soon) return;
+  deskState.soon = setTimeout(() => { deskState.soon = null; refreshDesk(); }, 400);
+}
+$("openDesk").dataset.sound = "custom";
+$("deskClose").dataset.sound = "custom";
+$("openDesk").onclick = () => (deskState.open ? closeDesk() : openDesk());
+$("deskClose").onclick = closeDesk;
+document.addEventListener("keydown", (e) => { if (deskState.open && e.key === "Escape") { e.stopPropagation(); closeDesk(); } }, true);
+
+async function refreshDesk() {
+  if (!deskState.open) return;
+  try { deskState.data = await getJSON("/api/desk"); deskState.problem = null; } catch (e) { deskState.problem = e.message; }
+  drawDesk();
+}
+function drawDesk() {
+  const d = deskState.data;
+  if (!d) return $("deskBody").replaceChildren(el("div", "pane", deskState.problem || "looking…"));
+  const open = d.threads.filter((t) => ["active", "waiting", "paused"].includes(t.status)).length;
+  const nodes = d.persona.nodes.filter((n) => n.state === "active" && n.aspect !== "situation").length;
+  $("deskSub").textContent = `${plural(open, "thread")} in flight · ${plural(nodes, "thing")} she's learned` + (deskState.problem ? ` · ${deskState.problem}` : "");
+  $("deskBody").replaceChildren(calendarPane(d), personaPane(d), threadsPane(d));
+}
+
+const dayKey = (t) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+function itemTime(t) {
+  if (!t.start || t.start.length <= 10) return t.kind === "task" ? "" : "all day";
+  return new Date(t.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase();
+}
+function calItem(t) {
+  const kind = { deadline: "due", reminder: "remind", task: "to do" }[t.kind];
+  return el("div", "cal-item" + (t.status !== "planned" ? " done" : ""), el("span", "at", itemTime(t)),
+            el("span", "what", t.title + (t.status === "cancelled" ? " (cancelled)" : t.status === "missed" ? " (missed)" : "")),
+            kind ? el("span", "kind", kind) : null);
+}
+function calendarPane(d) {
+  const pane = el("div", "pane");
+  pane.append(el("h3", "", `── the next two weeks · ${new Date(d.now).toLocaleDateString([], { month: "long" }).toLowerCase()}`));
+  const byDay = {};
+  for (const t of d.timeline) if (t.start) (byDay[t.start.slice(0, 10)] ||= []).push(t);
+  const byChain = Object.fromEntries(d.timeline.map((t) => [t.chain, t]));
+  const overdue = (d.coming.overdue || []).map((c) => byChain[c]).filter(Boolean);
+  if (overdue.length) pane.append(el("div", "dim", "past, not marked done: ", overdue.map((t) => t.title).join(" · ")));
+  const now = new Date(d.now);
+  for (let i = 0; i < 15; i++) {
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i), items = byDay[dayKey(day)] || [];
+    const weekend = day.getDay() === 0 || day.getDay() === 6;
+    const cls = "cal-day" + (i === 0 ? " today" : "") + (items.length ? "" : " empty") + (weekend ? " weekend" : "");
+    const label = i === 0 ? "today" : day.toLocaleDateString([], { weekday: "short" }) + (day.getDate() === 1 ? " · " + day.toLocaleDateString([], { month: "short" }) : "");
+    pane.append(el("div", cls, el("div", "", el("span", "num", String(day.getDate())), el("span", "wd", label)),
+      el("div", "", items.length ? items.map(calItem) : i === 0 ? el("span", "cal-now", "now · nothing on today") : null)));
+  }
+  const undated = (d.coming.undated || []).map((c) => byChain[c]).filter(Boolean);
+  if (undated.length) pane.append(el("h3", "", "── to do, no date"), ...undated.map(calItem));
+  const later = (d.coming.later || []).map((c) => byChain[c]).filter(Boolean);
+  if (later.length) pane.append(el("h3", "", "── further out"),
+    ...later.slice(0, 8).map((t) => el("div", "cal-item", el("span", "at", new Date(t.start).toLocaleDateString([], { month: "short", day: "numeric" }).toLowerCase()), el("span", "what", t.title))));
+  if (!d.timeline.length) pane.append(el("div", "dim", "nothing on it yet. tell her about anything with a date and it goes here."));
+  return pane;
+}
+
+const HUB_NAMES = { him: "about you", us: "between you", her: "her own ways" };
+const ASPECT_NAMES = { him: "always true", preference: "your rule", pattern: "your pattern", reaction: "how you react", gesture: "what works",
+                       term: "your word", voice: "her voice", core: "core" };
+function strengthDots(n) { const k = Math.max(1, Math.min(6, Math.round(n / 2))); return el("span", "strength", "●".repeat(k) + "○".repeat(6 - k)); }
+function personaPane(d) {
+  const pane = el("div", "pane"), p = d.persona;
+  pane.append(el("h3", "", "── who she is with you"));
+  const core = p.nodes.find((n) => n.aspect === "core" && n.state === "active");
+  if (core) pane.append(el("div", "core-q", core.text),
+    el("div", "dim", `in her own words · version ${core.versions} · rests on ${plural(core.evidence.length, "message")}`));
+  else pane.append(el("div", "dim", "she writes this herself, from how your conversations go, after a dozen or so replies."));
+  for (const [hub, aspects] of Object.entries(p.hubs)) {
+    const list = p.nodes.filter((n) => n.state === "active" && aspects.includes(n.aspect))
+      .sort((a, b) => (a.aspect === "term") - (b.aspect === "term") || b.strength - a.strength);
+    const block = el("div", "hub", el("h4", "", el("span", "n", HUB_NAMES[hub] || hub), el("span", "c", String(list.length))));
+    if (!list.length) block.append(el("div", "dim", hub === "him" ? "nothing yet: what you tell her about yourself and how you like things done" :
+      hub === "us" ? "nothing yet: how you react to what she does, and words you coin together" : "nothing yet: her small moves that work with you"));
+    for (const n of list.slice(0, 14)) block.append(personaNode(n));
+    if (list.length > 14) block.append(el("div", "dim", `and ${list.length - 14} more`));
+    pane.append(block);
+  }
+  return pane;
+}
+function personaNode(n) {
+  const row = el("div", "pnode" + (n.aspect === "term" ? " term" : ""));
+  row.tabIndex = 0;
+  row.append(el("div", "top", el("span", "t", n.title), el("span", "a", ASPECT_NAMES[n.aspect] + (n.scope && n.scope !== "always" ? ` · ${n.scope}` : "")), strengthDots(n.strength)),
+             el("div", "x", n.text + (n.origin === "inferred" ? " (her impression)" : "")));
+  if (deskState.openNode === n.chain) {
+    row.append(el("div", "ev", ...n.evidence.slice(-4).map((e) => el("div", "", `#${e.message} ${e.role === "user" ? "you" : "avy"}: “${e.quote}”`)),
+      el("div", "dim", `pa${n.chain} · version ${n.versions}${n.why ? ` · ${n.why}` : ""}`)));
+  }
+  const toggle = () => { deskState.openNode = deskState.openNode === n.chain ? null : n.chain; drawDesk(); };
+  row.onclick = toggle;
+  row.onkeydown = (e) => { if (e.key === "Enter") toggle(); };
+  return row;
+}
+function planLines(steps) {
+  const kids = {}; for (const st of steps) (kids[st.parent || ""] ||= []).push(st);
+  const out = [];
+  const walk = (parent, depth) => (kids[parent] || []).forEach((st) => { out.push([st, depth]); walk(st.id, depth + 1); });
+  walk("", 0);
+  return out;
+}
+function threadsPane(d) {
+  const pane = el("div", "pane");
+  pane.append(el("h3", "", "── threads she's carrying"));
+  const threads = d.threads.filter((t) => ["active", "waiting", "paused"].includes(t.status));
+  if (!threads.length) pane.append(el("div", "dim", "none in flight. work that spans more than one conversation gets a thread, with where it stands and what's next."));
+  for (const t of threads) {
+    const box = el("div", "job", el("div", "top", el("span", "nm", t.title), el("span", "st", t.status)));
+    if (t.goal) box.append(el("div", "dim", t.goal));
+    if (t.state) box.append(el("div", "", "now: " + t.state));
+    if (t.next) box.append(el("div", "", el("b", "", "next: "), t.next));
+    if (t.waiting) box.append(el("div", "warn", "waiting on: " + t.waiting));
+    if (t.steps?.length) box.append(el("div", "plan", ...planLines(t.steps).map(([st, depth]) => el("div",
+      st.id === t.next_step ? "next" : st.status, "  ".repeat(depth) + ({ done: "✓", dropped: "✗", doing: "…", todo: "·" }[st.status]) + " " + st.text
+      + (st.status === "dropped" && st.why ? ` (${st.why})` : "") + (st.id === t.next_step ? "  ← next" : "")))));
+    if (t.insights?.length) box.append(el("div", "dim", t.insights.slice(-3).map((x) => "· " + x).join("\n")));
+    pane.append(box);
+  }
+  if (d.jobs?.length) {
+    pane.append(el("h3", "", "── background jobs"));
+    for (const j of d.jobs.slice(-8).reverse()) pane.append(el("div", "row2", el("span", "k", j.id),
+      el("span", "g", j.command), el("span", "n", j.done ? `exit ${j.code}` : `running ${Math.round(j.seconds)}s`)));
+  }
+  const closed = d.threads.filter((t) => ["done", "dropped"].includes(t.status));
+  if (closed.length) pane.append(el("h3", "", "── finished"), ...closed.slice(0, 6).map((t) => el("div", "dim", `${t.status === "done" ? "✓" : "✗"} ${t.title}`)));
+  return pane;
+}
+
+
+/* ===================================================================
    16. The looking glass (/glass): everything loading into memory, and everything the mind is doing.
        What's being read (with real rates and how long it'll take), the state of memory, the mind's
        runs and failures, your Claude history's build (start, stop, plan), dreaming, and what it costs.
@@ -3933,6 +4269,8 @@ document.addEventListener("click", (e) => {
 /* ===================================================================
    12. Start
    =================================================================== */
+loadTerms().then(() => document.querySelectorAll(".line.avy").forEach(markTerms));
+
 setBusy(false);
 setState("idle");
 updateTiles();

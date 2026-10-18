@@ -780,7 +780,7 @@ def on_job_finished(job):
             main.apply({"op": "thread", "chain": th["chain"], "add_insights": [note], "status": "active",
                         "waiting": "" if job["id"] in (th["waiting"] or "") else th["waiting"], "by": "code",
                         "why": f"background job {job['id']} ended"})
-    worker.tell({"job": job})
+    worker.tell({"finished": job})
 
 
 def keep_after(mem, last):
@@ -895,7 +895,7 @@ class Handler(BaseHTTPRequestHandler):
             if n:
                 node = main.persona_node(n)
                 return self.send_found(node and {**node, "versions": main.persona_versions(n), "links": main.persona_links(n)})
-            self.send_json(200, main.desk_data())
+            self.send_json(200, {**main.desk_data(), "jobs": [hands.job_view(j) for j in hands.JOBS.values()]})
         # --- memory, for the chat history, the inspector and the graph (?memory=main|incognito) ---
         elif url.path in MEMORY_VIEWS:
             mem = memory_for(q)
@@ -1193,7 +1193,7 @@ class Handler(BaseHTTPRequestHandler):
             while True:
                 try:
                     e = box.get(timeout=25)
-                    self.event(e if "intake" in e or "dream" in e or "history" in e else {"mind": e})
+                    self.event(e if "intake" in e or "dream" in e or "history" in e or "finished" in e else {"mind": e})
                 except queue.Empty:
                     self.wfile.write(b": still here\n\n")
                     self.wfile.flush()
