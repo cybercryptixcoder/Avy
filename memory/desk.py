@@ -39,6 +39,20 @@ THREAD_LINES = 8         # one line per open thread, at most this many
 MAX_INSIGHTS = 8         # what a thread carries forward
 MAX_STEPS = 24           # a thread's plan tree
 
+# The desk's formats (his instruction-format parallel, VISION §9): the same fields, split differently by the kind of
+# message, picked by a quick first step (the "opcode": which kind of conversation this is). A conversation gives her
+# voice the room; a task gives the thread it's about its whole frontier and the threads list; ideas sit between.
+FORMATS = {
+    "conversation": {"situations": ("casual", "life", None), "voice": 2, "thread_lines": 0},
+    "task":         {"situations": ("technical work", "planning"), "voice": 1, "thread_lines": THREAD_LINES},
+    "ideas":        {"situations": ("ideas",), "voice": 1, "thread_lines": THREAD_LINES},
+}
+
+
+def desk_format(situation):
+    return next((name for name, f in FORMATS.items() if situation in f["situations"]), "conversation")
+
+
 # The length gauge: a word budget per kind of conversation (a model keeps to a number better than to "be brief"),
 # halved from the shortest reply he called too long in the last few weeks.
 LENGTH_BY_SITUATION = {"casual": 30, "planning": 70, "technical work": 140, "ideas": 160, "life": 100, None: 110}
@@ -466,21 +480,27 @@ class Desk:
         parts = ["Your desk, for you to know where things stand. Bring something up from it only when it bears on what he just "
                  "said; never recite it, and never mention that something on it is empty.",
                  self.clock_text(), "Your calendar (the timeline; you keep it with the timeline tool):\n" + self.calendar_text()]
+        situation = self.situation_for(text, previous)            # the opcode: which format this message gets
+        fmt = FORMATS[desk_format(situation["title"] if situation else None)]
         threads, here = self.thread_heads(open_only=True), None
         if threads:
             here = self.related_thread(text, previous)
-            block = ("Threads in flight (work you're carrying, each where you left it; you keep them with the thread tool):\n"
-                     + "\n".join(f"- {self.thread_line(th)}" for th in threads[:THREAD_LINES])
-                     + (f"\n- (and {len(threads) - THREAD_LINES} more, paused longest)" if len(threads) > THREAD_LINES else ""))
+            lines = fmt["thread_lines"] if not here else max(fmt["thread_lines"], 3)
+            if lines:
+                block = ("Threads in flight (work you're carrying, each where you left it; you keep them with the thread tool):\n"
+                         + "\n".join(f"- {self.thread_line(th)}" for th in threads[:lines])
+                         + (f"\n- (and {len(threads) - lines} more)" if len(threads) > lines else ""))
+            else:
+                block = f"Threads in flight: {len(threads)} (none is what this message is about; they're on your desk when it is)."
             if here:
                 block += "\n\nThis message is about this one. Exactly where you left it:\n" + self.thread_frontier(here)
             parts.append(block)
-        moment = self.persona_moment(text, previous, knowledge)
+        moment = self.persona_moment(text, previous, knowledge, voice=fmt["voice"])
         if moment["note"]:
             parts.append(moment["note"])
         gauge = self.length_gauge(text, moment["situation"])
         parts.append(gauge["note"])
-        shown = {"situation": moment["situation"], "persona": moment["lines"], "terms": moment["terms"],
+        shown = {"situation": moment["situation"], "persona": moment["lines"], "terms": moment["terms"], "format": desk_format(moment["situation"]),
                  "voice": moment["voice"], "thread": here["chain"] if here else None, "length": gauge["words"]}
         return "\n\n".join(parts), shown
 

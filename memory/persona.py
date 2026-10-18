@@ -426,7 +426,7 @@ class Persona:
                        (message, s["chain"], by, run, stamp()))
         return s["chain"]
 
-    def navigate_persona(self, text, previous="", knowledge=()):
+    def navigate_persona(self, text, previous="", knowledge=(), voice=VOICE_SHOWN):
         """What this message pulls from the persona graph: a fixed share per hub, however big the graph is.
 
             1. Situation: which kind of conversation this is.
@@ -494,13 +494,13 @@ class Persona:
             for n in picked[hub]:
                 general = refines.get(n["chain"])
                 n["overrides"] = (self.persona_node(general) or {}).get("title") if general else None
-        voice = self.voice_for(text, here)
+        voice = self.voice_for(text, here, voice) if voice else []
         return {"situation": situation, "picked": picked, "terms": terms, "voice": voice,
                 "scores": {f"pa{c}": round(s, 3) for c, s in scores.items()}}
 
-    def persona_moment(self, text, previous="", knowledge=()):
+    def persona_moment(self, text, previous="", knowledge=(), voice=VOICE_SHOWN):
         """navigate_persona() as text for the desk, plus what was shown (for the record)."""
-        found = self.navigate_persona(text, previous, knowledge)
+        found = self.navigate_persona(text, previous, knowledge, voice)
         parts = []
         if found["situation"]:
             s = found["situation"]
