@@ -18,3 +18,7 @@ ijson
 # Avy's hands (hands.py): web search with no key needed. (A SearXNG address in AVY_SEARXNG or a Brave key in
 # BRAVE_API_KEY is used instead when set.)
 ddgs
+
+# Connectors (connectors.py): toolboxes other people built, over the Model Context Protocol. The default one, a real
+# browser, runs with npx (Node.js); without Node, Avy just doesn't have it.
+mcp

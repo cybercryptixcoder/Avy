@@ -1309,7 +1309,8 @@ function thoughtBlock(before, saved = null) {
 // What her hands did while she answered (searching, reading, running, writing, the calendar), folded above the reply
 // like her thinking: "▸ did 3 things · searched 2, ran 1". Open it to see each step and the start of what came back.
 const STEP_VERBS = { web_search: "searched", web_fetch: "read", read_file: "read", find_files: "looked", terminal: "ran", python: "ran",
-                     write_file: "wrote", edit_file: "edited", jobs: "checked jobs", playbook: "playbook", timeline: "calendar", thread: "thread" };
+                     write_file: "wrote", edit_file: "edited", jobs: "checked jobs", playbook: "playbook", timeline: "calendar", thread: "thread",
+                     open_toolbox: "opened a toolbox" };
 function stepsBlock(before, saved = null) {
   const line = el("div", "line thought steps"), head = el("button", "thought-head"), body = el("div", "thought-body");
   head.type = "button"; head.setAttribute("aria-expanded", "false"); body.hidden = true;
@@ -1318,7 +1319,7 @@ function stepsBlock(before, saved = null) {
   const all = [];
   const label = (working) => {
     const counts = {};
-    for (const st of all) { const v = STEP_VERBS[st.tool] || st.tool; counts[v] = (counts[v] || 0) + 1; }
+    for (const st of all) { const v = STEP_VERBS[st.tool] || (st.tool.includes("__") ? st.tool.split("__")[0] : st.tool); counts[v] = (counts[v] || 0) + 1; }
     const what = Object.entries(counts).map(([v, n]) => n > 1 ? `${v} ${n}` : v).join(", ");
     head.replaceChildren(el("span", "caret", body.hidden ? "▸" : "▾"), ` ${working ? "working" : "did"} ${plural(all.length, "thing")} · ${what}${working ? "…" : ""}`);
   };
@@ -1337,7 +1338,8 @@ function stepsBlock(before, saved = null) {
 // She wants to do something risky (sudo, an install, deleting outside her workspace): it waits here for your answer.
 function askCard(before, ask) {
   const card = el("div", "line ask");
-  const what = ask.kind === "command" ? ["run ", el("code", "", ask.detail)] : ask.kind === "write" ? ["write to ", el("code", "", ask.detail)] : [ask.detail];
+  const what = ask.kind === "command" ? ["run ", el("code", "", ask.detail)] : ask.kind === "write" ? ["write to ", el("code", "", ask.detail)]
+    : ask.kind === "toolbox" ? ["use ", el("code", "", ask.detail)] : [ask.detail];
   const answer = async (allow) => {
     card.querySelectorAll("button").forEach((b) => (b.disabled = true));
     try { await postJSON("/api/approve", { id: ask.id, allow }); } catch (e) { addLine("error", e.message); }
@@ -3829,6 +3831,11 @@ function threadsPane(d) {
     pane.append(el("h3", "", "── background jobs"));
     for (const j of d.jobs.slice(-8).reverse()) pane.append(el("div", "row2", el("span", "k", j.id),
       el("span", "g", j.command), el("span", "n", j.done ? `exit ${j.code}` : `running ${Math.round(j.seconds)}s`)));
+  }
+  if (d.connectors?.length) {
+    pane.append(el("h3", "", "── toolboxes"));
+    for (const c of d.connectors) pane.append(el("div", "row2", el("span", "k", c.name), el("span", "g", c.about),
+      el("span", "n", c.running ? `open · ${c.tools} tools` : c.problem ? "unavailable" : "closed")));
   }
   const closed = d.threads.filter((t) => ["done", "dropped"].includes(t.status));
   if (closed.length) pane.append(el("h3", "", "── finished"), ...closed.slice(0, 6).map((t) => el("div", "dim", `${t.status === "done" ? "✓" : "✗"} ${t.title}`)));

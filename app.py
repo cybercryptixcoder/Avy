@@ -22,6 +22,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import connectors
 import files
 import hands
 import intake
@@ -111,7 +112,7 @@ anything safe.
   conclude. Make independent calls together, in one go.
 - Never invent output. If something fails or is blocked, say what happened and what you'd try next.
 - Before work of a kind a playbook covers, read that playbook. Your playbooks:
-{playbooks}
+{playbooks}{toolboxes}
 - Work that spans more than this reply, and anything you start in the background, gets a thread.
 - Risky commands wait for his OK on the page. If he says no, take it, and say what you'd need instead.
 - Then answer like yourself: what you found or changed, what you checked, what's left. A sentence or two for small
@@ -172,7 +173,7 @@ def system_prompt(incognito=False, core=True):
     always = MEMORIES["main"].persona_always()
     hands_on = choice["hands"] != "off" and not incognito
     return (CONSTITUTION + "\n\n" + MACHINE + "\n\n" + rule
-            + ("\n\n" + HANDS.replace("{playbooks}", hands.playbook_index()) if hands_on else "") + tail
+            + ("\n\n" + HANDS.replace("{playbooks}", hands.playbook_index()).replace("{toolboxes}", toolbox_lines()) if hands_on else "") + tail
             + (f"\n\n# What persists with you\n\n{always}" if always else ""))
 
 
@@ -508,6 +509,9 @@ class Turn:
         self.desk = choice["persona"] == "on"
         self.hands = choice["hands"] if not self.incognito else "off"
         self.tools = ((instruments.TOOLS if self.desk else []) + (hands.TOOLS if self.hands != "off" else [])) if not self.incognito else []
+        opener = connectors.HUB.open_tool() if connectors.HUB and self.hands != "off" and not self.incognito else None
+        if opener:
+            self.tools.append(opener)
         self.tools = self.tools or None
         self.asks, self.answers = None, {}       # approvals waiting on him (Rounds and /api/approve)
         note = self.recall["briefing"]
@@ -748,13 +752,42 @@ TURNS = {}                 # the turn that's answering now, by its approval ids,
 
 
 def act(turn, name, args):
-    """Carry out one tool call for a turn: her instruments (calendar, threads) or her hands (hands.py)."""
+    """Carry out one tool call for a turn: her instruments (calendar, threads), her hands (hands.py), or a toolbox
+    (connectors.py: open_toolbox, then toolbox__tool)."""
     if name in instruments.NAMES:
         return instruments.use(turn.mem, name, args, source=turn.user_id)
     if name in hands.NAMES and turn.hands != "off":
         hands.HOOKS["approve"] = turn.approve
         return hands.use(name, args, turn.hands)
+    hub = connectors.HUB
+    if hub and turn.hands != "off" and name == "open_toolbox":
+        box = (args or {}).get("name")
+        tools, problem = hub.open(box)
+        if problem:
+            return f"The {box} toolbox couldn't open: {problem}. Do without it, or tell him what's missing.", f"couldn't open {box}"
+        known = {t["function"]["name"] for t in turn.tools or []}
+        turn.tools = (turn.tools or []) + [t for t in hub.tools_of(box) if t["function"]["name"] not in known]
+        return (f"The {box} toolbox is open; its tools are yours for the rest of this reply (named {box}__...): "
+                + ", ".join(t["name"] for t in tools) + "."), f"opened the {box}"
+    if hub and turn.hands != "off" and "__" in name:
+        box, tool = name.split("__", 1)
+        if hub.needs_ok(box, tool) and turn.hands != "trusted":
+            detail = f"{box}: {tool} " + json.dumps(args, ensure_ascii=False)[:160]
+            if not turn.approve({"kind": "toolbox", "detail": detail, "why": "acts for you in the " + box + " (typing, forms, uploads, scripts)"}):
+                return f"Not done: he didn't approve {tool}. Say what you wanted to do and why, and let him decide.", f"{box} · {tool}: not approved"
+        out = hub.call(box, tool, args)
+        short = next((str(v) for v in (args or {}).values() if isinstance(v, (str, int, float))), "")
+        return out, f"{box} · {tool.replace(box + '_', '')} {hands.clip_line(short, 60)}".rstrip()
     return f"There's no tool called {name} right now.", None
+
+
+def toolbox_lines():
+    """Her toolboxes (connectors), one line each, for her instructions; empty when there are none."""
+    hub = connectors.HUB
+    if not hub or not hub.boxes:
+        return ""
+    return ("\n- Toolboxes (connectors) others built for you, opened with open_toolbox when a task needs one (each comes with "
+            "its own tools and their instructions):\n" + hub.index())
 
 
 def jobs_note():
@@ -889,13 +922,16 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, IMPORT)
         elif url.path == "/api/glass":
             self.send_json(200, glass())
+        elif url.path == "/api/connectors":          # her toolboxes: what's configured, what's running
+            self.send_json(200, {"connectors": connectors.HUB.status() if connectors.HUB else [], "config": str(connectors.CONFIG)})
         elif url.path == "/api/desk":                # the desk: the persona graph, the calendar, the threads (?node=12: one node's history)
             main = MEMORIES["main"]
             n = number(q, "node")
             if n:
                 node = main.persona_node(n)
                 return self.send_found(node and {**node, "versions": main.persona_versions(n), "links": main.persona_links(n)})
-            self.send_json(200, {**main.desk_data(), "jobs": [hands.job_view(j) for j in hands.JOBS.values()]})
+            self.send_json(200, {**main.desk_data(), "jobs": [hands.job_view(j) for j in hands.JOBS.values()],
+                                 "connectors": connectors.HUB.status() if connectors.HUB else []})
         # --- memory, for the chat history, the inspector and the graph (?memory=main|incognito) ---
         elif url.path in MEMORY_VIEWS:
             mem = memory_for(q)
@@ -1553,6 +1589,7 @@ if __name__ == "__main__":
     memory.embedder.start(DATA / "models" / "meaning")
     files.hooks["read"] = on_file_read                  # anything attached joins memory's library
     hands.WORKSPACE = DATA / "workspace"                 # her own folder to work in
+    connectors.start(DATA / "connectors.json")           # toolboxes others built (MCP servers): the browser by default
     hands.HOOKS["finished"] = on_job_finished            # a background job ending is noted on its thread
     intake.HOOKS["describe"] = describe_picture          # ...pictures by what's in them
     worker.listeners.append(hear_mind)                   # the looking glass keeps track of the mind
@@ -1585,4 +1622,6 @@ if __name__ == "__main__":
         server.serve_forever()
     except KeyboardInterrupt:
         end_incognito()             # quitting ends an incognito conversation too
+        if connectors.HUB:
+            connectors.HUB.close()
         print("\nBye.")

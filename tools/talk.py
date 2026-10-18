@@ -73,7 +73,9 @@ class Talk:
         saved = self.mem.mark("talk_clock")
         memory.clock.fixed = datetime.fromisoformat(saved) if saved else datetime.now().astimezone().replace(microsecond=0)
         self.quiet, self.cost, self.allow = args.quiet, 0.0, args.allow
+        import connectors
         import hands
+        connectors.start(ROOT / "data" / "connectors.json")
         hands.WORKSPACE = Path(args.workspace) if args.workspace else Path(args.memory).with_suffix("").parent / (Path(args.memory).stem + "-workspace")
 
     def set_clock(self, when):
