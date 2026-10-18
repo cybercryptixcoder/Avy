@@ -16,4 +16,8 @@ tests/bench/results/*.log
 # live test runs: keep the reports, not the throwaway memories or logs
 tests/live/results/*.memory/
 tests/live/results/*.log
-tests/persona/results/*.memory/
+
+# persona runs: keep the reports and the conversation (transcript.jsonl), not the throwaway memories and workspaces
+tests/persona/results/*.memory/*
+!tests/persona/results/*.memory/transcript.jsonl
+tests/hands/results/*.work/

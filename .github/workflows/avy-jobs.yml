@@ -1,0 +1,35 @@
+name: Avy jobs
+on:
+  workflow_dispatch:
+    inputs:
+      jobs:
+        description: "Which jobs (offline page hands persona longrun live bench, or all)"
+        default: "offline hands persona longrun"
+      stamp:
+        description: "A name for this run (reuse one to resume it)"
+        default: ""
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m pip install -r requirements.txt playwright && python -m playwright install --with-deps chromium
+      - name: Run the jobs
+        env:
+          LUMINAL_API_KEY: ${{ secrets.LUMINAL_API_KEY }}
+        run: |
+          STAMP="${{ inputs.stamp }}"; [ -z "$STAMP" ] && STAMP="gh_$(date -u +%Y-%m-%d_%H-%M)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          python jobs/run.py ${{ inputs.jobs }} --stamp "$STAMP" || true
+          python jobs/facts.py "$STAMP" || true
+      - name: Commit the records
+        run: |
+          git config user.name cybercryptixcoder && git config user.email official.shreyas28@gmail.com
+          git add -A jobs/results tests/*/results || true
+          git commit -m "Job run $STAMP: records" || exit 0
+          git pull --rebase && git push
