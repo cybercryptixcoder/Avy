@@ -189,7 +189,11 @@ body.plain .convos { display: flex; }
   margin-left: -.03em;
   display: flex; align-items: baseline; white-space: nowrap;
 }
-/* The fusion: AV in the heavy wide grotesk, the y in Instrument Serif's italic, its tail sweeping under the line */
+/* All three letters in one font now: Instrument Serif for the AV as well, matching the y.
+   The serif is much lighter and narrower than the grotesk it replaces, so the AV needs its own
+   weight and tracking to hold the word mark up at this size. */
+.wordmark .wm-g { font-family: var(--serif); font-style: italic; font-weight: 400; font-stretch: 100%;
+                  letter-spacing: -.01em; }
 .wordmark .wm-s { font-family: var(--serif); font-style: italic; font-weight: 400; font-stretch: 100%;
                   font-size: 1.36em; letter-spacing: -.02em; margin-left: -.075em; line-height: .5; }
 
