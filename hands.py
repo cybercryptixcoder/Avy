@@ -249,6 +249,8 @@ def jobs(action="list", job=None, seconds=None, mode="ask"):
             time.sleep(0.5)
         return f"Stopped {job}."
     view = job_view(j, tail=OUTPUT_CHARS // 2)
+    if view["done"]:
+        j["seen"] = True                  # she's read how it ended: no need to interrupt her about it
     state = f"exit {view['code']}" if view["done"] else "still running"
     return f"{job} {state} after {view['seconds']}s ({j['command'][:120]})\nlast output:\n{view['output'] or '(none yet)'}"
 

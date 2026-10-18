@@ -211,6 +211,10 @@ SETTINGS = {   # short: the few words under its name in the / panel. card: shown
                  "about": "what Avy can do: ask (the default) runs safe things and asks you first for risky ones (sudo, installs, "
                           "deleting outside her workspace, pushing); trusted asks nothing (blocked things stay blocked); off: no hands",
                  "options": ["ask", "trusted", "off"], "default": "ask"},
+    "proactive": {"short": "she speaks first when it matters", "card": False,
+                  "about": "on: when a background job she started ends, she picks its thread up and tells you what it means; when a "
+                           "reminder or event on her calendar comes due, she tells you. off: the page just notes it",
+                  "options": ["on", "off"], "default": "on"},
     "live":     {"short": "spoken back-and-forth", "card": True,
                  "about": "on: Space talks to Avy and she answers out loud. off: Space types what you say into the box",
                  "options": ["off", "on"], "default": "off"},
@@ -481,8 +485,9 @@ class Turn:
     progress(event), if given, hears about each round while Avy searches her memory herself.
     """
 
-    def __init__(self, text, via, progress=None, attached=()):
+    def __init__(self, text, via, progress=None, attached=(), event=None):
         choice = current_settings()
+        self.event = event                                       # not his message: something woke her (a job ended, a reminder came due)
         self.text, self.via, self.model = text, via, luminal.model()
         self.attached = list(attached)                           # file records ({"id", "name", ...}), already read
         query = text or "attached: " + ", ".join(r["name"] for r in self.attached)
@@ -558,6 +563,11 @@ class Turn:
     def ask(self):
         upstream = ask_model(self.messages, self.tools)      # if this fails, nothing is saved
         self.asks = queue.Queue()
+        IN_FLIGHT["turns"] += 1
+        self.counted = True
+        if self.event:                                       # an event isn't his words: it never goes in the log
+            self.user_id = self.recall_id = None
+            return Rounds(self, upstream) if self.tools else upstream
         meta = {"files": [files.brief(r) for r in self.attached]} if self.attached else None
         self.user_id = self.mem.add("user", self.text, self.via, meta)
         self.recall_id = self.mem.save_recall(self.user_id, self.recall)
@@ -575,7 +585,10 @@ class Turn:
 
     def finish(self, text, usage=None, cut=False):
         """Save Avy's reply (only what was actually sent or heard). Returns its number."""
-        if self.reply_id or not self.user_id or self.mem.closed:
+        if getattr(self, "counted", False):
+            IN_FLIGHT["turns"] = max(0, IN_FLIGHT["turns"] - 1)
+            self.counted = False
+        if self.reply_id or not (self.user_id or self.event) or self.mem.closed:
             return self.reply_id
         if not text.strip():
             self.keep_thinking(None, usage)      # stopped while thinking: what she'd thought is still kept
@@ -589,12 +602,14 @@ class Turn:
             meta["thought"] = True       # the page knows to offer the thinking under it
         if self.did:
             meta["did"] = self.did       # what her tools changed on the desk while she answered
+        if self.event:
+            meta["event"] = self.event   # what woke her (she spoke first)
         unseen = self.unseen_in(text)
         if unseen:
             meta["unseen"] = unseen      # footnotes to things that weren't in what she was shown
         self.reply_id = self.mem.add("assistant", text.strip(), self.via, meta)
         self.keep_thinking(self.reply_id, usage)
-        if self.desk and not self.incognito:
+        if self.desk and not self.incognito and not self.event:
             keep_after(self.mem, self.reply_id)    # the keeper reads this exchange into the persona, in the background
         worker.nudge()                 # the mind writes in the background once an episode's worth is waiting
         return self.reply_id
@@ -804,16 +819,108 @@ def jobs_note():
 
 def on_job_finished(job):
     """A background job ended: code writes it onto the thread waiting on it (so picking the thread up starts from the
-    result), and the page hears about it."""
+    result), the page hears about it, and (with /proactive: on) she picks that thread up herself: an interrupt."""
     main = MEMORIES["main"]
-    if job.get("thread") and main:
-        th = main.thread(job["thread"])
-        if th:
-            note = f"{job['id']} ended (exit {job['code']}) after {round(job['seconds'] / 60, 1)} min: {job['command'][:100]}; log {job['log']}"
-            main.apply({"op": "thread", "chain": th["chain"], "add_insights": [note], "status": "active",
-                        "waiting": "" if job["id"] in (th["waiting"] or "") else th["waiting"], "by": "code",
-                        "why": f"background job {job['id']} ended"})
+    th = main.thread(job["thread"]) if job.get("thread") and main else None
+    if th:
+        note = f"{job['id']} ended (exit {job['code']}) after {round(job['seconds'] / 60, 1)} min: {job['command'][:100]}; log {job['log']}"
+        main.apply({"op": "thread", "chain": th["chain"], "add_insights": [note], "status": "active",
+                    "waiting": "" if job["id"] in (th["waiting"] or "") else th["waiting"], "by": "code",
+                    "why": f"background job {job['id']} ended"})
     worker.tell({"finished": job})
+    if current_settings()["proactive"] == "on" and not MEMORIES["incognito"]:
+        threading.Thread(target=interrupt_after, args=(job, th), daemon=True).start()
+
+
+IN_FLIGHT = {"turns": 0}          # replies being answered right now (an interrupt waits for them)
+
+
+def interrupt_after(job, th):
+    """Wait until no reply is in progress, then, unless she's already read how the job ended (she waited on it, or
+    checked it), pick its thread up herself."""
+    time.sleep(8)
+    end = time.time() + 600
+    while IN_FLIGHT["turns"] > 0 and time.time() < end:
+        time.sleep(2)
+    if (hands.JOBS.get(job["id"]) or {}).get("seen"):
+        return
+    try:
+        tail = hands.job_view(hands.JOBS[job["id"]], tail=1500).get("output", "")
+    except (KeyError, OSError):
+        tail = ""
+    where = (f"for th{th['chain']} \"{th['title']}\"" if th else "(no thread was attached to it)")
+    speak_first(f"(Not a message from {memory.NAME}. Background job {job['id']} you started {where} just ended: exit {job['code']} "
+                f"after {round(job['seconds'] / 60, 1)} min. Command: {job['command'][:200]}. The end of its output:\n{tail}\n"
+                "Pick the thread up exactly where you left it (its frontier is on your desk): check the result against what you "
+                "expected and the rule you set, update the thread, and tell him in a few lines what it means and what's next. "
+                "Don't greet him; he'll read this when he's back.)", {"kind": "job", "job": job["id"], "thread": job.get("thread")})
+
+
+_SPEAKING = threading.Lock()
+
+
+def speak_first(prompt, event):
+    """She speaks without being spoken to: an event turn (the prompt is the event, never saved as his words); her reply is
+    saved with meta.event and the page is told to show it. One at a time, in the background."""
+    def run():
+        with _SPEAKING:
+            mem = MEMORIES["main"]
+            if not mem or mem.closed or MEMORIES["incognito"]:
+                return
+            try:
+                turn = Turn(prompt, "text", event=event)
+                turn.approve = lambda request: False          # nobody's there to say yes: risky things wait for him
+                reply, usage = "", None
+                with turn.ask() as upstream:
+                    for line in upstream:
+                        if (line if isinstance(line, bytes) else line.encode()).strip() == b"data: [DONE]":
+                            break
+                        words, counts = turn.stream(line)
+                        reply += words
+                        usage = counts or usage
+                rid = turn.finish(reply, usage)
+                if rid:
+                    worker.tell({"proactive": {"id": rid, "event": event}})
+            except Exception as e:
+                print(f"She tried to speak first ({event.get('kind')}) and couldn't: {e}")
+    threading.Thread(target=run, daemon=True).start()
+
+
+DUE_LEAD = {"event": 60, "deadline": 0, "reminder": 0, "task": 0}     # minutes before: an event an hour ahead; the rest at their time
+
+
+def tick():
+    """Every minute: anything on the calendar that's come due (a reminder at its time, a timed event an hour before, a
+    deadline at 9 AM on its day), each once. The page hears; with /proactive: on she says it herself."""
+    from datetime import timedelta as _td
+    while True:
+        time.sleep(60)
+        try:
+            mem = MEMORIES["main"]
+            if not mem or mem.closed:
+                continue
+            now = memory.now()
+            for t in mem.timeline_heads():
+                if t["status"] != "planned" or not t["start"]:
+                    continue
+                found = memory.parse_when(t["start"])
+                if not found:
+                    continue
+                at, timed = found
+                due = (at - _td(minutes=DUE_LEAD.get(t["kind"], 0))) if timed else at.replace(hour=9, minute=0)
+                key = f"due:t{t['chain']}:v{t['version']}"
+                if not (due <= now < due + _td(hours=2)) or mem.mark(key):
+                    continue
+                mem.set_mark(key, now.isoformat(timespec="seconds"))
+                worker.tell({"due": {"chain": t["chain"], "title": t["title"], "kind": t["kind"], "start": t["start"]}})
+                if current_settings()["proactive"] == "on" and not MEMORIES["incognito"]:
+                    lead = {"event": "It starts in about an hour", "reminder": "He asked you to remind him of this now",
+                            "deadline": "It's due today"}.get(t["kind"], "It's due now")
+                    speak_first(f"(Not a message from {memory.NAME}. On your calendar: t{t['chain']} \"{t['title']}\" ({t['kind']}, "
+                                f"{memory.say_when(t['start'])}). {lead}. Tell him in a line, the way a friend would; add only what "
+                                "genuinely helps (where, what to bring, a conflict). No greeting.)", {"kind": "due", "chain": t["chain"]})
+        except Exception as e:
+            print(f"The calendar's ticker hit a problem ({e}); it carries on.")
 
 
 def keep_after(mem, last):
@@ -1229,7 +1336,7 @@ class Handler(BaseHTTPRequestHandler):
             while True:
                 try:
                     e = box.get(timeout=25)
-                    self.event(e if "intake" in e or "dream" in e or "history" in e or "finished" in e else {"mind": e})
+                    self.event(e if any(k in e for k in ("intake", "dream", "history", "finished", "proactive", "due")) else {"mind": e})
                 except queue.Empty:
                     self.wfile.write(b": still here\n\n")
                     self.wfile.flush()
@@ -1590,6 +1697,7 @@ if __name__ == "__main__":
     files.hooks["read"] = on_file_read                  # anything attached joins memory's library
     hands.WORKSPACE = DATA / "workspace"                 # her own folder to work in
     connectors.start(DATA / "connectors.json")           # toolboxes others built (MCP servers): the browser by default
+    threading.Thread(target=tick, daemon=True, name="calendar").start()     # reminders and what's coming up, as they come due
     hands.HOOKS["finished"] = on_job_finished            # a background job ending is noted on its thread
     intake.HOOKS["describe"] = describe_picture          # ...pictures by what's in them
     worker.listeners.append(hear_mind)                   # the looking glass keeps track of the mind

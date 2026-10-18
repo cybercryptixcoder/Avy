@@ -292,6 +292,7 @@ button { cursor: pointer; background: none; border: 0; }
 .line.ask .acts { margin-top: 6px; display: flex; gap: 2ch; }
 .line.ask button { font-weight: 700; }
 .line.ask button:hover, .line.ask button:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.line.note.woke { margin-top: 26px; font-size: 12.5px; }
 .line.ask.answered { border: 0; box-shadow: none; padding: 0; opacity: .5; font-size: 13px; }
 
 /* Footnotes: where a reply leans on memory, a small raised number. Hover: what memory said. Click: open it. */
@@ -1129,6 +1130,7 @@ async function send() {
   const sending = tray.items.filter((i) => i.record);
   if (!text && !sending.length) return;
   input.value = ""; grow(); drawCursor(); showHow();
+  askToNotify();
   clearTray();
   interruptAvy();
   sound("send");
@@ -1305,6 +1307,32 @@ function thoughtBlock(before, saved = null) {
   };
 }
 
+
+// She spoke without being spoken to: fetch that reply and show it (once), at the bottom, with what woke her.
+async function showSpoken(id) {
+  if (log.querySelector(`[data-id="${id}"]`)) return;
+  try {
+    const { messages } = await getJSON(`/api/log?after=${id - 1}&limit=1`);
+    for (const m of messages) showMessage(m, prompt);
+    drawChapters(); scrollDown(); sound("receive"); deskSoon();
+    if (document.hidden) notify("Avy", (messages[0]?.text || "").slice(0, 140));
+  } catch {}
+}
+function eventLabel(e) {
+  if (e.kind === "job") return `↯ ${e.job} ended` + (e.thread ? `: she picked up th${e.thread}` : "");
+  if (e.kind === "due") return `↯ from her calendar (t${e.chain})`;
+  return "↯ she spoke first";
+}
+// A desktop notification when the page is in the background (asked for the first time you send a message).
+function notify(title, body) {
+  try {
+    if (document.hidden && "Notification" in window && Notification.permission === "granted") new Notification(title, { body });
+    else addLine("note", `${title} · ${body}`);
+  } catch {}
+}
+function askToNotify() {
+  try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch {}
+}
 
 // What her hands did while she answered (searching, reading, running, writing, the calendar), folded above the reply
 // like her thinking: "▸ did 3 things · searched 2, ran 1". Open it to see each step and the start of what came back.
@@ -1519,6 +1547,7 @@ function showMessage(m, before) {
     if (carried.length) line.append(el("div", "chips", carried.map((f) => fileChip(f))));
   }
   else {
+    if (m.meta.event) addLine("note", eventLabel(m.meta.event), before).classList.add("woke");   // she spoke first: what woke her
     line = addLine("avy", "", before);
     if (m.thinking) thoughtBlock(line, m.thinking);           // what she thought, folded above what she said
     if (m.steps?.length) stepsBlock(line, m.steps);            // what her hands did while she answered
@@ -1529,6 +1558,7 @@ function showMessage(m, before) {
     if (m.recalled) addTrace(line, m.recalled);
   }
   line.dataset.at = m.at;
+  line.dataset.id = m.id;
   if (m.episode) { line.dataset.episode = m.episode; line.dataset.headline = m.headline || ""; }
   return line;
 }
@@ -2044,6 +2074,16 @@ function listenToMind() {
   source.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.hello) return void pageIsStale(data.page);
+    if (data.proactive) {              // she spoke first (a job ended, something came due): show what she said
+      showSpoken(data.proactive.id);
+      return;
+    }
+    if (data.due) {                    // something on her calendar came due
+      const d = data.due;
+      notify(`${d.title}`, d.kind === "event" ? `in about an hour (${new Date(d.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})` : d.kind === "deadline" ? "due today" : "now");
+      deskSoon();
+      return;
+    }
     if (data.finished) {               // a background job she started ended
       const j = data.finished;
       addLine("note", `${j.id} ended (exit ${j.code}) after ${Math.round(j.seconds)}s: ${j.command.slice(0, 80)}`);
