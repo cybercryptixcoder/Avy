@@ -420,6 +420,10 @@ button { cursor: pointer; background: none; border: 0; }
 .insp table.nums th { opacity: .55; }
 
 .status { display: flex; align-items: center; gap: 18px; padding: 9px 2px 0; font-size: 13px; }
+.status .nextup { flex: none; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+                  font-size: 12.5px; padding-right: 2ch; }
+.status .nextup .d { font-family: var(--serif); font-style: italic; font-size: 16px; line-height: 1; }
+.status .nextup:hover { text-decoration: underline; text-underline-offset: 3px; }
 .status .how { opacity: .55; margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .status .how.live { opacity: 1; }
 .status .how .rec { font-weight: 700; }
@@ -585,6 +589,16 @@ button { cursor: pointer; background: none; border: 0; }
 .pnode.term .t { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 19px; line-height: 1.1; }
 .pnode .ev { margin-top: 4px; padding-left: 9px; border-left: 1.5px solid var(--ink); opacity: .75; font-size: 12px; }
 .strength { letter-spacing: -.08em; opacity: .7; }
+.edit { display: flex; gap: 1.5ch; flex-wrap: wrap; margin-top: 3px; font-size: 12px; }
+.edit button { font: inherit; font-weight: 700; opacity: .75; }
+.edit button:hover, .edit button:focus-visible { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+.cal-item { cursor: pointer; }
+.cal-item:hover .what { text-decoration: underline; text-underline-offset: 3px; }
+.cal-add { display: flex; gap: 6px; margin: 2px 0 8px; flex-wrap: wrap; }
+.cal-add input, .cal-add select, .pnode textarea { font: inherit; color: inherit; background: var(--field); border: 1.5px solid var(--ink);
+                                                  border-radius: 6px; padding: 1px 6px; height: 26px; }
+.cal-add input.t { flex: 1 1 16ch; min-width: 12ch; }
+.pnode textarea { width: 100%; height: 4.6em; resize: vertical; margin-top: 4px; padding: 4px 6px; }
 .plan { margin: 4px 0 2px; }
 .plan div { white-space: pre-wrap; }
 .plan .done { opacity: .55; }
@@ -797,6 +811,7 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
       <div class="rule bottom"></div>
       <div class="tray" id="tray" hidden aria-label="Files to send"></div>
       <div class="status">
+        <button class="nextup" id="nextUp" type="button" hidden title="What's next on her calendar and her threads (opens her desk)"></button>
         <span class="how" id="how"></span>
         <input type="file" id="filePick" multiple hidden>
         <button id="attach" type="button" title="Attach files of any kind (or drop them on the conversation, or paste them)">[ attach ]</button>
@@ -2080,7 +2095,7 @@ function listenToMind() {
     }
     if (data.due) {                    // something on her calendar came due
       const d = data.due;
-      notify(`${d.title}`, d.kind === "event" ? `in about an hour (${new Date(d.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})` : d.kind === "deadline" ? "due today" : "now");
+      notify(`${d.title}`, d.kind === "event" ? `in about an hour (${localDate(d.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})` : d.kind === "deadline" ? "due today" : "now");
       deskSoon();
       return;
     }
@@ -3746,6 +3761,7 @@ function closeDesk() {
 }
 function deskSoon() {                  // something changed (a reply, a tool, a job): redraw shortly, once; and the shared words
   loadTerms();
+  refreshNextUp();
   if (!deskState.open || deskState.soon) return;
   deskState.soon = setTimeout(() => { deskState.soon = null; refreshDesk(); }, 400);
 }
@@ -3754,6 +3770,25 @@ $("deskClose").dataset.sound = "custom";
 $("openDesk").onclick = () => (deskState.open ? closeDesk() : openDesk());
 $("deskClose").onclick = closeDesk;
 document.addEventListener("keydown", (e) => { if (deskState.open && e.key === "Escape") { e.stopPropagation(); closeDesk(); } }, true);
+
+// The footer's "next up": the nearest thing on her calendar and the thread waiting on you, from the desk's data.
+async function refreshNextUp() {
+  try {
+    const d = await getJSON("/api/desk"), btn = $("nextUp");
+    const byChain = Object.fromEntries(d.timeline.map((t) => [t.chain, t]));
+    const next = (d.coming.ahead || []).map((c) => byChain[c]).find(Boolean);
+    const waiting = d.threads.find((t) => t.status === "waiting" || (t.status === "active" && t.waiting));
+    const bits = [];
+    if (next) {
+      const at = localDate(next.start), today = new Date().toDateString() === at.toDateString();
+      bits.push([el("span", "d", today ? "today" : at.toLocaleDateString([], { weekday: "long" })), ` ${next.start.length > 10 ? at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() + " " : ""}${next.title}`]);
+    }
+    if (waiting) bits.push(` · th${waiting.chain} waiting`);
+    btn.replaceChildren(...bits.flat());
+    btn.hidden = !bits.length;
+  } catch {}
+}
+$("nextUp").onclick = () => openDesk();
 
 async function refreshDesk() {
   if (!deskState.open) return;
@@ -3769,6 +3804,7 @@ function drawDesk() {
   $("deskBody").replaceChildren(calendarPane(d), personaPane(d), threadsPane(d));
 }
 
+const localDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(+v.slice(0, 4), +v.slice(5, 7) - 1, +v.slice(8, 10)) : new Date(v);   // a date alone is his local day
 const dayKey = (t) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
 function itemTime(t) {
   if (!t.start || t.start.length <= 10) return t.kind === "task" ? "" : "all day";
@@ -3776,13 +3812,48 @@ function itemTime(t) {
 }
 function calItem(t) {
   const kind = { deadline: "due", reminder: "remind", task: "to do" }[t.kind];
-  return el("div", "cal-item" + (t.status !== "planned" ? " done" : ""), el("span", "at", itemTime(t)),
+  const row = el("div", "", el("div", "cal-item" + (t.status !== "planned" ? " done" : ""), el("span", "at", itemTime(t)),
             el("span", "what", t.title + (t.status === "cancelled" ? " (cancelled)" : t.status === "missed" ? " (missed)" : "")),
-            kind ? el("span", "kind", kind) : null);
+            kind ? el("span", "kind", kind) : null));
+  row.firstChild.tabIndex = 0;
+  const toggle = () => { deskState.openItem = deskState.openItem === t.chain ? null : t.chain; drawDesk(); };
+  row.firstChild.onclick = toggle;
+  row.firstChild.onkeydown = (e) => { if (e.key === "Enter") toggle(); };
+  if (deskState.openItem === t.chain) {
+    const move = el("input", ""); move.type = t.start && t.start.length > 10 ? "datetime-local" : "date"; move.value = t.start || "";
+    row.append(el("div", "dim", (t.notes ? t.notes + " · " : "") + (t.quote ? `“${t.quote}”` : "") + ` t${t.chain}`),
+      el("div", "edit", t.status === "planned" ? [deskButton("done", { op: "timeline", chain: t.chain, status: "done" }),
+        deskButton("cancel", { op: "timeline", chain: t.chain, status: "cancelled" })] : deskButton("put back", { op: "timeline", chain: t.chain, status: "planned" }),
+        move, deskButton("move", () => ({ op: "timeline", chain: t.chain, start: move.value.slice(0, 16) }))));
+  }
+  return row;
+}
+function deskButton(label, change) {          // a small action on the desk: his own edit, through the one door
+  const b = el("button", "", `[ ${label} ]`);
+  b.type = "button";
+  b.onclick = async (e) => {
+    e.stopPropagation();
+    try { deskState.data = (await postJSON("/api/desk", typeof change === "function" ? change() : change)).desk; deskState.openItem = deskState.openNode = null; drawDesk(); loadTerms(); }
+    catch (err) { deskState.problem = err.message; drawDesk(); }
+  };
+  return b;
+}
+function calendarAdd() {
+  const t = el("input", "t"), when = el("input", ""), kind = el("select", "");
+  t.placeholder = "add: what"; when.type = "datetime-local";
+  for (const k of ["event", "reminder", "deadline", "task"]) kind.append(new Option(k, k));
+  const add = el("button", "", "[ add ]"); add.type = "button";
+  add.onclick = async () => {
+    if (!t.value.trim()) return t.focus();
+    try { deskState.data = (await postJSON("/api/desk", { op: "timeline", title: t.value.trim(), kind: kind.value, start: when.value ? when.value.slice(0, 16) : null })).desk; drawDesk(); }
+    catch (err) { deskState.problem = err.message; drawDesk(); }
+  };
+  t.onkeydown = (e) => { if (e.key === "Enter") add.click(); };
+  return el("div", "cal-add", t, when, kind, add);
 }
 function calendarPane(d) {
   const pane = el("div", "pane");
-  pane.append(el("h3", "", `── the next two weeks · ${new Date(d.now).toLocaleDateString([], { month: "long" }).toLowerCase()}`));
+  pane.append(el("h3", "", `── the next two weeks · ${new Date(d.now).toLocaleDateString([], { month: "long" }).toLowerCase()}`), calendarAdd());
   const byDay = {};
   for (const t of d.timeline) if (t.start) (byDay[t.start.slice(0, 10)] ||= []).push(t);
   const byChain = Object.fromEntries(d.timeline.map((t) => [t.chain, t]));
@@ -3801,7 +3872,7 @@ function calendarPane(d) {
   if (undated.length) pane.append(el("h3", "", "── to do, no date"), ...undated.map(calItem));
   const later = (d.coming.later || []).map((c) => byChain[c]).filter(Boolean);
   if (later.length) pane.append(el("h3", "", "── further out"),
-    ...later.slice(0, 8).map((t) => el("div", "cal-item", el("span", "at", new Date(t.start).toLocaleDateString([], { month: "short", day: "numeric" }).toLowerCase()), el("span", "what", t.title))));
+    ...later.slice(0, 8).map((t) => el("div", "cal-item", el("span", "at", localDate(t.start).toLocaleDateString([], { month: "short", day: "numeric" }).toLowerCase()), el("span", "what", t.title))));
   if (!d.timeline.length) pane.append(el("div", "dim", "nothing on it yet. tell her about anything with a date and it goes here."));
   return pane;
 }
@@ -3835,8 +3906,12 @@ function personaNode(n) {
   row.append(el("div", "top", el("span", "t", n.title), el("span", "a", ASPECT_NAMES[n.aspect] + (n.scope && n.scope !== "always" ? ` · ${n.scope}` : "")), strengthDots(n.strength)),
              el("div", "x", n.text + (n.origin === "inferred" ? " (her impression)" : "")));
   if (deskState.openNode === n.chain) {
+    const text = el("textarea", ""); text.value = n.text;
+    text.onclick = (e) => e.stopPropagation();
     row.append(el("div", "ev", ...n.evidence.slice(-4).map((e) => el("div", "", `#${e.message} ${e.role === "user" ? "you" : "avy"}: “${e.quote}”`)),
-      el("div", "dim", `pa${n.chain} · version ${n.versions}${n.why ? ` · ${n.why}` : ""}`)));
+      el("div", "dim", `pa${n.chain} · version ${n.versions}${n.why ? ` · ${n.why}` : ""}`)),
+      text, el("div", "edit", deskButton("save my wording", () => ({ op: "persona", chain: n.chain, text: text.value.trim(), why: "he reworded it" })),
+        n.aspect !== "core" ? deskButton("not true: retire it", { op: "persona", chain: n.chain, retire: true, why: "he said it isn't so" }) : null));
   }
   const toggle = () => { deskState.openNode = deskState.openNode === n.chain ? null : n.chain; drawDesk(); };
   row.onclick = toggle;
@@ -3865,6 +3940,9 @@ function threadsPane(d) {
       st.id === t.next_step ? "next" : st.status, "  ".repeat(depth) + ({ done: "✓", dropped: "✗", doing: "…", todo: "·" }[st.status]) + " " + st.text
       + (st.status === "dropped" && st.why ? ` (${st.why})` : "") + (st.id === t.next_step ? "  ← next" : "")))));
     if (t.insights?.length) box.append(el("div", "dim", t.insights.slice(-3).map((x) => "· " + x).join("\n")));
+    box.append(el("div", "edit", deskButton("done", { op: "thread", chain: t.chain, status: "done" }),
+      t.status === "paused" ? deskButton("resume", { op: "thread", chain: t.chain, status: "active" }) : deskButton("pause", { op: "thread", chain: t.chain, status: "paused" }),
+      deskButton("drop", { op: "thread", chain: t.chain, status: "dropped" })));
     pane.append(box);
   }
   if (d.jobs?.length) {
@@ -4317,6 +4395,8 @@ document.addEventListener("click", (e) => {
    12. Start
    =================================================================== */
 loadTerms().then(() => document.querySelectorAll(".line.avy").forEach(markTerms));
+refreshNextUp();
+setInterval(refreshNextUp, 5 * 60 * 1000);
 
 setBusy(false);
 setState("idle");
