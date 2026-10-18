@@ -85,33 +85,50 @@ Work is on the branch **`desk`** (not merged into `main` yet; merge once the pag
   voice 3.0 → 4.0, honesty 3.64 → 4.36; reflexive closing questions 7 → 4; words per reply 64 → 52.
 - Long run `longrun1` was running at the pause (results will be in `tests/persona/results/longrun1_longrun.md`).
 
+### Oct 18 (after the session reset): longrun1's findings, the page, toolboxes, speaking first
+
+- **longrun1 finished** (11 simulated days, $0.31): fork test 3/3 (a blind judge always picked her over a fresh Avy
+  as the one who knows him and as the same Avy as week one); her core went through 4 versions keeping 66–100% each
+  step; she used "the hinge" (days 2, 11) and "jump-back" (day 9) unprompted. **longrun2** (after the fixes below):
+  fork 3/3 again, 5 core versions within the limit; its calendar "fail" was the judge's error.
+- **Fixes from it**: coined-term retrieval recalibrated (bar 0.78 never fired; now 0.64, scored by meaning or the
+  moment the word was born, lifted when recalled knowledge names it); **the length gauge** (a word budget on the desk,
+  halved from the shortest reply he called too long: a TLB answer went from 427 words to about 90); the constitution:
+  shared words are hers to use where they're natural.
+- **The page**: Instrument Serif fused in (the wordmark "AV" + serif italic "y"; "AVy's desk"; chapter days; her core;
+  calendar numerals; coined words in serif italic inside her mono replies); **the desk view** (`/desk`): the next two
+  weeks, threads with plans, the persona's three hubs with evidence, background jobs, toolboxes, all editable (done,
+  move, add, pause, drop, reword, retire); steps folded above replies; approval cards; "next up" in the footer.
+- **Connectors** (`connectors.py`): Avy is an MCP client; toolboxes open on demand; Microsoft's Playwright browser by
+  default (25 tools; tried live on python.org). This is the "toolbox others built" he asked for.
+- **Speaking first**: event turns (never saved as his words); a job tied to a thread ending is an interrupt (she picks
+  the thread up; tried live: "accuracy=0.83, under 0.85, so per your rule it's a retrain"); a calendar ticker
+  (reminders, events an hour before, deadlines in the morning). `/proactive: on|off`.
+- **Desk formats** (his instruction-format idea: the situation picks the split) and **the NFA read** (the desk read in
+  parallel with memory's search, then coined words that recalled knowledge names).
+- **Jobs** (`jobs/`): every test packaged for his agent: `run.py`, `facts.py` (numbers by code), `QUESTIONS.md` (23
+  specific questions), a GitHub Actions button. He asked that tests be run that way, not here, to save this session.
+- Docs: docs/PERSONA.md, docs/HANDS.md, docs/CONNECTORS.md; VISION, ARCHITECTURE §7, README, HANDOFF updated.
+  `main` fast-forwarded to `desk`.
+
+### State of things (end of Oct 18)
+
+Built and on `main`: the constitution; the persona graph (keeper, reflection, situations, terms, cascade); the desk
+(clock, calendar, threads with plans, jobs, the length gauge, formats); her hands with two safety tiers; connectors
+(the browser); speaking first; the page's desk, steps, approvals, serif fusion; tools/talk.py; jobs/. Offline suites
+pass (memory, files, desk). Not run since the page changes: the page tests (`tests/page/`), the hands eval, the persona
+eval x3, live and bench: all in `jobs/`, for his agent.
+
 ### Next (pick up here)
 
-0. **At the pause (Oct 17, 17:02)** longrun1 was on day 8 of 12 and the machine shuts down when the session goes idle,
-   so it most likely didn't finish. Its memory is in `tests/persona/results/longrun1.memory/` (it started before
-   checkpointing existed, so it can't resume). Run a fresh one: `python3 tests/persona/longrun.py --stamp longrun2`
-   (it now checkpoints after every exchange: rerun the same command and it carries on), keeping the session busy
-   (a monitor) or on a machine that stays on. The resume path was only half tested (a cut-off run kept 6 exchanges
-   in transcript.jsonl and its marks; the second half, picking up, wasn't run yet).
-1. Read `tests/persona/results/longrun2_longrun.md` (probes: coined terms beyond the window, metric at window 0,
-   calendar, resuming the background run, the fork test, her core's drift). Fix what fails; run it again.
-2. **The page** (planned, not started): a desk view (`/desk`, a "Desk" pill next to Glass): calendar as a vertical
-   two-week timeline with big Instrument Serif day numerals and a "now" line, threads with plan trees, the persona
-   graph's three hubs with strength and evidence; her core as a serif italic pull-quote; steps folded under each reply
-   (like thinking, drawn from `m.steps` in history and `avy.step` live); approval cards for `avy.ask`; coined terms
-   inside her mono replies set in Instrument Serif italic; chapter markers as serif italic ("Sunday evening") with
-   the time in mono; the masthead "AVY's desk" (Archivo 900 for AVY, serif italic for 's desk). **His request (Oct 17,
-   16:52): the big AVY wordmark on the left must itself show the fusion, in the serif** (e.g. the word starting in
-   Archivo 900 and ending in Instrument Serif italic, or the reverse; judge by screenshots in light and dark, phone
-   width too); everything else mostly as is, plus any small touch that genuinely looks good. Add `jobs` to
-   `/api/desk`. Then the page tests (`tests/page/`), contrast audit in both themes.
-3. Docs: `docs/PERSONA.md` (the research: Anthropic's constitution, "Claude's character", Constitutional AI, persona
-   vectors and the assistant axis; how each maps to Avy), `docs/HANDS.md` (what was learned from Hermes Agent and
-   OpenClaw), VISION §8–9 and ARCHITECTURE §7 updated to what's built, README commands (`/persona:`, `/hands:`,
-   `/desk`), HANDOFF map.
-4. Merge `desk` into `main` (his run command resets to `origin/main`).
-
----
+1. When his agent's job run comes back: read `jobs/results/<stamp>/ANSWERS.md` (not the transcripts) and fix what it
+   names. Likely: page tests that look for the old wordmark text or chapter format; her using python for arithmetic
+   every time; length on technical questions.
+2. The thought graph (VISION §7, ARCHITECTURE §7.1): conclusions, commitments and suspicions from her saved reasoning,
+   as the threads' frontier written from her thinking rather than only her tools.
+3. The stale-assumption check on resuming a thread (ARCHITECTURE §9).
+4. Search inside the thinking chain (ARCHITECTURE §6.3), now that tool rounds exist (it's one more tool).
+5. More toolboxes in `data/connectors.json` when he wants them (his Google Calendar, GitHub): docs/CONNECTORS.md.
 
 ## Session 3 · Oct 15, 2026 (Claude, a long build marathon)
 

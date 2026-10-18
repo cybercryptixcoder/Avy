@@ -498,6 +498,12 @@ class Turn:
         previous = self.mem.last_said()
         opts = {"depth": choice["recall"], "words": choice["words"] == "on", "meaning": choice["meaning"] == "on"}
         self.searching = choice["recall"] != "off" and (opts["words"] or opts["meaning"])
+        # Several models at once (VISION §8, "like an NFA"): the desk (the persona's hubs, the threads, the calendar) is
+        # read on its own thread while memory's search runs; each brings back its own share.
+        desk_reading = None
+        if choice["persona"] == "on":
+            import concurrent.futures as _cf
+            desk_reading = _cf.ThreadPoolExecutor(max_workers=1).submit(MEMORIES["main"].desk_note, query, previous, ())
         if choice["explore"] == "on" and self.searching:          # /explore: the model steers the search
             library = explore.Library([MEMORIES["main"], MEMORIES["incognito"]])
             recent = "\n".join(f"{memory.who(m['role'], m.get('via'))}: {memory.clip(m['text'], 0, 500)}" for m in self.mem.window(2)[-2:])
@@ -522,7 +528,14 @@ class Turn:
         note = self.recall["briefing"]
         if self.desk:
             knowledge = [x["node"] for x in self.recall["nodes"] if x.get("memory", "main") == "main"]
-            desk_note, shown_desk = MEMORIES["main"].desk_note(query, previous, knowledge)
+            try:
+                desk_note, shown_desk = desk_reading.result(timeout=30)
+                more = MEMORIES["main"].terms_named(knowledge, shown_desk["terms"])     # words the recalled knowledge names
+                if more["note"]:
+                    desk_note += "\n\n" + more["note"]
+                    shown_desk["terms"] = shown_desk["terms"] + more["terms"]
+            except Exception:
+                desk_note, shown_desk = MEMORIES["main"].desk_note(query, previous, knowledge)
             running = jobs_note()
             if running:
                 desk_note += "\n\n" + running

@@ -535,6 +535,22 @@ class Persona:
                 "terms": [f"pa{t['chain']}" for t in found["terms"]], "voice": [v["message"] for v in found["voice"]],
                 "note": "\n\n".join(parts)}
 
+    def terms_named(self, knowledge, shown=()):
+        """Coined words the knowledge recalled for this message names by name, not already on the desk: memory brought
+        back the moment, so the word comes too (the desk was read in parallel, before the knowledge was known)."""
+        recalled = " ".join(f"{n['title']} {n['text']}".lower() for n in (self.current(c) for c in knowledge or ()) if n)
+        found = [t for t in self.persona_nodes("term") if f"pa{t['chain']}" not in shown and self._term_word(t)
+                 and re.search(r"\b" + re.escape(self._term_word(t)) + r"\b", recalled)][:max(0, TERMS_SHOWN - len(shown))]
+        if not found:
+            return {"note": "", "terms": []}
+        lines = []
+        for t in found:
+            ev = self.persona_evidence(t["chain"])
+            born = next((e for e in ev if e["message"] == t["message"]), ev[0] if ev else None)
+            lines.append(f"- \"{t['title']}\": {t['text']}" + (f" (born #{born['message']}, {born['at'][:10]}: \"{clip(born['quote'], 0, 150)}\")" if born else ""))
+        return {"note": "Words of your own that what memory found brings back. Use one only if it's the natural word here:\n" + "\n".join(lines),
+                "terms": [f"pa{t['chain']}" for t in found]}
+
     def voice_for(self, text, situation=None, k=VOICE_SHOWN):
         """Her replies kept as examples of her voice: the ones for this kind of conversation first, then the closest."""
         nodes = self.persona_nodes("voice")
