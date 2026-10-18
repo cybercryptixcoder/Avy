@@ -192,10 +192,9 @@ body.plain .convos { display: flex; }
 /* All three letters in one font now: Instrument Serif for the AV as well, matching the y.
    The serif is much lighter and narrower than the grotesk it replaces, so the AV needs its own
    weight and tracking to hold the word mark up at this size. */
-.wordmark .wm-g { font-family: var(--serif); font-style: italic; font-weight: 400; font-stretch: 100%;
-                  letter-spacing: -.01em; }
-.wordmark .wm-s { font-family: var(--serif); font-style: italic; font-weight: 400; font-stretch: 100%;
-                  font-size: 1.36em; letter-spacing: -.02em; margin-left: -.075em; line-height: .5; }
+.wordmark .wm-g, .wordmark .wm-s { font-family: var(--serif); font-style: italic; font-weight: 400;
+                  font-stretch: 100%; letter-spacing: -.01em; }
+.wordmark .wm-s { margin-left: -.06em; }
 
 /* The badge: the ring says what Avy is doing; the bars move with your voice and hers. */
 .badge { flex: none; width: 23cqi; height: auto; transform: rotate(-9deg); }
