@@ -21,3 +21,4 @@ tests/live/results/*.log
 tests/persona/results/*.memory/*
 !tests/persona/results/*.memory/transcript.jsonl
 tests/hands/results/*.work/
+.playwright-mcp/

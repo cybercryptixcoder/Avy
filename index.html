@@ -130,6 +130,33 @@ button { cursor: pointer; background: none; border: 0; }
 .nav-items .dot.ok { background: var(--teal); }
 .nav-items .dot.warn { background: var(--orange); }
 
+/* the mode toggle: Avy herself, or a plain chatbot */
+.mode { display: inline-flex; flex: none; height: 42px; border: var(--thin); border-radius: 999px; padding: 3px; gap: 2px; }
+.mode button { border-radius: 999px; padding: 0 14px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+.mode button.on { background: var(--ink); color: var(--card); }
+.mode button[data-mode="avy"] { font-family: var(--serif); font-style: italic; font-weight: 400; text-transform: none; font-size: 19px; letter-spacing: 0; }
+body.plain #openDesk, body.plain #openGlass, body.plain #openMemory, body.plain #mini, body.plain .tiles,
+body.plain .nextup, body.plain #endIncognito, body.plain .sys, body.plain .badge { display: none !important; }
+@media (max-width: 1560px) {   /* room for the mode toggle: the desk, glass and memory buttons become just their icons */
+  #openDesk, #openGlass, #openMemory { font-size: 0; gap: 0; padding: 0 13px; }
+  .nav-items { gap: 10px; font-size: 12px; }
+}
+.convos { display: none; flex-direction: column; min-height: 0; flex: 1; border: var(--thin); border-radius: 18px; background: var(--card); overflow: hidden; }
+body.plain .convos { display: flex; }
+.convos-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: var(--thin); }
+.convos-head span { font-family: var(--serif); font-style: italic; font-size: 22px; line-height: 1; }
+.convos-head button { font-size: 12px; font-weight: 600; text-transform: uppercase; border: var(--thin); border-radius: 999px; padding: 6px 12px; }
+.convos-head button:hover { background: var(--ink); color: var(--card); }
+.convos ul { list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1; }
+.convos li { display: flex; align-items: center; gap: 6px; border-radius: 10px; padding: 8px 10px; cursor: pointer; }
+.convos li:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.convos li.on { background: var(--ink); color: var(--card); }
+.convos li .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.convos li .n { font-size: 11px; opacity: .6; }
+.convos li .x { opacity: 0; font-size: 13px; padding: 0 4px; border-radius: 6px; }
+.convos li:hover .x, .convos li.on .x { opacity: .7; }
+.convos li .x:hover { opacity: 1; background: var(--orange); color: var(--on-accent); }
+.convos .empty { padding: 14px; font-size: 13px; opacity: .65; }
 .pill-btn {
   height: 42px; padding: 0 18px; flex: none;
   display: inline-flex; align-items: center; gap: 10px;
@@ -643,6 +670,9 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
   .nav-items, .nav-globe { display: none; }
   .nav-pill { justify-content: space-between; height: 54px; gap: 6px; padding-left: 6px; }
   .nav .pill-btn { padding: 0 11px; gap: 6px; }
+  .mode button { padding: 0 9px; }
+  .convos { order: 2; max-height: 34svh; }
+  body.plain .chat { order: 3; }
   #openGlass, #openDesk { font-size: 0; gap: 0; }                 /* the glass: just its icon on a phone */
   .round-btn { width: 54px; height: 54px; }
   .main { grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -722,6 +752,9 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
         <li><span class="dot" id="memDot"></span><span id="memText">Memory</span></li>
         <li title="What's left on your Luminal account (checked once a minute)"><span class="dot" id="rateDot"></span><span id="rateText">Luminal</span></li>
       </ul>
+      <div class="mode" id="modeToggle" role="group" aria-label="Mode" title="Avy herself, or a plain chatbot (/mode)">
+        <button type="button" data-mode="avy">Avy</button><button type="button" data-mode="chat">Chat</button>
+      </div>
       <button class="pill-btn" id="openDesk" type="button" title="Her desk: the calendar, her threads, who she is with you (/desk)">Desk <svg class="icon"><use href="#i-desk"/></svg></button>
       <button class="pill-btn" id="openGlass" type="button" title="The looking glass: what's loading into memory, what the mind is doing, how it's going (/glass)">Glass <svg class="icon"><use href="#i-glass"/></svg></button>
       <button class="pill-btn" id="openMemory" type="button" title="Look inside Avy's memory (/memory)">Memory <svg class="icon"><use href="#i-arrow"/></svg></button>
@@ -753,6 +786,11 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
           </g>
         </svg>
       </div>
+
+      <section class="convos" id="convos" aria-label="Conversations">
+        <div class="convos-head"><span>conversations</span><button type="button" id="newChat">+ new</button></div>
+        <ul id="convoList"></ul>
+      </section>
 
       <section class="sys" aria-label="System">
         <div class="sys-head"><span>system</span><span id="clock">--:--:--</span></div>
@@ -946,7 +984,9 @@ function showStatus(status) {
   $("keyText").textContent = luminal.hint ? "Key saved" : "No key yet";
   $("keyDot").className = "dot " + (luminal.hint ? "ok" : "warn");
   $("keyFields").replaceChildren(...status.keys.map(keyField));
-  if (status.incognito !== incognito || !historyShown) showIncognito(status.incognito);
+  drawMode(status.mode);
+  if (status.mode === "chat") { if (!plain.on) plainStart(); }
+  else if (status.incognito !== incognito || !historyShown) showIncognito(status.incognito);
   showVoice(status.voice);
 }
 
@@ -1013,6 +1053,7 @@ async function changeSetting(name, value) {
   const body = await res.json();
   if (!res.ok) return body.error;
   settings = body;
+  if (name === "mode" && (value === "chat") !== plain.on) { location.reload(); return null; }
   renderSystem();
   setState(voiceState);      // the talk button and hints depend on /live:
   drawCursor();
@@ -1068,9 +1109,10 @@ function renderSystem() {
   showBalance();
   $("meta").innerHTML = "";
   $("meta").append(
-    `avy 0.3: ${brainName()} via luminal, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
+      plain.on ? `${brainName()} via luminal, thinking ${v.thinking}.` : `avy 0.3: ${brainName()} via luminal, thinking ${v.thinking}, voice ${v.voice}, ears ${v.whisper}.`,
     document.createElement("br"),
-    incognito ? "incognito: a separate conversation. avy can use her memory, but nothing said here is kept. /incognito ends it."
+    plain.on ? `plain chat: an ordinary chatbot. each conversation stands alone; the model reads its newest ${v.chatwindow} tokens. / for commands.`
+    : incognito ? "incognito: a separate conversation. avy can use her memory, but nothing said here is kept. /incognito ends it."
               : `one endless conversation: avy remembers it all. hold space to ${liveMode() ? "talk" : "dictate"}, / for commands.`,
   );
 }
@@ -1141,6 +1183,7 @@ async function send() {
   const text = input.value.trim();
   if ((!text && !tray.items.length) || controller) return;
   if (text.startsWith("/")) return runCommand(text);
+  if (plain.on) return plainSend(text);
   if (!(await filesSettled())) return;                     // still uploading or being read: wait (or give up)
   const sending = tray.items.filter((i) => i.record);
   if (!text && !sending.length) return;
@@ -2089,6 +2132,7 @@ function listenToMind() {
   source.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.hello) return void pageIsStale(data.page);
+    if (plain.on) return;                // plain chat: nothing of Avy's interrupts it
     if (data.proactive) {              // she spoke first (a job ended, something came due): show what she said
       showSpoken(data.proactive.id);
       return;
@@ -4389,6 +4433,149 @@ document.addEventListener("click", (e) => {
   const t = e.target.closest("button, [role=option], .row, .sys-row, .chip a, .menu li, .cmds-list li");
   if (t && !t.closest("[data-sound=custom]")) sound("click");
 }, true);
+
+
+/* ===================================================================
+   11b. Plain chat: Avy as an ordinary chatbot (/mode: chat, or the toggle at the top).
+        Separate conversations, nothing of her memory, persona or hands; the server keeps
+        them in data/chats.db and reads each only as far as /chatwindow allows.
+   =================================================================== */
+const plain = { on: false, id: null, list: [] };
+
+function drawMode(mode) {
+  document.querySelectorAll("#modeToggle button").forEach((b) => b.classList.toggle("on", b.dataset.mode === (mode || "avy")));
+}
+document.querySelectorAll("#modeToggle button").forEach((b) => {
+  b.onclick = async () => {
+    if (b.classList.contains("on") || controller) return;
+    drawMode(b.dataset.mode);
+    const problem = await changeSetting("mode", b.dataset.mode);
+    if (problem) { addLine("error", problem); return; }
+    location.reload();               // the other mode starts clean
+  };
+});
+
+async function plainStart() {
+  plain.on = true;
+  document.body.classList.add("plain");
+  input.setAttribute("aria-label", "Message");
+  log.querySelectorAll(".line, .earlier, .chapter").forEach((l) => l.remove());
+  renderSystem();
+  await plainList();
+  let last = null;
+  try { last = Number(localStorage.getItem("avy.plainChat")) || null; } catch {}
+  const open = plain.list.find((c) => c.id === last) || plain.list[0];
+  if (open) await plainOpen(open.id); else plainEmpty();
+  input.focus();
+}
+
+function plainEmpty() {
+  plain.id = null;
+  log.querySelectorAll(".line, .chapter").forEach((l) => l.remove());
+  addLine("note", "a plain chat: just you and the model, nothing remembered beyond this conversation. type to begin.");
+  drawConvos();
+}
+
+async function plainList() {
+  try { plain.list = (await getJSON("/api/chats")).conversations; } catch { plain.list = []; }
+  drawConvos();
+}
+
+function drawConvos() {
+  const ul = $("convoList");
+  if (!plain.list.length) { ul.replaceChildren(el("div", "empty", "no conversations yet")); return; }
+  ul.replaceChildren(...plain.list.map((c) => {
+    const li = el("li", c.id === plain.id ? "on" : "");
+    const t = el("span", "t", c.title);
+    const x = el("button", "x", "✕");
+    x.type = "button"; x.title = "Delete this conversation";
+    x.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm(`Delete “${c.title}”?`)) return;
+      plain.list = (await getJSON("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id: c.id }) })).conversations;
+      if (c.id === plain.id) { plain.list[0] ? plainOpen(plain.list[0].id) : plainEmpty(); } else drawConvos();
+    };
+    li.title = "Double-click to rename";
+    li.onclick = () => c.id !== plain.id && !controller && plainOpen(c.id);
+    li.ondblclick = async () => {
+      const title = window.prompt("Rename this conversation", c.title);
+      if (!title) return;
+      plain.list = (await getJSON("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "rename", id: c.id, title }) })).conversations;
+      drawConvos();
+    };
+    li.append(t, el("span", "n", String(c.messages || 0)), x);
+    return li;
+  }));
+}
+
+async function plainOpen(id) {
+  let convo;
+  try { convo = await getJSON(`/api/chats/${id}`); } catch (e) { addLine("error", `Couldn't open it (${e.message}).`); return; }
+  plain.id = id;
+  try { localStorage.setItem("avy.plainChat", String(id)); } catch {}
+  log.querySelectorAll(".line, .chapter").forEach((l) => l.remove());
+  if (!convo.messages.length) addLine("note", "a new conversation. type to begin.");
+  for (const m of convo.messages) {
+    if (m.role === "user") addLine("you", m.text);
+    else { const line = addLine("avy", ""); line.innerHTML = renderMarkdown(m.text); }
+  }
+  drawConvos();
+  scrollDown();
+}
+
+$("newChat").onclick = async () => {
+  if (controller) return;
+  const c = await getJSON("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "new" }) });
+  await plainList();
+  await plainOpen(c.id);
+  input.focus();
+};
+
+async function plainSend(text) {
+  if (!text) return;
+  input.value = ""; grow(); drawCursor(); showHow();
+  sound("send");
+  log.querySelector(".line.note")?.remove();
+  addLine("you", text);
+  const line = addLine("avy", "");
+  const words = document.createElement("span");
+  const block = makeCursor();
+  line.append(words, block);
+  setBusy(true);
+  let reply = "", thought = null, failed = null, usage = null;
+  try {
+    const res = await fetch("/api/plain", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, conversation: plain.id }), signal: controller.signal,
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `The server answered ${res.status}.`);
+    await readStream(res, (chunk) => {
+      if (chunk.avy) {
+        if (chunk.avy.error) failed = chunk.avy.error;
+        if (chunk.avy.conversation && chunk.avy.conversation.id !== plain.id) { plain.id = chunk.avy.conversation.id; try { localStorage.setItem("avy.plainChat", String(plain.id)); } catch {} }
+        if (chunk.avy.dropped) addLine("note", `the oldest ${chunk.avy.dropped} message${chunk.avy.dropped > 1 ? "s are" : " is"} past the context window now`, line);
+        return;
+      }
+      const delta = chunk.choices?.[0]?.delta || {};
+      if (delta.reasoning_content) (thought ||= thoughtBlock(line)).add(delta.reasoning_content);
+      if (delta.content) { thought?.finish(); reply += delta.content; words.innerHTML = renderMarkdown(reply, true); scrollDown(); }
+      if (chunk.usage) usage = chunk.usage;
+    });
+  } catch (err) {
+    if (err.name !== "AbortError") failed = err instanceof TypeError ? "Can't reach the server." : err.message;
+  }
+  thought?.finish();
+  block.remove();
+  setBusy(false);
+  countUsage(usage);
+  if (reply) { words.innerHTML = renderMarkdown(reply); sound("receive"); } else line.remove();
+  if (failed) addLine("error", failed);
+  await plainList();
+  scrollDown();
+  input.focus();
+}
 
 
 /* ===================================================================

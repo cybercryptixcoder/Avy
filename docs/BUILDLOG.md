@@ -510,3 +510,19 @@ intake, dream; page tests: basics, ui, errands, files, look, glass; live runs 1â
 2. Then, in the order the tests suggest (tests/live/RESULTS.md, "What to do next"): slots; "what's coming up";
    Think's volume; her plans as things with steps; whose idea.
 3. Rerun the live scenarios after each, and the benchmark (tests/bench) once something touches recall.
+
+
+## Oct 18 (evening): herself as a graph, and plain chat
+
+- **atlas.py:** everything she knows, reached as one graph (`graph_look`). The stores keep their own shapes: network,
+  persona hubs, timeline, plan trees, log and code.
+- **selfcode.py:** her code as a graph (files, classes, functions, endpoints; contains, calls, imports, calls_api,
+  serves, mentions), plus `self_look`, `self_read`, `self_edit` and `self_ops`.
+  - Every edit is checked before it is written and committed with its reason. `check` and `restart` exist so a change
+    can be confirmed and then made live, and `revert` undoes one.
+  - Tested live: asked to change plain chat's prompt, she found it, edited it, checked it and committed it. A restart
+    through the API came back up.
+- **chats.py:** plain chat mode, set with `/mode: chat` or the toggle. It keeps separate conversations with a bounded
+  context window (`/chatwindow`), and the page shows a conversation list.
+- **Server:** `AVY_PASSWORD` login, `AVY_PORT` and `AVY_HOST`. A tunnel's same-origin requests are accepted.
+- tests/test_self.py (offline).

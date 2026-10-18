@@ -64,6 +64,10 @@ git checkout -q main && git reset --hard origin/main
 git config pull.ff only
 ```
 
+**New:** an **Avy | Chat** toggle at the top turns her into a plain chatbot with separate conversations. She can also
+see and change her own code: ask her to change something about herself. Running her on a server behind a tunnel? Set
+`AVY_PASSWORD`. See docs/SELF.md.
+
 Your browser opens http://localhost:8000. Paste your Luminal key in the Keys panel once (the orange key
 button); it's saved to `.env` and you're set. Needs Python 3.10–3.13 (Kokoro doesn't support 3.14 yet).
 `python3 luminal.py` checks the key and shows your balance.

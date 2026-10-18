@@ -11,6 +11,7 @@ Everything Avy writes to disk goes in the data/ folder next to this file.
 """
 
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -22,12 +23,15 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import atlas
+import chats
 import connectors
 import files
 import hands
 import intake
 import luminal
 import memory
+import selfcode
 from memory import recall as recalling
 from mind import dream, explore, instruments, llm as mind_llm, persona as persona_jobs, worker, writer
 
@@ -53,7 +57,9 @@ CLAUDE_MEMORY = DATA / "memory-claude.db"   #   where an imported Claude history
 LIBRARY_DIR = DATA / "library"              #   folders you add to memory (kept as they came, one folder per upload)
                                             #   data/models      speech and meaning-search models
                                             #   data/recordings  backups of what you said (voice)
-PORT = 8000
+PORT = int(os.environ.get("AVY_PORT") or 8000)
+HOST = os.environ.get("AVY_HOST") or "127.0.0.1"   # this computer only (a tunnel like cloudflared reaches it here)
+CHATS_FILE = DATA / "chats.db"                      # plain chat mode's conversations, apart from her memory
 
 # Every key the Keys panel asks for. Add a line here to add a field.
 KEYS = {
@@ -119,6 +125,21 @@ anything safe.
   things. The steps show under your reply, so don't narrate them.
 - Small talk, and questions you can answer well, never need tools."""
 
+SELF = """# Yourself
+
+You can see and change your own code: you are the program in {root}, and it's yours to read and improve.
+- Everything you know is one graph (graph_look): your code and architecture (self), your persona (him, her, us), memory's
+  knowledge, the calendar, your threads, the log. Each keeps its own shape (a network, a timeline, a plan tree); you reach
+  all of it by following handles from the root.
+- Your code is a graph of files, classes, functions and endpoints with what calls what (self_look). When he asks you to
+  change something about yourself (how you look, what you do, a new instrument or setting), find where it lives with
+  self_look, read it with self_read, then make the smallest change that does it with self_edit (always with a why), in the
+  style of the code around it. ARCHITECTURE.md and docs/ say how the parts fit; read them for anything structural.
+- Then self_ops(check). If it passes and the change is to the server's Python, self_ops(restart) (the page reconnects by
+  itself); a change to index.html shows after he reloads the page. If something breaks, self_ops(revert) the commit.
+- Tell him what you changed, in a line or two, and how to see it. Your constitution (CONSTITUTION.md) is the one file you
+  change only when he asks for exactly that."""
+
 # The prompt from before the constitution and the persona, kept so /persona: off can compare the two.
 LEGACY_PROMPT = f"""You are Avy, {memory.NAME}'s personal assistant.
 Talk like a sharp, warm friend: plain words, short answers, no filler.
@@ -173,7 +194,8 @@ def system_prompt(incognito=False, core=True):
     always = MEMORIES["main"].persona_always()
     hands_on = choice["hands"] != "off" and not incognito
     return (CONSTITUTION + "\n\n" + MACHINE + "\n\n" + rule
-            + ("\n\n" + HANDS.replace("{playbooks}", hands.playbook_index()).replace("{toolboxes}", toolbox_lines()) if hands_on else "") + tail
+            + ("\n\n" + HANDS.replace("{playbooks}", hands.playbook_index()).replace("{toolboxes}", toolbox_lines())
+               + "\n\n" + SELF.replace("{root}", str(HERE.resolve())) if hands_on else "") + tail
             + (f"\n\n# What persists with you\n\n{always}" if always else ""))
 
 
@@ -190,6 +212,13 @@ ENGLISH_VOICES = [
 ]
 
 SETTINGS = {   # short: the few words under its name in the / panel. card: shown on the system card too.
+    "mode":     {"short": "Avy, or a plain chatbot", "card": True,
+                 "about": "avy: Avy herself (memory, persona, desk, hands). chat: an ordinary chatbot, nothing of Avy's in it: "
+                          "separate conversations you start and switch between, each read only as far as /chatwindow allows",
+                 "options": ["avy", "chat"], "default": "avy"},
+    "chatwindow": {"short": "plain chat's context window", "card": False,
+                   "about": "in chat mode, how much of a conversation the model reads (tokens): the newest messages that fit",
+                   "options": ["8k", "16k", "32k", "64k", "128k"], "default": "32k"},
     "thinking": {"short": "how hard Avy thinks", "card": True,
                  "about": "how hard Avy thinks before answering (and while she searches her memory): none is fastest; "
                           "low, high and max think longer and cost more (DeepSeek's three levels). Her thinking shows under each reply",
@@ -358,7 +387,8 @@ def key_status():
     for name, label in KEYS.items():
         value = os.environ.get(name, "")
         keys.append({"name": name, "label": label, "hint": value[-4:] if value else None})
-    return {"keys": keys, "voice": voice_status(), "incognito": MEMORIES["incognito"] is not None, "page": PAGE_VERSION}
+    return {"keys": keys, "voice": voice_status(), "incognito": MEMORIES["incognito"] is not None, "page": PAGE_VERSION,
+            "mode": current_settings()["mode"]}
 
 
 # ---------------------------------------------------------------------------
@@ -474,6 +504,58 @@ def memory_by_letter(letter):
 #    every message, so there's never a "new chat": every message is one.
 # ---------------------------------------------------------------------------
 
+CHATS = None      # plain chat mode's conversations (chats.py), opened at start
+RESTART = {"wanted": False}
+
+
+def restart_soon():
+    """Run her changed code: once no reply is being answered, the server replaces itself with a fresh copy (same
+    command, same memory). The page notices it's gone and reconnects."""
+    if RESTART["wanted"]:
+        return
+    RESTART["wanted"] = True
+
+    def run():
+        time.sleep(1.5)
+        end = time.time() + 600
+        while IN_FLIGHT["turns"] > 0 and time.time() < end:
+            time.sleep(0.5)
+        time.sleep(1.0)
+        print("Restarting to run the changed code…", flush=True)
+        try:
+            if connectors.HUB:
+                connectors.HUB.close()
+        except Exception:
+            pass
+        os.environ["AVY_NO_BROWSER"] = "1"
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    threading.Thread(target=run, daemon=True, name="restart").start()
+
+
+def password():
+    """AVY_PASSWORD (in the environment or .env): when set, the page asks for it before anything else. Set it whenever
+    Avy is reachable from outside this computer (a tunnel): her hands run commands here."""
+    return os.environ.get("AVY_PASSWORD") or read_env().get("AVY_PASSWORD") or ""
+
+
+def auth_token():
+    return hashlib.sha256(("avy-login:" + password()).encode()).hexdigest()[:40]
+
+
+LOGIN_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avy</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#EEDCC2;color:#1C1A17;
+font:16px "Space Mono",ui-monospace,monospace}form{background:#F7ECDC;border:3px solid #1C1A17;border-radius:18px;padding:28px;
+box-shadow:6px 6px 0 #1C1A17;display:grid;gap:14px;width:min(320px,86vw)}h1{margin:0;font:italic 400 44px "Instrument Serif",
+Georgia,serif}input,button{font:inherit;padding:10px 12px;border:2px solid #1C1A17;border-radius:10px;background:#FFF8EF}
+button{background:#1C1A17;color:#F7ECDC;cursor:pointer}p{margin:0;color:#F0692A;min-height:1em}
+@media (prefers-color-scheme:dark){body{background:#151311;color:#F7ECDC}form{background:#1C1A17;border-color:#F7ECDC;
+box-shadow:6px 6px 0 #F7ECDC}input{background:#26231F;color:#F7ECDC;border-color:#F7ECDC}button{background:#F7ECDC;color:#1C1A17}}</style></head>
+<body><form id="f"><h1>Avy</h1><input id="p" type="password" placeholder="password" autofocus autocomplete="current-password">
+<button>Open</button><p id="e"></p></form><script>f.onsubmit=async(e)=>{e.preventDefault();const r=await fetch("/api/login",
+{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:p.value})});if(r.ok)location.reload();
+else e.target.querySelector("#e").textContent="That isn't it."};</script></body></html>"""
+
+
 class Turn:
     """Your message in, Avy's reply out, both saved to the log.
 
@@ -519,7 +601,8 @@ class Turn:
         # in an incognito conversation (where her tools are off, so nothing of it is changed there).
         self.desk = choice["persona"] == "on"
         self.hands = choice["hands"] if not self.incognito else "off"
-        self.tools = ((instruments.TOOLS if self.desk else []) + (hands.TOOLS if self.hands != "off" else [])) if not self.incognito else []
+        self.tools = ((instruments.TOOLS if self.desk else []) + (hands.TOOLS + selfcode.TOOLS if self.hands != "off" else [])
+                      + ([atlas.TOOL] if self.desk or self.hands != "off" else [])) if not self.incognito else []
         opener = connectors.HUB.open_tool() if connectors.HUB and self.hands != "off" and not self.incognito else None
         if opener:
             self.tools.append(opener)
@@ -787,6 +870,12 @@ def act(turn, name, args):
     if name in hands.NAMES and turn.hands != "off":
         hands.HOOKS["approve"] = turn.approve
         return hands.use(name, args, turn.hands)
+    if name in selfcode.NAMES and turn.hands != "off":
+        selfcode.HOOKS["approve"] = turn.approve
+        return selfcode.use(name, args, turn.hands)
+    if name == "graph_look":
+        handle = (args or {}).get("handle") or "avy"
+        return atlas.look(MEMORIES["main"], handle), f"looked at {handle} in her graph"
     hub = connectors.HUB
     if hub and turn.hands != "off" and name == "open_toolbox":
         box = (args or {}).get("name")
@@ -1020,9 +1109,29 @@ MEMORY_VIEWS = ("/api/log", "/api/memory", "/api/node", "/api/edge", "/api/episo
 
 class Handler(BaseHTTPRequestHandler):
 
+    def signed_in(self):
+        if not password():
+            return True
+        cookies = dict(c.strip().split("=", 1) for c in (self.headers.get("Cookie") or "").split(";") if "=" in c)
+        return cookies.get("avy_auth") == auth_token()
+
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(url.query)
+        if not self.signed_in():
+            if url.path == "/":
+                body = LOGIN_PAGE.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                return self.wfile.write(body)
+            return self.send_json(401, {"error": "Sign in first (reload the page)."})
+        if url.path == "/api/chats":
+            return self.send_json(200, {"conversations": CHATS.list()})
+        if url.path.startswith("/api/chats/"):
+            c = CHATS.get(int(url.path.rsplit("/", 1)[-1] or 0)) if url.path.rsplit("/", 1)[-1].isdigit() else None
+            return self.send_json(200 if c else 404, c or {"error": "No such conversation."})
         if url.path == "/":
             self.send_page()
         elif url.path == "/api/status":
@@ -1111,6 +1220,32 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.from_avy_page():
             return self.send_json(403, {"error": "Requests are only accepted from Avy's own page."})
+        if self.path == "/api/login":
+            given = str(self.read_json().get("password") or "")
+            if not password() or hmac.compare_digest(given, password()):
+                self.send_response(200)
+                self.send_header("Set-Cookie", f"avy_auth={auth_token()}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax"
+                                 + ("; Secure" if (self.headers.get("X-Forwarded-Proto") or "") == "https" else ""))
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", "2")
+                self.end_headers()
+                return self.wfile.write(b"{}")
+            time.sleep(1)
+            return self.send_json(403, {"error": "Wrong password."})
+        if not self.signed_in():
+            return self.send_json(401, {"error": "Sign in first (reload the page)."})
+        if self.path == "/api/chats":
+            body = self.read_json()
+            action, cid = body.get("action"), body.get("id")
+            if action == "new":
+                return self.send_json(200, CHATS.new())
+            if action == "rename" and cid:
+                CHATS.rename(int(cid), body.get("title") or "")
+            elif action == "delete" and cid:
+                CHATS.delete(int(cid))
+            return self.send_json(200, {"conversations": CHATS.list()})
+        if self.path == "/api/plain":
+            return self.plain_chat()
         if self.path == "/api/keys":
             self.save_keys()
         elif self.path == "/api/settings":
@@ -1264,6 +1399,52 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 pass
 
+    def plain_chat(self):
+        """Plain chat mode: one message into one conversation, the model's stream straight back. No memory, no tools."""
+        body = self.read_json()
+        text, cid = str(body.get("text") or "").strip(), body.get("conversation")
+        convo = CHATS.get(int(cid)) if cid else CHATS.new()
+        if not convo:
+            return self.send_json(404, {"error": "That conversation is gone. Start a new one."})
+        if not text:
+            return self.send_json(400, {"error": "There's nothing to send."})
+        cid = convo["id"]
+        CHATS.add(cid, "user", text)
+        window = int(current_settings()["chatwindow"].rstrip("k")) * 1000
+        messages, dropped = CHATS.context(cid, window)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.event({"avy": {"conversation": CHATS.get(cid) and {k: v for k, v in CHATS.get(cid).items() if k != "messages"},
+                            "dropped": dropped}})
+        try:
+            upstream = ask_model(messages)
+        except FriendlyError as e:
+            return self.event({"avy": {"error": e.message}})
+        except Exception as e:
+            return self.event({"avy": {"error": f"Couldn't reach the model ({e})."}})
+        reply, thought, cut = "", "", False
+        try:
+            with upstream:
+                for line in upstream:
+                    if line.strip() == b"data: [DONE]":
+                        break
+                    self.wfile.write(line)
+                    self.wfile.flush()
+                    words, thinking, usage = luminal.stream_parts(line)
+                    reply += words or ""
+                    thought += thinking or ""
+        except OSError:
+            cut = True
+        if reply.strip():
+            CHATS.add(cid, "assistant", reply, thought or None)
+        if not cut:
+            try:
+                self.wfile.write(b"data: [DONE]\n\n")
+            except OSError:
+                pass
+
     def library_upload(self):
         """One file of a folder being added to memory: X-Batch names the folder's upload, X-File-Path where the file
         sits in it. Kept as it came under data/library/<batch>/; read once the whole folder has arrived."""
@@ -1367,7 +1548,10 @@ class Handler(BaseHTTPRequestHandler):
     def from_avy_page(self):
         """Block other websites from using this server behind your back."""
         origin = self.headers.get("Origin")
-        return origin is None or origin in (f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}")
+        if origin is None or origin in (f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"):
+            return True
+        host = self.headers.get("X-Forwarded-Host") or self.headers.get("Host") or ""
+        return urllib.parse.urlparse(origin).netloc == host       # the page itself, reached through a tunnel
 
     def read_json(self):
         length = int(self.headers.get("Content-Length") or 0)
@@ -1709,6 +1893,8 @@ if __name__ == "__main__":
     memory.embedder.start(DATA / "models" / "meaning")
     files.hooks["read"] = on_file_read                  # anything attached joins memory's library
     hands.WORKSPACE = DATA / "workspace"                 # her own folder to work in
+    CHATS = chats.Chats(CHATS_FILE)                      # plain chat mode's conversations
+    selfcode.HOOKS["restart"] = restart_soon             # self_ops(restart): run her changed code
     connectors.start(DATA / "connectors.json")           # toolboxes others built (MCP servers): the browser by default
     threading.Thread(target=tick, daemon=True, name="calendar").start()     # reminders and what's coming up, as they come due
     hands.HOOKS["finished"] = on_job_finished            # a background job ending is noted on its thread
@@ -1719,7 +1905,7 @@ if __name__ == "__main__":
     worker.start(ask=ask_json, prices=PRICES, page=page_size, main=lambda: MEMORIES["main"],
                  effort=lambda: current_settings()["mind"], desk=lambda: current_settings()["persona"] == "on",
                  memories=lambda: [m for m in MEMORIES.values() if m])
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # this computer only
+    server = ThreadingHTTPServer((HOST, PORT), Handler)  # this computer only, unless AVY_HOST says otherwise
     url = f"http://localhost:{PORT}"
     main = MEMORIES["main"]
     print(f"Avy is up at {url}  (Ctrl+C to stop)")
