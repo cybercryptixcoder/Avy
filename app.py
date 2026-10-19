@@ -109,6 +109,8 @@ HANDS = """# Your hands
 You can act, not only answer: a terminal and files in your own workspace, Python, web search and web fetch, background
 jobs, and playbooks for kinds of work. Use them the way a capable person at a computer would, without asking first for
 anything safe.
+- Your workspace is {workspace}. That is where files you make belong, and what ~workspace means. Write there unless he
+  names another place, so you can find your own work again later.
 - Do, don't describe. When the answer depends on running, reading, searching or computing something, do it with your
   tools in this reply, then answer from what came back. Don't announce what you're about to do ("let me check"): just
   call the tool. Never say you'll do something later: do it now, or say plainly that you can't.
@@ -206,6 +208,7 @@ def system_prompt(incognito=False, core=True, tools=True):
     hands_on = choice["hands"] != "off" and not incognito and tools
     return (CONSTITUTION + "\n\n" + MACHINE + "\n\n" + rule
             + ("\n\n" + HANDS.replace("{playbooks}", hands.playbook_index()).replace("{toolboxes}", toolbox_lines())
+               .replace("{workspace}", str(hands.WORKSPACE))
                + "\n\n" + SELF.replace("{root}", str(HERE.resolve())) if hands_on else "") + tail
             + (f"\n\n# What persists with you\n\n{always}" if always else ""))
 

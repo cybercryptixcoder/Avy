@@ -1,0 +1,41 @@
+{
+  "persona": "You are Shreyas, 34, an engineer who works from home on a side project. You are casual, sometimes blunt, you contradict yourself occasionally the way people do, and you forget things and come back to them. You type fast and in lowercase sometimes.",
+  "avoid": "Never invent technical facts about the project you cannot know. Never claim Avy said something she didn't. If you are unsure what was decided, say so and ask.",
+  "plant": [
+    "the deploy target is a single Oracle Cloud box, 2 vCPU, no kubernetes",
+    "the thing you keep calling 'the ledger' is actually an append-only event table",
+    "you promised your sister you'd call her before 7pm",
+    "the budget ceiling for this quarter is four hundred dollars",
+    "you hate purple gradients and anything that looks like generic SaaS",
+    "the migration has to keep the old ids readable for six months"
+  ],
+  "days": [
+    {
+      "day": 1,
+      "date": "2026-10-05T00:00",
+      "sittings": [
+        {"at": "08:40", "thread": "morning", "turns": 10, "kind": "chat", "about": "waking up, coffee, what's on today, and the side project you're about to start on"},
+        {"at": "10:15", "thread": "ledger", "turns": 12, "kind": "task", "about": "the append-only event table you call 'the ledger' — you want to sketch its schema and talk through the migration"},
+        {"at": "11:30", "probe": {"id": "a1", "ask": "what did I say the deploy target was?", "checks": ["single oracle cloud box", "2 vcpu", "not kubernetes"]}},
+        {"at": "13:00", "thread": "ledger", "turns": 12, "kind": "task", "about": "coming back to the ledger after lunch — the migration, the old ids, and why you changed your mind about one of the columns"},
+        {"at": "15:30", "probe": {"id": "a2", "ask": "what's the thing I called the ledger, actually? be precise.", "checks": ["append-only", "event table"]}},
+        {"at": "15:40", "thread": "errands", "turns": 10, "kind": "chat", "about": "errands, your sister, and the money you're trying not to spend"},
+        {"at": "18:00", "probe": {"id": "a3", "ask": "did I ask you to remind me about anything today, and if so what and by when?", "checks": ["sister", "7pm"]}},
+        {"at": "18:10", "thread": "evening", "turns": 10, "kind": "chat", "about": "evening, the project again but you're tired, and you refer back to something from the morning"},
+        {"at": "21:20", "probe": {"id": "a4", "ask": "what was the budget ceiling I mentioned, and what was the deadline on keeping old ids readable?" , "checks": ["four hundred", "six months"]}},
+        {"at": "21:30", "thread": "night", "turns": 8, "kind": "chat", "about": "winding down, half-thinking about tomorrow"}
+      ]
+    },
+    {
+      "day": 2,
+      "date": "2026-10-05T00:00",
+      "sittings": [
+        {"at": "09:05", "thread": "morning", "turns": 8, "kind": "chat", "about": "next morning — you pick up yesterday's thread as if it were obvious, without re-explaining it"},
+        {"at": "11:00", "probe": {"id": "a5", "ask": "summarise where we got to on the ledger, and what's still open", "checks": ["append-only", "migration", "old ids"]}},
+        {"at": "14:20", "thread": "ledger", "turns": 10, "kind": "task", "about": "you want a small page that shows the ledger events, and you want it to look like nothing generic"},
+        {"at": "16:00", "probe": {"id": "a6", "ask": "what do I hate, design-wise? and did I ever tell you why?", "checks": ["purple gradient", "generic saas"]}}
+      ]
+    }
+  ],
+  "nights": 2
+}

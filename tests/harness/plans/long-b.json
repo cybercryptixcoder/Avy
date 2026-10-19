@@ -1,0 +1,41 @@
+{
+  "persona": "You are Shreyas, 34, on a Saturday with no work. You are running errands, thinking about a trip, and dealing with a friend's situation. You ramble, you jump between topics, and you reference things from earlier in the day casually.",
+  "avoid": "Never invent facts about the friend's situation or the trip that you were not told. Never claim Avy said something she didn't.",
+  "plant": [
+    "the flight to Lisbon is on the 14th and it leaves at 6:40am",
+    "your friend Dev is going through a divorce and you're worried about him",
+    "you need a new passport photo because the old one is eight years old",
+    "the apartment viewing is at 2pm on Sunday",
+    "you're trying to cook more and you bought a cast iron pan",
+    "your landlord said the radiator would be fixed by the end of the month"
+  ],
+  "days": [
+    {
+      "day": 1,
+      "date": "2026-10-10T00:00",
+      "sittings": [
+        {"at": "09:20", "thread": "morning", "turns": 10, "kind": "chat", "about": "a slow Saturday, the trip you're planning, and what you need to sort out before it"},
+        {"at": "11:00", "probe": {"id": "b1", "ask": "when's my flight and what time does it leave?", "checks": ["14th", "6:40"]}},
+        {"at": "11:15", "thread": "dev", "turns": 10, "kind": "chat", "about": "your friend Dev's divorce and how you're worried about him, and what you might say to him"},
+        {"at": "13:30", "thread": "apartment", "turns": 10, "kind": "chat", "about": "an apartment viewing you're going to, and the landlord and the radiator"},
+        {"at": "15:00", "probe": {"id": "b2", "ask": "what's the situation with my friend, and what did I say I was worried about?", "checks": ["dev", "divorce", "worried"]}},
+        {"at": "15:10", "thread": "errands", "turns": 10, "kind": "chat", "about": "errands — the passport photo, the pan you bought, cooking more"},
+        {"at": "17:45", "probe": {"id": "b3", "ask": "why do I need a passport photo, and when did I say the viewing was?", "checks": ["eight years", "2pm sunday"]}},
+        {"at": "18:00", "thread": "evening", "turns": 10, "kind": "chat", "about": "evening, cooking with the cast iron pan, and you circle back to Dev"},
+        {"at": "20:30", "probe": {"id": "b4", "ask": "how many things did I say I had to sort out today? list them.", "checks": ["passport", "viewing", "radiator"]}},
+        {"at": "20:40", "thread": "night", "turns": 8, "kind": "chat", "about": "winding down, tomorrow, and one thing you're dreading"}
+      ]
+    },
+    {
+      "day": 2,
+      "date": "2026-10-10T00:00",
+      "sittings": [
+        {"at": "10:00", "thread": "morning", "turns": 8, "kind": "chat", "about": "Sunday morning — you mention the viewing at 2pm without explaining it again"},
+        {"at": "12:00", "probe": {"id": "b5", "ask": "what am I doing at 2pm and why does it matter?", "checks": ["viewing", "apartment"]}},
+        {"at": "14:30", "thread": "dev", "turns": 10, "kind": "chat", "about": "after the viewing, back to Dev, and you want help drafting what to say to him"},
+        {"at": "16:00", "probe": {"id": "b6", "ask": "what does my landlord owe me, and by when?", "checks": ["radiator", "end of the month"]}}
+      ]
+    }
+  ],
+  "nights": 2
+}

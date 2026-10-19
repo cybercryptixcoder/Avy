@@ -205,6 +205,46 @@ def show(*parts):
 # the run
 # ---------------------------------------------------------------------------------------------
 
+def write_transcript(jsonl_path, md_path):
+    """Turn the event log into something a person can read.
+
+    The docstring has promised this since the harness was written and the code never did it, which is the kind of gap
+    that makes a "full transcript" claim untrue. Read from the log rather than from memory so a crashed run still gets
+    everything up to the crash."""
+    events = []
+    for line in Path(jsonl_path).read_text().splitlines():
+        try:
+            events.append(json.loads(line))
+        except Exception:
+            pass
+    out = ["# transcript", ""]
+    for e in events:
+        kind = e.get("kind")
+        if kind == "start":
+            out += [f"plan `{e.get('plan')}`, model `{e.get('model')}`, label `{e.get('label')}`", ""]
+        elif kind == "sitting":
+            out += ["", f"## day {e.get('day')} · {e.get('at')} · {e.get('thread')}", ""]
+            if e.get("about"):
+                out += [f"*{e['about']}*", ""]
+        elif kind == "mind":
+            out += [f"> mind: {e.get('job')} {e.get('status')} {e.get('applied')}", ""]
+        elif kind == "exchange":
+            who = "SHREYAS" if e.get("who") == "user" else "AVY"
+            d = e.get("detail") or {}
+            meta = ""
+            if who == "AVY" and d:
+                meta = (f"  <sub>{d.get('seconds')}s · {d.get('prompt_tokens')}pt · "
+                        f"${d.get('cost')} · desk={d.get('recall', {}).get('desk_thread')}</sub>")
+            out += [f"**{who}:** {e.get('text', '').strip()}{meta}", ""]
+        elif kind == "probe_answer":
+            out += [f"### probe `{e.get('id')}`", "", f"**Q:** {e.get('ask')}", "",
+                    f"**A:** {(e.get('answer') or '').strip()}", ""]
+        elif kind == "done":
+            out += ["", f"**done** — subject ${(e.get('spent') or {}).get('subject')}, "
+                        f"simulator ${(e.get('spent') or {}).get('sim')}, {e.get('hours')} h wall clock", ""]
+    Path(md_path).write_text("\n".join(out))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--plan", required=True)
@@ -244,8 +284,9 @@ def main():
     # The real app does this in its __main__ block, which the harness bypasses: her hands need a workspace,
     # or ~workspace points at a path that doesn't exist and every file lookup she makes is against nothing.
     import hands
-    hands.WORKSPACE = app.DATA / "workspace"
+    hands.WORKSPACE = work / "workspace"          # per-run, so two sessions can never write the same file
     hands.WORKSPACE.mkdir(parents=True, exist_ok=True)
+    hands.STATE["cwd"] = str(hands.WORKSPACE)
     # The real app does this in its __main__ block, which the harness bypasses. Without it her toolboxes are
     # never started and look() answers "your browser toolbox isn't started" — a harness fault, not hers.
     import connectors
@@ -258,7 +299,7 @@ def main():
 
     sim_history = []          # the simulator's own conversation with itself
     notes = []                # what it has said
-    planted = []              # things it will need to refer back to
+    planted = list(plan.get("plant") or [])   # facts it will state early and be asked to refer back to later
     spent = {"subject": 0.0, "sim": 0.0}
     inbox = {}                # day -> notes it means to bring up
     start = time.time()
@@ -336,9 +377,11 @@ def main():
             show(f"  [night] {r['job']} {r['status']} +{r.get('applied', 0)}")
 
     log.write("done", spent=spent, hours=round((time.time() - start) / 3600, 2))
+    log.close()
+    write_transcript(out / f"{stamp}_{label}.jsonl", out / f"{stamp}_{label}.md")
     show(f"\ndone: {spent['subject']:.2f} subject, {spent['sim']:.2f} simulator, "
          f"{(time.time() - start) / 60:.0f} min")
-    log.close()
+    show(f"transcript: {out / f'{stamp}_{label}.md'}")
 
 
 if __name__ == "__main__":

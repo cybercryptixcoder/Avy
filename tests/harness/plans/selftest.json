@@ -1,0 +1,12 @@
+{
+  "persona": "You are Shreyas, testing whether the harness works. Keep it short.",
+  "avoid": "Nothing invented.",
+  "plant": ["the deploy target is a single Oracle Cloud box"],
+  "days": [
+    {"day": 1, "date": "2026-10-05T00:00", "sittings": [
+      {"at": "09:00", "thread": "check", "turns": 2, "kind": "chat", "about": "a trivial check that the harness records both sides"},
+      {"at": "09:30", "probe": {"id": "t1", "ask": "what did I say the deploy target was?", "checks": ["oracle cloud"]}}
+    ]}
+  ],
+  "nights": 1
+}

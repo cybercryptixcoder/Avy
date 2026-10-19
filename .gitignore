@@ -27,3 +27,8 @@ tests/locomo/data/
 tests/locomo/out/
 tests/bench/out/
 tests/harness/out/
+tests/swe/data/
+tests/swe/work/
+tests/swe/out/
+tests/build/out/
+tests/perf/out/
