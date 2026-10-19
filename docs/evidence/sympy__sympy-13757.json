@@ -1,0 +1,21 @@
+{
+ "instance": "sympy__sympy-13757",
+ "repo": "sympy/sympy",
+ "difficulty": "15 min - 1 hour",
+ "started": "1792438639.5339556",
+ "reply": "(scored an existing patch)",
+ "steps": [],
+ "diff_lines": 27,
+ "graded": {
+  "applied": true,
+  "passed": true,
+  "returncode": 0,
+  "python": "3.9",
+  "f2p": [
+   "test_issue_13079"
+  ],
+  "p2p_checked": 40,
+  "tail": "nt function is deprecated\",\n\nsympy/matrices/tests/test_matrices.py::test_power\n  /home/ubuntu/Avy/tests/swe/work/sympy__sympy-13757__score/sympy/core/function.py:1227: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working\n    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):\n\nsympy/assumptions/tests/test_query.py::test_complex\n  /home/ubuntu/Avy/tests/swe/work/sympy__sympy-13757__score/sympy/assumptions/sathandlers.py:3: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working\n    from collections import MutableMapping, defaultdict\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n39 passed, 2 skipped, 75 warnings in 15.21s\n"
+ },
+ "minutes": 2.0
+}

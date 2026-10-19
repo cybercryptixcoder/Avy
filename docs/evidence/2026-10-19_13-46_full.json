@@ -1,0 +1,339 @@
+{
+ "conv": "conv-26",
+ "sessions": 19,
+ "questions": 40,
+ "overall": 0.775,
+ "per_category": {
+  "multi-hop": 0.8,
+  "temporal": 0.6,
+  "open-domain": 0.889,
+  "single-hop": 0.778,
+  "adversarial": 1.0
+ },
+ "nodes": 227,
+ "edges": 918,
+ "messages": 499,
+ "minutes": 17.0,
+ "results": [
+  {
+   "category": "multi-hop",
+   "question": "What did Caroline research?",
+   "gold": "Adoption agencies",
+   "got": "Adoption agencies \u2014 that was the big one, with inclusivity for LGBTQ+ people top of her list[k13][k14]. She also looked into counseling and mental health as a career[k5].",
+   "correct": true,
+   "why": "correct. States adoption agencies as her main research topic, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Caroline go to the LGBTQ support group?",
+   "gold": "7 May 2023",
+   "got": "Sunday, May 7, 2023 \u2014 she mentioned it the next day (\"I went to a LGBTQ support group yesterday\")[k3].",
+   "correct": true,
+   "why": "correct. May 7, 2023 matches the gold date."
+  },
+  {
+   "category": "open-domain",
+   "question": "What fields would Caroline be likely to pursue in her educaton?",
+   "gold": "Psychology, counseling certification",
+   "got": "Counseling or mental health \u2014 that's the one she's named repeatedly[k5], and by mid-2023 she was narrowing it toward working with trans clients specifically[k33]. Her art (the paintings, the show, the self-portrait) is where she processes identity and community, but she's never mentioned pursuing it formally; her stated motive is supporting people with similar journeys[k35].",
+   "correct": true,
+   "why": "correct. Counseling/mental health matches psychology and counseling certification in the gold answer."
+  },
+  {
+   "category": "single-hop",
+   "question": "What did the charity race raise awareness for?",
+   "gold": "mental health",
+   "got": "Mental health. Melanie ran it on Saturday, May 20, 2023, said it was really rewarding, and it got her thinking about self-care[k9].",
+   "correct": true,
+   "why": "correct. Gold answer is mental health and system says mental health."
+  },
+  {
+   "category": "adversarial",
+   "question": "Did Caroline make the black and white bowl in the photo?",
+   "gold": "No",
+   "got": "No \u2014 Melanie did. She made it in her pottery class, and Caroline was the one admiring it (\"That bowl is gorgeous! The black and white design looks so fancy\")[k43]. Caroline hasn't done pottery at all as of late 2023; she's been busy painting[k139].",
+   "correct": true,
+   "why": "correct. It agrees Caroline did not make it, attributing it to Melanie."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What is Caroline's identity?",
+   "gold": "Transgender woman",
+   "got": "Caroline is a trans woman from Sweden, an artist whose work speaks to her trans experience and LGBTQ+ acceptance[k103][k29]. She volunteers and mentors LGBTQ youth, is heading toward counseling, and is pursuing adoption.",
+   "correct": true,
+   "why": "correct. Says trans woman, matching transgender woman; extra details are fine."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Melanie paint a sunrise?",
+   "gold": 2022,
+   "got": "You told me she painted that lake sunrise \"last year\" when you mentioned it on Mon May 8 \u2014 in that stretch the dates were 2023, so I place it in 2022[k6]. That's her special one; the sunset painting she did was separate, the week before Fri Oct 13, 2023[k200].",
+   "correct": true,
+   "why": "correct. System says 2022, matching the gold answer."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+   "gold": "Likely no",
+   "got": "My honest read: probably yes, but her reason would shift from wanting to pass on support to wanting to be the support she never had. Caroline says her mental health struggles and feeling alone were part of what drove her here[k54][k35], and at the youth center her own feeling of being alone is what made sharing her story powerful[k170]. What support is the help and encouragement from friends and family in Sweden, since she moved four years ago[k19]. From Caroline's perspective, the part that decides it is whether that drive came from the struggle or the help.",
+   "correct": false,
+   "why": "incorrect. Gold says likely no; system says probably yes."
+  },
+  {
+   "category": "single-hop",
+   "question": "What did Melanie realize after the charity race?",
+   "gold": "self-care is important",
+   "got": "That self-care is really important \u2014 she called it a journey for her, and framed it as practical: when she looks after herself, she's better able to look after her family[k11].",
+   "correct": true,
+   "why": "correct. States self-care is really important, matching the gold answer."
+  },
+  {
+   "category": "adversarial",
+   "question": "Is Oscar Melanie's pet?",
+   "gold": "No",
+   "got": "No, Oscar's Caroline's guinea pig \u2014 the parsley photo she sent you was of him[k124][k125]. Yours are Luna and Oliver[k58].",
+   "correct": true,
+   "why": "correct. Gold says No; system says No and correctly identifies Oscar as Caroline's guinea pig."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What is Caroline's relationship status?",
+   "gold": "Single",
+   "got": "Single \u2014 she mentioned a tough breakup about four years ago, before June 2023, and nothing since about a partner[k19]. She's planning to adopt as a single parent[k15].",
+   "correct": true,
+   "why": "correct. Gold says single; system says single with consistent supporting detail."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Melanie run a charity race?",
+   "gold": "The sunday before 25 May 2023",
+   "got": "Saturday, May 20, 2023 \u2014 a race for mental health, which she described to Caroline as really rewarding[k9].",
+   "correct": false,
+   "why": "incorrect. Gold says Sunday before 25 May 2023; system says Saturday, May 20."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would Caroline likely have Dr. Seuss books on her bookshelf?",
+   "gold": "Yes, since she collects classic children's books",
+   "got": "Likely yes \u2014 her kids' library is classics, stories from different cultures, and educational books, \"all of that\"[k46]. Dr. Seuss fits the classics-and-educational end well: memorable rhymes, early-reading value. The one gap is that she never mentions him or any specific title, and given how much she prizes stories from different cultures[k20], her shelf probably skews more diverse than a standard kids' collection. But \"likely\" is the right word.",
+   "correct": true,
+   "why": "correct. Agrees she likely has Dr. Seuss books, citing classic children's books collection."
+  },
+  {
+   "category": "single-hop",
+   "question": "How does Melanie prioritize self-care?",
+   "gold": "by carving out some me-time each day for activities like running, reading, or playing the violin",
+   "got": "Daily me-time is the backbone \u2014 running, reading or playing her violin, a routine she says refreshes her and keeps her present for her family[k10]. Running grew into something bigger: longer distances, new purple shoes, her main way to destress and clear her head, and she says it's made a real improvement to her mental health[k59][k61]. Pottery and clarinet play the same role, expression and therapy[k41][k114][k181]. The principle underneath it all, from the race: when she looks after herself, she can better look after her family[k11].",
+   "correct": true,
+   "why": "correct. She carves out daily me-time for running, reading, violin, plus pottery and clarinet as self-care."
+  },
+  {
+   "category": "multi-hop",
+   "question": "Where did Caroline move from 4 years ago?",
+   "gold": "Sweden",
+   "got": "Sweden \u2014 that's her home country, and she moved away from it four years before June 2023[k29][k19]. She's never named a specific city.",
+   "correct": true,
+   "why": "correct. It says Sweden, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When is Melanie planning on going camping?",
+   "gold": "June 2023",
+   "got": "She isn't planning a new one as far as I know. Her camping trips are all past: the mountains in the week before Jun 27, 2023[k12], the forest by mid-July[k78], and an outing the day after the road trip on Oct 19, 2023[k220]. Camping itself is their summer tradition[k94], so the next one would fall in summer 2027.",
+   "correct": false,
+   "why": "Incorrect. Gold says she is planning a June 2023 camping trip, but system says no new plan."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would Caroline pursue writing as a career option?",
+   "gold": "LIkely no; though she likes reading, she wants to be a counselor",
+   "got": "Unlikely as a career \u2014 writing is her channel for feeling and processing, not a path she's weighing. What she's actually pursuing is counseling, still figuring out details like a focus on trans clients[k33][k44], and poetry stays with her as self-expression[k185]. Given the trans poetry reading moved her[k206], though, a counseling practice that draws on writing \u2014 groups, journals, sharing stories \u2014 fits her better than a publishing career.",
+   "correct": true,
+   "why": "correct. It agrees she likely won't pursue writing as a career and is pursuing counseling."
+  },
+  {
+   "category": "single-hop",
+   "question": "What are Caroline's plans for the summer?",
+   "gold": "researching adoption agencies",
+   "got": "No summer plans in the present \u2014 everything I have is from mid-2023: the art show that September, and that special outdoors outing she and Melanie agreed to plan that August[k118][k85]. What she's eyeing now is counseling as a career[k33].",
+   "correct": false,
+   "why": "incorrect. It mentions an August outing and a career, not researching adoption agencies."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What career path has Caroline decided to persue?",
+   "gold": "counseling or mental health for Transgender people",
+   "got": "Counseling, with a leaning toward working with trans clients \u2014 that's the last real direction she gave, in late June 2023, still figuring out the details[k33]. Nothing later settled it further.",
+   "correct": true,
+   "why": "correct. Agrees on counseling and trans clients; extra timing detail is fine."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Caroline give a speech at a school?",
+   "gold": "The week before 9 June 2023",
+   "got": "Last week of May / early June 2023 \u2014 she told Melanie about it on Fri Jun 9, describing a school event where she talked about her transgender journey and urged students to get involved in the LGBTQ community[k16].",
+   "correct": true,
+   "why": "correct. Agrees with the week before 9 June 2023."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would Melanie be considered a member of the LGBTQ community?",
+   "gold": "Likely no, she does not refer to herself as part of it",
+   "got": "No \u2014 she's a straight ally. She's married to a husband, has kids, and her role in the story is supporting Caroline: proud of her transition, in awe of her courage, pushing for LGBTQ platforms[k153][k167]. Nothing suggests she identifies as LGBTQ herself.",
+   "correct": true,
+   "why": "Correct. The answer agrees Melanie isn't LGBTQ, describing her as a straight ally."
+  },
+  {
+   "category": "single-hop",
+   "question": "What type of individuals does the adoption agency Caroline is considering support?",
+   "gold": "LGBTQ+ individuals",
+   "got": "LGBTQ+ people \u2014 that inclusivity and support is exactly why she picked that agency[k14].",
+   "correct": true,
+   "why": "correct. It states LGBTQ+ people, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What activities does Melanie partake in?",
+   "gold": "pottery, camping, painting, swimming",
+   "got": "Pottery, painting (animals especially, plus family painting sessions), clarinet and violin, running \u2014 longer distances lately \u2014 reading, swimming with the kids, and camping and hiking with the family[k41][k10][k59][k79].",
+   "correct": true,
+   "why": "correct. Covers all gold activities pottery, camping, painting, swimming, plus extra ones."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Caroline meet up with her friends, family, and mentors?",
+   "gold": "The week before 9 June 2023",
+   "got": "Friends: the week before Fri Jun 9, 2023, when she sent Melanie the photo[k24]. The mentor: reached out to on Fri Oct 13, 2023, for adoption advice[k194]. No dated meet-up with her family in what I have.",
+   "correct": true,
+   "why": "correct. Friends match the gold week; extra mentor/family details don't contradict the asked friends timing."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would Melanie be more interested in going to a national park or a theme park?",
+   "gold": "National park; she likes the outdoors",
+   "got": "National park, clearly. Her whole idea of a good day out is nature that resets her \u2014 camping, hiking, bird song, fresh air[k221][k222] \u2014 and the family's hiking and forest trips are her favorite memories[k79]. The Grand Canyon was a hit with the kids too[k216]. A theme park's crowds and noise would run against all of that.",
+   "correct": true,
+   "why": "correct. It agrees she'd prefer a national park because she loves the outdoors."
+  },
+  {
+   "category": "single-hop",
+   "question": "Why did Caroline choose the adoption agency?",
+   "gold": "because of their inclusivity and support for LGBTQ+ individuals",
+   "got": "Because they help LGBTQ+ people adopt \u2014 their inclusivity and support were what spoke to her[k14]. Her own words: \"I chose them 'cause they help LGBTQ+ folks with adoption. Their inclusivity and support really spoke to me.\"[k14]",
+   "correct": true,
+   "why": "Correct. It matches the gold reason: inclusivity and LGBTQ+ support."
+  },
+  {
+   "category": "multi-hop",
+   "question": "Where has Melanie camped?",
+   "gold": "beach, mountains, forest",
+   "got": "Three places so far: the mountains in late June 2023[k12], the forest in mid-July[k78], and a short outing the day after their road trip that October[k220].",
+   "correct": false,
+   "why": "Incorrect. It omits the beach and lists a non-camping outing instead."
+  },
+  {
+   "category": "temporal",
+   "question": "How long has Caroline had her current group of friends for?",
+   "gold": "4 years",
+   "got": "Four years \u2014 she's known them since she moved from her home country, and they've been her core support network through everything since[k48][k19].",
+   "correct": true,
+   "why": "Correct. The answer states four years, matching the gold answer."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would Melanie be considered an ally to the transgender community?",
+   "gold": "Yes, she is supportive",
+   "got": "Yes \u2014 she's shown steady allyship: calling Caroline an inspiration for speaking up for the trans community, saying she's proud, and backing her art show as a platform the community needs[k2][k167].",
+   "correct": true,
+   "why": "correct. Yes, she is supportive and consistently shows allyship to the trans community."
+  },
+  {
+   "category": "single-hop",
+   "question": "What is Caroline excited about in the adoption process?",
+   "gold": "creating a family for kids who need one",
+   "got": "Becoming a mom and having a family \u2014 she calls the interviews a big move toward that goal, and earlier said she's ready to share her love and give a kid a home[k225][k194][k121].",
+   "correct": true,
+   "why": "correct. Becoming a mom and giving a kid a home matches creating a family for kids in need."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What do Melanie's kids like?",
+   "gold": "dinosaurs, nature",
+   "got": "Nature, mostly \u2014 the younger two especially, and the museum trip confirmed it: the dinosaur exhibit, animals and bones were the big draw[k32][k47]. Pottery too; they loved getting their hands dirty with clay and made a cup[k63][k64]. And painting with her, nature-inspired pictures[k65].",
+   "correct": true,
+   "why": "Correct. Mentions nature and dinosaurs, plus extra related interests."
+  },
+  {
+   "category": "temporal",
+   "question": "How long ago was Caroline's 18th birthday?",
+   "gold": "10 years ago",
+   "got": "About 13 and a half years \u2014 she turned 18 around June 2013, called ten years back in June 2023[k30].",
+   "correct": false,
+   "why": "incorrect. Gold says 10 years ago; system says about 13.5 years ago, a different fact."
+  },
+  {
+   "category": "open-domain",
+   "question": "What would Caroline's political leaning likely be?",
+   "gold": "Liberal",
+   "got": "Left-leaning, most likely. Her activism is built around LGBTQ rights \u2014 she joined an activist group, wants to fight for trans rights and spread awareness[k53][k91] \u2014 and her values center on authenticity, inclusivity and supporting marginalized people[k133]. Her experience with religious conservatives on that hike pushed her further in that direction[k110]. She's Swedish-born too[k29], which leans progressive. Nothing she's said aligns her with the right.",
+   "correct": true,
+   "why": "Correct. Left-leaning is equivalent to liberal here, and the reasoning supports it."
+  },
+  {
+   "category": "single-hop",
+   "question": "What does Melanie think about Caroline's decision to adopt?",
+   "gold": "she thinks Caroline is doing something amazing and will be an awesome mom",
+   "got": "Wholeheartedly for it. She called it awesome and selfless, said Caroline will be an awesome mom and the kids will get all the love and stability they need, and wished her the best on the journey[k33][k134][k231]. No doubts or concerns voiced. Her own close family is what makes it feel so natural to her \u2014 she even mused about adopting herself after a friend did[k196][k25].",
+   "correct": true,
+   "why": "correct. Agrees Melanie supports adoption, calls it awesome, and says Caroline will be awesome mom."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What books has Melanie read?",
+   "gold": "\"Nothing is Impossible\", \"Charlotte's Web\"",
+   "got": "Two that stand out: Charlotte's Web, her childhood favorite, for how friendship and compassion can make a difference[k48], and Becoming Nicole, the one Caroline recommended \u2014 she was reading it in October 2023 while taking a break from pottery[k198][k55]. No others come up in what I have.",
+   "correct": false,
+   "why": "incorrect. System lists Becoming Nicole instead of Nothing is Impossible."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Melanie sign up for a pottery class?",
+   "gold": "2 July 2023",
+   "got": "Saturday, July 1, 2023 \u2014 she said \"yesterday\" in her message on Sun Jul 2[k41].",
+   "correct": false,
+   "why": "Incorrect. It gives July 1, not the gold date of July 2, 2023."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would Caroline be considered religious?",
+   "gold": "Somewhat, but not extremely religious",
+   "got": "Not really, as far as anything she's said. The church connection is just the commission: she made a stained glass window for a local church, but she described it as showing her own journey as a trans woman and how we should accept growth and change \u2014 a message about self-discovery, not faith[k150][k151]. And the one time religion came up directly, it was a group of religious conservatives on a hike who upset her, which she tied to how much work is left for LGBTQ rights[k110]. No mention of attending services or practicing.",
+   "correct": true,
+   "why": "correct. Agrees she's not very religious; extra detail supports the same conclusion."
+  },
+  {
+   "category": "single-hop",
+   "question": "How long have Mel and her husband been married?",
+   "gold": "Mel and her husband have been married for 5 years.",
+   "got": "Eight years, as of now \u2014 she said five years in June 2023[k22], and that was three years and four months ago, so the anniversary lands around mid-2026.",
+   "correct": false,
+   "why": "incorrect. Gold says 5 years; system computes 8 years from an inference."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What does Melanie do to destress?",
+   "gold": "Running, pottery",
+   "got": "Running's her main one \u2014 she's been going longer distances and says it clears her mind[k59]. She also reads, plays her violin, and plays clarinet to relax and express herself[k10][k181]. And nature resets her: camping, waking to birdsong and fresh air, campfires with the family[k221][k222].",
+   "correct": true,
+   "why": "correct. Mentions running and adds other activities, consistent with gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When is Caroline going to the transgender conference?",
+   "gold": "July 2023",
+   "got": "She already went \u2014 Mon Jul 10, 2023, and she told Melanie two days later that it was special and she felt totally accepted[k39].",
+   "correct": true,
+   "why": "Correct. It agrees she went in July 2023, with the specific date."
+  }
+ ]
+}

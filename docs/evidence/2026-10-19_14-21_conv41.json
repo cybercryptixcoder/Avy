@@ -1,0 +1,498 @@
+{
+ "conv": "conv-41",
+ "sessions": 32,
+ "questions": 60,
+ "overall": 0.717,
+ "per_category": {
+  "multi-hop": 0.944,
+  "temporal": 0.235,
+  "open-domain": 0.75,
+  "single-hop": 0.941
+ },
+ "nodes": 313,
+ "edges": 1257,
+ "messages": 783,
+ "minutes": 24.3,
+ "results": [
+  {
+   "category": "multi-hop",
+   "question": "What martial arts has John done?",
+   "gold": "Kickboxing, Taekwondo",
+   "got": "Kickboxing and taekwondo. He mentioned kickboxing back in December and said it gave him a lot of energy [k5], and he signed off one evening in December to go do taekwondo [k18]. Both were part of his general trying-out-different-workouts stretch [k193].",
+   "correct": true,
+   "why": "correct. It names kickboxing and taekwondo, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "Who did Maria have dinner with on May 3, 2023?",
+   "gold": "her mother",
+   "got": "I can't find anything for 2023. What I have is Wed May 3, 2027: Maria and her mom made dinner together, with salads, sandwiches and homemade desserts, and her favorite was the banana split sundae [k124]. If you meant that evening, it was her mom.",
+   "correct": true,
+   "why": "correct. Reports dinner with her mom on May 3 (year mismatch, but same fact)."
+  },
+  {
+   "category": "open-domain",
+   "question": "What might John's financial status be?",
+   "gold": "Middle-class or wealthy",
+   "got": "The strongest signal is the car repair in April (k99): a breakdown he called a strain on his wallet, which suggests he wasn't sitting on much cushion. After the June promotion (k194) and a stretch at a new job he was enjoying (k255), he'd probably recovered some.\n\nBut then he lost the engineering job in August (k281), so right now, if the tech lead (k283) hasn't come through, I'd guess he's stretched again, likely leaning on savings or a spouse's income. That's my read, not something he told Maria.",
+   "correct": false,
+   "why": "incorrect. Gold says middle-class or wealthy; system speculates financial strain and stretched means."
+  },
+  {
+   "category": "single-hop",
+   "question": "What is John's main focus in local politics?",
+   "gold": "Improving education and infrastructure",
+   "got": "Education and infrastructure: fixing schools and roads in his own neighborhood, which is where the ambition started \u2014 he grew up watching both crumble [k3]. He's kept that same pair as the centerpiece of the blog and of the campaign he relaunched in spring [k109][k59]. The emphasis hasn't really moved.",
+   "correct": true,
+   "why": "correct. It states education and infrastructure as his focus, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What type of volunteering have John and Maria both done?",
+   "gold": "Volunteering at a homeless shelter",
+   "got": "Both have volunteered together at a shelter-type community effort \u2014 Maria recalled the time they volunteered side by side the previous year and John agreed it felt fulfilling [k88]. Beyond that their paths diverge: hers is the homeless shelter, front-desk shifts, baking, the fundraiser [k318][k269][k164], and his is the volunteer fire brigade, training, call-outs and the donation drive [k264][k265].",
+   "correct": true,
+   "why": "correct. Both mention volunteering at a shelter; extra details don't contradict the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Maria donate her car?",
+   "gold": "21 December 2022",
+   "got": "Wed Dec 21, 2026 \u2014 she told John the next day, \"I donated my old car to a homeless shelter I volunteer at yesterday\" [k13].",
+   "correct": false,
+   "why": "Incorrect. The system says 2026, but the gold answer is 21 December 2022."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would John be considered a patriotic person?",
+   "gold": "Yes",
+   "got": "Yes, fairly straightforwardly. He says he's always had great respect for the military and that standing up for what he believes in matters [k224], and he frames his politics as serving his country and community rather than just the neighborhood [k56]. The veterans project came from wanting to give back for \"how much they've done for us\" [k155].\n\nThe caveat is that his patriotism runs through service rather than symbols \u2014 food drives, the brigade, teaching kids to respect those who served [k560]. I don't have anything in memory where he expresses a contrary view.",
+   "correct": true,
+   "why": "correct. The system agrees John is patriotic and explains why with supporting details."
+  },
+  {
+   "category": "single-hop",
+   "question": "What sparked John's interest in improving education and infrastructure in the community?",
+   "gold": "Seeing how lack of education and crumbling infrastructure affected his neighborhood while growing up.",
+   "got": "His own childhood: he grew up watching underfunded schools and crumbling infrastructure drag his neighborhood down, and he didn't want future generations to live through the same thing [k3]. The specifics came from lived experience more than any single event \u2014 though the power cut in his area last spring [k143] and the flood that ruined homes in his old area in July [k240] hardened it into a conviction rather than an abstract concern.",
+   "correct": true,
+   "why": "correct. Matches gold: childhood experience of underfunded schools and crumbling infrastructure."
+  },
+  {
+   "category": "multi-hop",
+   "question": "Where has Maria made friends?",
+   "gold": "homeless shelter, gym, church",
+   "got": "Shelter, church, and the gym. At the homeless shelter she became friends with a fellow volunteer [k28]. She joined a nearby church in May 2027 and the friendships there became real \u2014 camping, a picnic, a hike, and community work with them [k141][k177][k250][k284]. At the gym she joined in June, the people were welcoming and she has gym friends she's had dinner with [k190][k245].\n\nOutside groups, there's the long-standing close-friend circle back home she leans on for movies, hikes and game nights [k14].",
+   "correct": true,
+   "why": "correct. It names the shelter, gym, and church, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John join the online support group?",
+   "gold": "The week before 1 January 2023",
+   "got": "Late December 2026, about a week before New Year's. On Fri Jan 1, 2027 he told Maria he'd joined \"last week\" [k21], which puts it roughly Dec 20\u201327, 2026. It's an online group of people with the same passion for serving, and he described the first weeks as an emotional ride [k21].",
+   "correct": false,
+   "why": "incorrect. Gold says week before 1 Jan 2023; system says late Dec 2026."
+  },
+  {
+   "category": "open-domain",
+   "question": "What might John's degree be in?",
+   "gold": "Political science, Public administration, Public affairs",
+   "got": "Most likely mechanical engineering, or mechanical engineering technology \u2014 that's the field he actually worked in at the company that tanked [k281]. His other interests fit as either a minor or a second area: the education and infrastructure focus [k3] lines up with public policy, which is what he said he was considering going into after graduating [k84]. So a reasonable guess: a mechanical engineering degree with some policy coursework, or a double major in engineering and political science.\n\nI don't have anything in memory naming the degree or the school, so this is inference from the job and the stated plans, not something he told Maria.",
+   "correct": false,
+   "why": "incorrect. Gold says political science/public administration/public affairs; system mainly says mechanical engineering."
+  },
+  {
+   "category": "single-hop",
+   "question": "How did the extra funding help the school shown in the photo shared by John?",
+   "gold": "Enabled needed repairs and renovations, making the learning environment safer and more modern for students.",
+   "got": "It paid for repairs and renovations, which made the learning environment safer and more modern for the students \u2014 that's how John described it when Maria asked about the photo[k7].",
+   "correct": true,
+   "why": "correct. Matches gold: funding enabled repairs/renovations, safer and more modern environment."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What items des John mention having as a child?",
+   "gold": "A doll, a film camera",
+   "got": "Two. A little doll, which always made him feel better and reminds him to look out for others [k45], and a film camera he used to take plenty of beach pictures with [k26].",
+   "correct": true,
+   "why": "correct. Mentions a doll and a film camera, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Maria go to the beach?",
+   "gold": "December 2022",
+   "got": "Three I can pin down: the sunset photo was taken on a beach in November 2026 \u2014 she told John on Jan 1 that she'd taken it \"last month\" [k25]. The Spain trip was in 2026, before that [k129]. And the Florida beach vacation with her family is from before June 16 of this year, though memory doesn't give a date for it [k203].",
+   "correct": false,
+   "why": "incorrect. It gives November 2026 and other dates, not December 2022."
+  },
+  {
+   "category": "open-domain",
+   "question": "Around which US holiday did Maria get into a car accident?",
+   "gold": "Independence Day",
+   "got": "July 4 \u2014 Independence Day. The accident was Sat Jul 2, 2027, two days before it[k216].",
+   "correct": true,
+   "why": "correct. Independence Day is the July 4 holiday, matching the gold answer."
+  },
+  {
+   "category": "single-hop",
+   "question": "What type of workout class did Maria start doing in December 2023?",
+   "gold": "aerial yoga",
+   "got": "Aerial yoga. She mentioned it in December 2023, alongside being busy volunteering at the homeless shelter and keeping fit[k6], and she still counts it as her way of switching off and focusing on her body[k185].",
+   "correct": true,
+   "why": "correct. The system says aerial yoga, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "Who gave Maria's family money when she was younger and her family was going through tough times?",
+   "gold": "Her aunt",
+   "got": "Her auntie. When Maria was younger and money was tight, the family had to rely on outside help from her auntie[k112] \u2014 and that aunt is also who inspired her to start volunteering herself[k43].",
+   "correct": true,
+   "why": "Correct. \"Auntie\" is the same as \"aunt,\" so it agrees with the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Maria meet Jean?",
+   "gold": "February 24, 2023",
+   "got": "Fri Feb 24, 2027 \u2014 she told John the next evening, Sat Feb 25, that she'd met Jean \"while volunteering yesterday\"[k62].",
+   "correct": false,
+   "why": "incorrect. The year is wrong: system says 2027, gold says 2023."
+  },
+  {
+   "category": "open-domain",
+   "question": "Does John live close to a beach or the mountains?",
+   "gold": "beach",
+   "got": "Close to a beach, at least \u2014 he sees sunsets over the ocean on his weekly walks, so the water can't be far[k237]. The mountains take more of a drive: picnics and camping trips are family outings rather than something at the back door[k313][k300]. If I had to place him, coastal flats with ranges a few hours out \u2014 which fits the Pacific Northwest trip being a road trip rather than a weekend hop[k100].",
+   "correct": true,
+   "why": "correct. He lives close to a beach, with mountains a drive away."
+  },
+  {
+   "category": "single-hop",
+   "question": "What did Maria donate to a homeless shelter in December 2023?",
+   "gold": "old car",
+   "got": "Nothing in my memory puts a donation in December 2023 \u2014 the car came much later, on Wed Dec 21, 2026, and she told John the next day[k13]. There's also a baked-goods drop-off in late July 2027[k269], but no 2023 donation at all.\n\nWhat I do have from around that era is just the two things she mentioned back then: volunteering at the shelter and starting aerial yoga[k2]. If you're thinking of a specific gift, tell me which and I can check against what's on record.",
+   "correct": false,
+   "why": "incorrect. System says no December 2023 donation, contradicting gold \"old car\"."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What people has Maria met and helped while volunteering?",
+   "gold": "David, Jean, Cindy, Laura",
+   "got": "Jean, a woman who'd been through divorce, job loss and homelessness and stayed optimistic \u2014 Maria met her at the shelter on Feb 24, 2027 [k62]. Cindy and Laura, two residents who wrote letters of gratitude [k280], and an eight-year-old girl with no other family whom Maria sat with and made laugh at a kids' event [k44]. Plus a fellow volunteer who became a friend [k28].\n\nFor \"helped,\" her broader work counts too: she gave a few talks there in April 2027 that got strong compliments from other volunteers [k102], and she says the shelter people have become like family [k104].",
+   "correct": false,
+   "why": "incorrect. Gold includes David; system lists Jean, Cindy, Laura but omits David."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Maria's grandmother pass away?",
+   "gold": "The week before 6 March 2023",
+   "got": "In the week before Mon Mar 6, 2027 \u2014 she told John that day that her grandma had passed away \"last week\"[k67].",
+   "correct": true,
+   "why": "Correct. Same timeframe; the year 2027 is a typo, the fact is the week before 6 March."
+  },
+  {
+   "category": "open-domain",
+   "question": "Would John be open to moving to another country?",
+   "gold": "No, he has goals specifically in the U.S. like joining the military and running for office.",
+   "got": "No, not really \u2014 everything in him points the other way. He's building a local life on purpose: running for office again so he can make a difference in his own community [k59], working the local-leader and organization circuit for support [k4], plus a volunteer fire brigade [k264], a veterans project [k153], and family rooted nearby with hikes, picnics and movie nights [k313].\n\nHis travel is recreational \u2014 the Pacific Northwest road trip [k100], an East Coast trip [k113] \u2014 never relocation. My read, and it's an inference: the community ties are the point for him, not a base he'd trade in.",
+   "correct": true,
+   "why": "correct. It agrees he wouldn't relocate, though it emphasizes community ties rather than military/office goals."
+  },
+  {
+   "category": "single-hop",
+   "question": "What kind of meal did John and his family make together in the photo shared by John?",
+   "gold": "pizza",
+   "got": "Pizza. They made them together, picking out toppings and sharing the meal \u2014 which he described as getting their \"creative on\" [k15].",
+   "correct": true,
+   "why": "correct. The system says pizza, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What test has John taken multiple times?",
+   "gold": "The military aptitude test",
+   "got": "The military aptitude test. He failed a first attempt around the turn of the year and was stressed about it[k24][k55], then retook it in the week before Mon Mar 6, 2027 and got great results \u2014 which is what pushed him toward serving his country in that way[k24].",
+   "correct": true,
+   "why": "Correct. The system identifies the military aptitude test as taken multiple times."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John get his degree?",
+   "gold": "The week before 2 April 2023",
+   "got": "He graduated in the last week of March 2027 \u2014 he told Maria on Sun Apr 2, 2027, that he'd graduated \"last week\"[k83]. Saying so, it was \"quite a journey, but definitely worth it\"[k83][#172].",
+   "correct": false,
+   "why": "incorrect. Gold says 2023; system says 2027, contradicting the year."
+  },
+  {
+   "category": "open-domain",
+   "question": "What attributes describe John?",
+   "gold": "Selfless, family-oriented, passionate, rational",
+   "got": "Community-minded and service-driven \u2014 local politics, the veterans project, the fire brigade[k56][k153][k264]. Family first, his rock and motivation[k11]. Persistent: ran again after losses, retook the test after failing[k59][k24]. Outdoorsy, upbeat, team player[k313][k36].",
+   "correct": true,
+   "why": "correct. Covers family-oriented, passionate/service-driven, persistent, and rational traits."
+  },
+  {
+   "category": "single-hop",
+   "question": "What kind of online group did John join?",
+   "gold": "service-focused online group",
+   "got": "A service-focused group \u2014 people with his same passion for serving, sharing stories, advice and encouragement[k21]. It's virtual, tied to backing the military, and it does real events: handing out food and supplies at a homeless shelter, a toy drive for kids in need[k22][k272]. They're also brainstorming help for underserved communities \u2014 education, mentorship, job training, resume building[k23].",
+   "correct": true,
+   "why": "correct. It states a service-focused online group, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What writing classes has Maria taken?",
+   "gold": "Poetry, creative writing",
+   "got": "Two. A creative writing class, which she called \"super enlightening\" \u2014 she mentioned it in a Feb 25, 2027 update to John[k61] \u2014 and then a poetry class she mentioned on Sun Apr 2, 2027, aimed at putting her feelings into words: \"a rough ride, but it's been good\"[k82].\n\nMemory doesn't give me a format, teacher or location for either, so I can't distinguish them beyond that.",
+   "correct": true,
+   "why": "correct. Poetry and creative writing, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John take a road trip to the Pacific Northwest?",
+   "gold": "2022",
+   "got": "In 2026, before Dec 17 \u2014 that morning he told Maria he'd gotten back from a family road trip the day before, and later confirmed it was the Pacific Northwest coast with national parks [k1][k100].",
+   "correct": false,
+   "why": "incorrect. The gold answer says 2022, but the system says 2026."
+  },
+  {
+   "category": "open-domain",
+   "question": "What job might Maria pursue in the future?",
+   "gold": "Shelter coordinator, Counselor",
+   "got": "Nothing she's said names a career goal, so this is my read rather than her words. The pattern points to something people-facing in care or community work \u2014 she keeps choosing volunteering over everything else, calls it rewarding and says making a difference keeps her going[k140][k275]. The front-desk shift at the shelter, where she says the smiles of people getting food or a bed made her feel good, suggests she'd do well in direct service rather than behind-the-scenes work[k318]. A shelter or nonprofit role is the obvious fit; fundraising, given the work she's put in there, would use the same instincts.",
+   "correct": true,
+   "why": "correct. Matches shelter coordinator/counselor direction."
+  },
+  {
+   "category": "single-hop",
+   "question": "What kind of activities did John and his mates from the online group do as part of their service efforts?",
+   "gold": "gave out food and supplies at a homeless shelter, organized a toy drive for kids in need",
+   "got": "Two held so far: they went to a homeless shelter to hand out food and supplies, and they ran a toy drive for kids in need[k22]. Planned next is work to help underserved communities with education, mentorship, job training and resume building[k23].\n\nSeparately, he later got family and friends to join the group as advocates for the military[k272] \u2014 that's recruitment, not a service event.",
+   "correct": true,
+   "why": "correct. Mentions both the homeless shelter food/supplies handout and the toy drive for kids in need."
+  },
+  {
+   "category": "multi-hop",
+   "question": "Who did John go to yoga with?",
+   "gold": "Rob",
+   "got": "Rob, a colleague of his \u2014 Rob invited him to the beginner's class and John took him up on it[k188][k65].",
+   "correct": true,
+   "why": "correct. The system says Rob, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John go to a convention with colleagues?",
+   "gold": "March 2023",
+   "got": "\"Last month\" from Tue Apr 18, 2027 \u2014 so March 2027, i.e. in the weeks before Apr 18[k111]. He went with his colleagues, all of them into using tech for good in the community[k111].",
+   "correct": false,
+   "why": "incorrect. Gold says March 2023; system says March 2027."
+  },
+  {
+   "category": "single-hop",
+   "question": "Who inspired Maria to start volunteering?",
+   "gold": "Her aunt",
+   "got": "Her aunt. When Maria's family had money problems growing up, they relied on her auntie's help[k112], and that aunt's belief in volunteering is what inspired her to start[k43]. She puts it plainly: \"I started volunteering to help make a difference\"[#95].\n\nMost of memory on this is from 2027, where she says she began at the shelter about a year earlier \u2014 after seeing a family struggling on the streets[k273]. The aunt is the deeper reason; the family on the street was the trigger.",
+   "correct": true,
+   "why": "correct. The system says her aunt inspired her, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What damages have happened to John's car?",
+   "gold": "Broken windshield, Car broke down",
+   "got": "No damage to the car itself is on record \u2014 what memory has is two incidents. On Fri Apr 7, 2027 it broke down on his way to work, and fixing it was straining his wallet[k99]. Back in the first week of January 2027 he had an \"unexpected incident\" on the way home, unspecified; he said he stayed calm, got assistance, and made it back safely[k29][k30].\n\nHis neighborhood's potholed roads are a plausible cause or aggravator for the breakdown, but that's inference, not something he said[k144].",
+   "correct": true,
+   "why": "correct. It gives the breakdown and notes a January incident, matching gold's breakdown and (loosely) windshield."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John start boot camp with his family?",
+   "gold": "April.2023",
+   "got": "April 2027 \u2014 he said on Thu May 4, 2027 that he'd started \"last month\"[#251], and the cadence he gave was three times a week[#255].",
+   "correct": false,
+   "why": "Incorrect. Gold says April 2023, system says April 2027."
+  },
+  {
+   "category": "single-hop",
+   "question": "Why did Maria sit with the little girl at the shelter event in February 2023?",
+   "gold": "The girl seemed sad and had no other family",
+   "got": "That date isn't right \u2014 it was January 2027, the week before Jan 28, not February 2023[k44]. She sat with the girl because she noticed her sitting alone and looking sad; they talked, and Maria learned the girl had no other family, which broke her heart. She gave her comfort and a listening ear, and they ended up laughing together[k44].",
+   "correct": true,
+   "why": "Correct. It gives the same reason: girl seemed sad and had no other family."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What areas of the U.S. has John been to or is planning to go to?",
+   "gold": "Pacific northwest, east coast",
+   "got": "Been: the Pacific Northwest coast with national parks, on that 2026 family road trip[k100], and California, where the family had a beach vacation with a sunset shore stroll[k201]. Planning: the East Coast, as of April 2027[k113].\n\nMemory doesn't name specific states or cities for any of them, apart from the regions themselves.",
+   "correct": true,
+   "why": "Correct. It covers Pacific Northwest and East Coast, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John have a party with veterans?",
+   "gold": "The Friday before 20 May 2023",
+   "got": "Friday, May 14, 2027 \u2014 he says so on Sat May 20, 2027, calling it \"last Friday\"[k157][#321].",
+   "correct": false,
+   "why": "incorrect. Gold says Friday before 20 May 2023; system gives 2027."
+  },
+  {
+   "category": "single-hop",
+   "question": "What did Jean go through before meeting Maria?",
+   "gold": "divorce, job loss, homelessness",
+   "got": "A divorce, losing her job, and ending up homeless[k62]. Despite all that she stayed optimistic and resilient \u2014 she still values the little things and believes in the good of kindness[k63].",
+   "correct": true,
+   "why": "correct. It lists divorce, job loss, and homelessness matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What desserts has Maria made?",
+   "gold": "Banana split sundae, Peach cobbler",
+   "got": "Peach cobbler, which she said turned out great[k16], and the homemade desserts she made with her mom for dinner on Wed May 3, 2027 \u2014 her favorite being a banana split sundae[k124]. She also baked cakes to drop off at the shelter the week before Mon Jul 31, 2027[k269].\n\nThat's three; memory doesn't name anything beyond those.",
+   "correct": true,
+   "why": "correct. It names banana split sundae and peach cobbler, plus extra cakes."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John get his dog Max?",
+   "gold": "In 2013",
+   "got": "Nothing in memory gives a year \u2014 only a duration: John says Max was part of the family for 10 years when they said goodbye in early June 2027[k169][#347]. Worked back from that, he'd have come into the family around mid-2027 minus ten, i.e. roughly 2017, but that's arithmetic on \"10 years,\" not a date he or anyone else stated.",
+   "correct": false,
+   "why": "incorrect. Gold says 2013; system infers roughly 2017, contradicting it."
+  },
+  {
+   "category": "single-hop",
+   "question": "Why did John decide to run for office again?",
+   "gold": "saw the impact he could make in the community through politics",
+   "got": "Three reasons he gives, all his own words: he saw after his last run how much impact he could make in the community through politics, and found working toward positive change genuinely rewarding (#129). He can't let go of his dream to make a difference in his community (#286). And underneath it all is a strong urge to serve his country and community (#107).\n\nOne wrinkle: the run itself he first mentions on Sat Feb 25, 2027 (#127), then announces properly on Sat May 6, 2027 saying he decided \"last week\" (#286). So the Feb 25 mention read as a wild ride he was already on, but the decision he dates to late April.",
+   "correct": true,
+   "why": "correct. Cites seeing his community impact through politics as the reason, matching gold."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What European countries has Maria been to?",
+   "gold": "Spain, England",
+   "got": "Two: England \u2014 specifically London, a few years before March 2027, where the architecture and castles captivated her[k74][k73] \u2014 and Spain, on her solo trip in 2026[k129]. Nothing in memory puts her in any other European country.",
+   "correct": true,
+   "why": "correct. Names both Spain and England, matching the gold answer."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Maria join a gym?",
+   "gold": "The week before 16 June 2023",
+   "got": "The week before Fri Jun 16, 2027 \u2014 so around Jun 8\u201312. She told John on the 16th, \"I joined a gym last week,\" and described it as super positive: routine sticking, welcoming people[k189][#386].",
+   "correct": true,
+   "why": "correct. Same week relative to 16 June, though the system uses 2027 instead of 2023."
+  },
+  {
+   "category": "single-hop",
+   "question": "What activity did John's colleague, Rob, invite him to?",
+   "gold": "beginner's yoga class",
+   "got": "A beginner's yoga class \u2014 John took him up on it and started attending on weekends[k65][k89]. He says the instructor is great and that it's part of his daily routine now[k187][#195].",
+   "correct": true,
+   "why": "correct. It says beginner's yoga class, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What has Maria done to feel closer to her faith?",
+   "gold": "Join a local church, buy a cross necklace",
+   "got": "Three things she named herself: she bought a cross necklace to feel closer to her faith[k103], then joined a nearby church the day before May 6, 2027 to be closer to both community and faith[k141], and she's found the church community rewarding since \u2014 camping, hiking and community work with the friends she made there[k177][k256][k284].",
+   "correct": true,
+   "why": "correct. Includes both gold actions (cross necklace, joined local church) plus extra context."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Maria get in a car accident?",
+   "gold": "July 2, 2023",
+   "got": "Saturday, July 2, 2027 \u2014 she told John the next day that a car ran a red light and hit them, and that thankfully everyone was okay[k216][#434].",
+   "correct": false,
+   "why": "incorrect. Wrong year: 2027 instead of 2023."
+  },
+  {
+   "category": "single-hop",
+   "question": "What is the name of John's one-year-old child?",
+   "gold": "Kyle",
+   "got": "Kyle[k68]. John called him \"so cute\" when he mentioned him.",
+   "correct": true,
+   "why": "correct. The system identifies the child as Kyle, matching the gold answer."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What causes does John feel passionate about supporting?",
+   "gold": "Veterans, schools, infrastructure",
+   "got": "Veterans, most clearly: he's always been passionate about veterans and their rights, and wants them supported and valued in the community[k155][k156]. His neighborhood generally \u2014 the food drive came from seeing unemployment hit his neighbors[k53], the infrastructure project from wanting the area improved[k145], and politics from an urge to serve his country and community[k56].\n\nThe brigade and the school mentoring are the two places he says the feeling has turned concrete: the brigade he calls his true calling[k316], and he's watching his mentees gain confidence[k307]. Worth noting the tension: in August 2027 he still said he felt stuck and wasn't making much of an impact[k303], so the passion was running ahead of his sense of payoff.",
+   "correct": true,
+   "why": "Correct. Mentions veterans, neighborhood infrastructure, and school mentoring (schools)."
+  },
+  {
+   "category": "temporal",
+   "question": "When was John's old area hit with a flood?",
+   "gold": "The week before 7 July 2023",
+   "got": "The week before Friday, July 7, 2027 \u2014 so Jun 28 to Jul 4. He told Maria on the 7th that a nasty flood had hit his old area, West County, the week before, and that poor infrastructure meant lots of homes were ruined[k240][#480].",
+   "correct": true,
+   "why": "correct. It says the week before 7 July (year typo 2027 vs 2023), same timeframe."
+  },
+  {
+   "category": "single-hop",
+   "question": "How often does John take his kids to the park?",
+   "gold": "A few times a week",
+   "got": "A few times a week \u2014 he says it's great for family bonding and letting the kids run around, and that everyone got a turn on the swings the previous weekend[k70][#150].",
+   "correct": true,
+   "why": "correct. Says a few times a week, matching gold."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What events is Maria planning for the homeless shelter funraiser?",
+   "gold": "Chili cook-off, ring-toss tournament",
+   "got": "Two she names directly: a ring-toss tournament she was planning for later in May 2027[k160], and a chili cook-off at the fundraiser, which she was promoting with a poster on May 25, 2027[k165]. The fundraiser itself was set for the first days of June, aimed at raising enough to cover basic needs for the homeless[k164].",
+   "correct": true,
+   "why": "correct. Names both the ring-toss tournament and chili cook-off."
+  },
+  {
+   "category": "temporal",
+   "question": "When did Maria go hiking with her church friends?",
+   "gold": "The weekend before 22 July 2023",
+   "got": "The weekend before Saturday, July 22, 2027 \u2014 so Jul 17\u201318. She told John on the 22nd that she'd had a great experience hiking with her church friends, and that reaching the top gave her a breathtaking view and a real sense of peace[k256][#512].",
+   "correct": false,
+   "why": "incorrect. It says 2027 instead of 2023 and asserts Jul 17\u201318."
+  },
+  {
+   "category": "single-hop",
+   "question": "What did Maria make for her home to remind her of a trip to England?",
+   "gold": "painting of a castle on a hill",
+   "got": "A painting, plus a related piece \u2014 both inspired by her trip to London a few years earlier. She'd been mesmerized by the castles and the architecture, and wanted to recreate some of that charm in her own space as a reminder of history and grace[k73][k74].",
+   "correct": true,
+   "why": "correct. It mentions a painting inspired by her trip and castles."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What shelters does Maria volunteer at?",
+   "gold": "The homeless shelter, the dog shelter",
+   "got": "Two: the homeless shelter, where she's volunteered since about a year before Aug 3, 2027 \u2014 she reached out after seeing a family struggling on the streets[#551] \u2014 and a local dog shelter, once a month, starting around Jun 2027[k175]. Nothing in memory puts her at any other shelter.",
+   "correct": true,
+   "why": "correct. It names the homeless shelter and the local dog shelter."
+  },
+  {
+   "category": "temporal",
+   "question": "When did John have his first firefighter call-out?",
+   "gold": "The sunday before 3` July 2023",
+   "got": "The week before Mon Jul 31, 2027 \u2014 he told Maria on the 31st that it happened \"last Sunday,\" so Sunday Jul 25, 2027[k266][#534]. Chaotic scene, team pulled together, and they got a family out of a burning building[#536].",
+   "correct": false,
+   "why": "incorrect. Wrong year and date; gold places it in July 2023, not 2027."
+  },
+  {
+   "category": "single-hop",
+   "question": "Where did Maria get the idea for the castle shadow box in her home?",
+   "gold": "England",
+   "got": "From her trip to London a few years before March 2027 \u2014 she was mesmerized by the castles and the architecture, and wanted to bring that magic into her space as a reminder of the world's beauty and of London's history and grace[k73][k74].",
+   "correct": true,
+   "why": "Correct. London is in England, so the answer matches."
+  },
+  {
+   "category": "multi-hop",
+   "question": "What outdoor activities has John done with his colleagues?",
+   "gold": "Hiking, mountaineering",
+   "got": "Two that I have: a hiking trip in May 2027, where he sent Maria a photo of the group and said they really keep him going[k163], and a mountaineering trip the first week of June 2027, which he said cleared his head \u2014 they made it to the top, and the view was stunning, tough but awesome[k178][k179]. Those look like the same workmates in both[k163][k178].",
+   "correct": true,
+   "why": "correct. It names hiking and mountaineering as outdoor activities done with colleagues."
+  }
+ ]
+}

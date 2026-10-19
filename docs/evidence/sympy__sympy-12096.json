@@ -1,0 +1,21 @@
+{
+ "instance": "sympy__sympy-12096",
+ "repo": "sympy/sympy",
+ "difficulty": "<15 min fix",
+ "started": "1792438491.8255775",
+ "reply": "(scored an existing patch)",
+ "steps": [],
+ "diff_lines": 19,
+ "graded": {
+  "applied": true,
+  "passed": true,
+  "returncode": 0,
+  "python": "3.9",
+  "f2p": [
+   "test_issue_12092"
+  ],
+  "p2p_checked": 40,
+  "tail": "antum/state.py:937: DeprecationWarning: invalid escape sequence \\p\n    \"\"\"\n\nsympy/physics/quantum/spin.py:690\n  /home/ubuntu/Avy/tests/swe/work/sympy__sympy-12096__score/sympy/physics/quantum/spin.py:690: DeprecationWarning: invalid escape sequence \\g\n    \"\"\"Wigner-D function\n\nsympy/physics/quantum/cg.py:151\n  /home/ubuntu/Avy/tests/swe/work/sympy__sympy-12096__score/sympy/physics/quantum/cg.py:151: DeprecationWarning: invalid escape sequence \\l\n    \"\"\"Class for Clebsch-Gordan coefficient\n\nsympy/functions/elementary/tests/test_trigonometric.py: 5517 warnings\n  /home/ubuntu/.cache/uv/archive-v0/9F_prLknGOOIJzbL/lib/python3.9/site-packages/mpmath/libmp/libintmath.py:75: DeprecationWarning: bitcount function is deprecated\n    warnings.warn(\"bitcount function is deprecated\",\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n37 passed, 4 skipped, 5621 warnings in 6.69s\n"
+ },
+ "minutes": 2.3
+}

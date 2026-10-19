@@ -1,0 +1,1512 @@
+[
+ {
+  "probe": "origin",
+  "day": 18,
+  "config": "none",
+  "answer": "I don't have anything on a chores system in my memory \u2014 not as something you told me, and not as something I suggested. So I can't tell you which parts were which without guessing, and I'd rather not invent an attribution.\n\nDo you mean a physical setup at your apartment, or something in text we've talked through before?",
+  "seconds": 1.3,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer explicitly denies having any record of a chores system and never attributes the rotating dish captain or the whiteboard to Avy \u2014 the opposite of crediting it. / The answer claims to have no memory of any chores system at all, so it never credits Avy with the rotating dish captain + whiteboard idea \u2014 which is explicitly in the Sep 07 exchange."
+    },
+    {
+     "verdict": "missed",
+     "why": "It never mentions the 'whoever cooks never washes up' rule, let alone crediting Shreyas with it. / No mention of the 'whoever cooks never washes up' rule, let alone attributing it to Shreyas (Sep 12)."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00102
+  }
+ },
+ {
+  "probe": "origin",
+  "day": 18,
+  "config": "words",
+  "answer": "I don't seem to have that in my memory \u2014 the search came back with nothing about a chore system, only the dishes standoff with your flatmates noted as getting tense. The ant colony and library-tools ideas are what I have on record from you, but nothing that names a chores system or who proposed what in it.\n\nWas it your ant-trail idea applied to the dishes, or something separate we worked out? If you remind me roughly what the system has in it, I can tell you what I remember versus what I don't.",
+  "seconds": 1.7,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer denies any record of a chores system at all, so it never credits Avy with the rotating dish-captain-plus-whiteboard suggestion. / The answer claims no memory of any chores system at all and credits nobody \u2014 it never attributes the rotating weekly dish captain / whiteboard to Avy (which was indeed Avy's suggestion on Sep 07)."
+    },
+    {
+     "verdict": "missed",
+     "why": "It never mentions Shreyas's 'whoever cooks never washes up' rule, let alone crediting him with it. / It never mentions the cook-doesn't-wash-up rule, let alone crediting Shreyas for adding it himself on Sep 12 ('I also added my own rule: whoever cooks never washes up')."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00165
+  }
+ },
+ {
+  "probe": "origin",
+  "day": 18,
+  "config": "meaning",
+  "answer": "Almost all of it was yours.\n\nYours: the cook-never-washes-up rule, and the decision to actually run the captain setup rather than keep debating it.\n\nMine: the rotating captain with the whiteboard by the sink, responsible for an empty sink by 10pm. You tried that and reported back that the flat went calmer.\n\nOne thing I can't pin down from memory: whether \"captain\" was my word or yours. I introduced the arrangement, but I don't have the exact message where the name came from, so I won't claim it.",
+  "seconds": 1.5,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Explicitly attributes the rotating captain, the whiteboard by the sink, and the 10pm empty-sink duty to Avy ('Mine: the rotating captain with the whiteboard by the sink...'). / Explicitly credits Avy with the rotating dish captain plus whiteboard by the sink, responsible for an empty sink by 10pm, and notes Shreyas tried it and reported back."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly lists 'the cook-never-washes-up rule' as Shreyas's own. / Explicitly credits Shreyas with the cook-never-washes-up rule as his own addition."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00123
+  }
+ },
+ {
+  "probe": "origin",
+  "day": 18,
+  "config": "both",
+  "answer": "Your parts: the cook-never-washes-up rule, and the fighting itself was yours to report. The rotating dish captain, the whiteboard by the sink, the 10pm empty-sink deadline \u2014 all mine. You also added on top of my suggestion: you put your rule in without cutting the rotation, so what runs at your flat is my captain plus your exception.",
+  "seconds": 2.0,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Explicitly attributes the rotating dish captain, the whiteboard by the sink, and the 10pm deadline to Avy's suggestion, not Shreyas. / It explicitly credits Avy with the rotating dish captain, the whiteboard by the sink, and the 10pm deadline; it only omits \"weekly,\" but the attribution itself is clear."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly credits Shreyas with the rule that whoever cooks never washes up, matching his 'I also added my own rule'. / It explicitly says the cook-never-washes-up rule was Shreyas's part."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00253
+  }
+ },
+ {
+  "probe": "origin",
+  "day": 18,
+  "config": "explore",
+  "answer": "The captain rotation with the whiteboard was mine \u2014 one person per week owns the sink, empty by 10pm. The reasoning behind it (one owner beats four people negotiating) was my argument too.\n\nYours: the cook-never-washes rule, which you added on top afterward. And the decision to actually try the captain thing at all, and to keep it once it worked, was yours.",
+  "seconds": 7.2,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Explicitly credits Avy with the weekly rotating dish captain plus whiteboard ('one person per week owns the sink, empty by 10pm'), matching Avy's actual Sep 7 suggestion. / Explicitly says the weekly rotating captain with a whiteboard (sink empty by 10pm) was Avy's suggestion, and attributes the 'one owner beats four negotiating' reasoning to Avy as well \u2014 matching the conversation."
+    },
+    {
+     "verdict": "met",
+     "why": "Credits Shreyas with the 'whoever cooks never washes up' rule, described as added on top \u2014 exactly as he reported it. / Explicitly credits Shreyas with the 'whoever cooks never washes up' rule, correctly noting he added it on top afterward."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.001
+  }
+ },
+ {
+  "probe": "habit",
+  "day": 16,
+  "config": "none",
+  "answer": "A full free Saturday is rare enough that it's worth protecting, and the thing that kills it is fragmentation. So: one block, not three.\n\nWhat's the book need most \u2014 first draft of new pages, or is there a mess to fix? If it's new pages, I'd do a 3-hour block in the morning (your best window) with a hard rule of no research, no outline fiddling, just writing forward. Then a real break, then a shorter second block lunchtime-ish. Stop by mid-afternoon. Leave the evening alone.\n\nTwo things that make or break it: decide Friday night what scene or chapter you're starting in, so you don't burn the first 40 minutes of goodwill wondering where to begin. And kill the morning habits that eat the block \u2014 no email, no phone until noon.\n\nIf there's a backlog of half-finished chapters, that's a different day and I'd plan it differently. Which is it?",
+  "seconds": 2.4,
+  "judge": {
+   "score": 0.42,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "It does recommend a morning block and calls it \"your best window,\" which frames it as personal rather than generic, but it never ties that to his actual early sessions (the 6am / before-breakfast streak), so the grounding is only gestured at. / Puts the 3-hour block in the morning and explicitly calls it \"your best window,\" tying the recommendation to him rather than generic advice."
+    },
+    {
+     "verdict": "partly",
+     "why": "No mention of the 1,800 or 2,200-word mornings, or finishing chapter 4 before breakfast \u2014 the plan never cites any of his own concrete sessions as evidence. / Says morning is his best window but cites no specifics from his own sessions \u2014 no word counts, no chapter 4 finished before breakfast."
+    },
+    {
+     "verdict": "partly",
+     "why": "\"Stop by mid-afternoon. Leave the evening alone\" protects the evening, which gestures at his evening attempts failing, but it never references the ~150-word after-dinner attempt or the night he deleted everything. / Says \"leave the evening alone\" and \"stop by mid-afternoon,\" but never mentions that evening attempts went badly (150 words, or deleting a night's work) as the reason."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.33,
+    0.5
+   ],
+   "cost": 0.00178
+  }
+ },
+ {
+  "probe": "habit",
+  "day": 16,
+  "config": "words",
+  "answer": "You've got one strong session in you, not three. Two, if the second is lighter. Block 7\u201310 for the main writing, and don't let it be the first thing after waking \u2014 breakfast, then straight to the desk.\n\nThe other Saturday stuff (errands, the sensor, whatever) goes after lunch, and the afternoon-writing experiment only if you actually feel pulled back to the page.\n\nWhat's the main writing block for \u2014 a new chapter or finishing something in progress?",
+  "seconds": 1.9,
+  "judge": {
+   "score": 0.33,
+   "marks": [
+    {
+     "verdict": "partly",
+     "why": "It does steer the main block into the morning (7\u201310) and treat afternoon writing as only an experiment, but it never grounds that in his own early sessions \u2014 it gives it as a plan ('one strong session in you, not three') and even tells him to eat breakfast first, which cuts against the before-breakfast pattern he actually has. / It does put the main writing block at 7\u201310, i.e. early morning, and frames it for him specifically rather than as generic advice. But it never grounds it in his own early sessions \u2014 no reference to the fact that mornings have been his productive window; the only justification given is 'don't let it be the first thing after waking, breakfast then desk.'"
+    },
+    {
+     "verdict": "missed",
+     "why": "No mention of 1,800 or 2,200 words, the caf\u00e9-before-8 quiet, or finishing chapter 4 before breakfast \u2014 nothing concrete from his own sessions. / No mention of any of his session specifics \u2014 neither the 1,800/2,200-word mornings nor finishing chapter 4 before breakfast, nor even that chapter 5 is in progress. The answer only asks which chapter the block is for."
+    },
+    {
+     "verdict": "partly",
+     "why": "'The afternoon-writing experiment only if you actually feel pulled back to the page' vaguely demotes later-day writing, but it never mentions the failures \u2014 the ~150 words after dinner or deleting the evening draft. It also says 'afternoon', not evening. / 'The afternoon-writing experiment only if you actually feel pulled back to the page' gestures at later-in-day writing being a bad bet, but it never mentions the ~150 words after dinner or the deleted session, so the reasoning isn't actually stated."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.33,
+    0.33
+   ],
+   "cost": 0.00213
+  }
+ },
+ {
+  "probe": "habit",
+  "day": 16,
+  "config": "meaning",
+  "answer": "Saturday is the 19th, so you're two days off that 2,500-word midnight session. Don't plan the day around a slot \u2014 plan it around protecting quiet hours and see which ones you actually use.\n\nConcretely: don't set an alarm. If you wake early, the caf\u00e9 downstairs before 8 is your best-run setup, so treat that as the default first block. Then leave the middle of the day genuinely empty \u2014 no errands queued, no calls, nothing where you owe someone an appearance at 11. The two midnight sessions both came from a day with nothing else pressing, so a free Saturday's real gift is silence, not structure.\n\nThe one thing I'd write down: pick a chapter target, not a word target, and pick it Friday night. Deciding what to write at 8am Saturday wastes the quiet.",
+  "seconds": 2.6,
+  "judge": {
+   "score": 0.42,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "It directs him to the caf\u00e9 downstairs before 8 as the default first block, grounded explicitly in his own best-run setup ('your best-run setup') rather than generic advice. Slightly hedged with 'if you wake early', but the recommendation is there and tied to his history. / It does put the early block first and ties it to his own track record rather than generic advice: \"If you wake early, the caf\u00e9 downstairs before 8 is your best-run setup, so treat that as the default first block.\" It's hedged and framed as the first block rather than explicitly the main writing block, but the recommendation and the reasoning are there."
+    },
+    {
+     "verdict": "partly",
+     "why": "No mention of 1,800 or 2,200 words, nor of finishing chapter 4 before breakfast. The only numbers cited (2,500-word midnight session) aren't from his actual sessions and are wrong. / It references one specific from his own sessions \u2014 the caf\u00e9 downstairs being dead quiet before 8 \u2014 but never cites the concrete markers asked for: the 1,800- or 2,200-word mornings, or finishing chapter 4 before breakfast."
+    },
+    {
+     "verdict": "missed",
+     "why": "Evening writing is never discussed; the answer instead implies the evening/midnight work went well ('the two midnight sessions'), the opposite of the record. / No mention that evening writing went badly (the 150-word after-dinner attempt or deleting the Sep 11 draft). Worse, it treats \"midnight sessions\" as his productive mode, which cuts against the point rather than making it."
+    }
+   ],
+   "invented": true,
+   "invented_what": "It invents two 'midnight sessions' of writing, including a '2,500-word midnight session,' and says they came from days with nothing else pressing \u2014 nothing in the conversations mentions midnight writing or a 2,500-word day (his figures were 1,800 and 2,200). It also asserts 'Saturday is the 19th,' a calendar claim the conversations don't support. / It asserts a \\\"2,500-word midnight session\\\" two days before Saturday and refers to \\\"the two midnight sessions\\\" as his best runs. Nothing in the conversations supports any midnight writing session or a 2,500-word count \u2014 his logged sessions were early mornings (1,800 words Sep 3, 2,200 words Sep 13) and his late-night attempts produced ~150 words and were deleted.",
+   "passes": [
+    0.33,
+    0.5
+   ],
+   "cost": 0.00263
+  }
+ },
+ {
+  "probe": "habit",
+  "day": 16,
+  "config": "both",
+  "answer": "Plan it around the quiet hours, since that's what's actually produced words every time. Concretely: write in the caf\u00e9 before 8, and if the session is going, stay until it dies rather than stopping at a nice time. That's your 2,200-word slot.\n\nThen don't treat the rest of Saturday as writing time. A second evening push is the thing that's failed twice \u2014 so if you want a second go, make it a quiet one: phone away, nothing live, late. And if it doesn't come, the day already worked.\n\nThe one thing I'd add: decide tonight which chapter and which scene you're opening into, so the morning starts with the pen moving instead of deciding.",
+  "seconds": 2.0,
+  "judge": {
+   "score": 0.92,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Opens by saying to plan the day around the quiet hours because that's what has actually produced words every time, and directs him to write in the caf\u00e9 before 8 \u2014 i.e. the early-morning slot, justified by his own track record rather than generic advice. / Recommends writing in the quiet early-morning caf\u00e9 slot before 8, framed explicitly as 'what's actually produced words every time' for him \u2014 grounded in his own history rather than generic advice."
+    },
+    {
+     "verdict": "met",
+     "why": "Cites his 2,200-word session and, earlier in the answer, the 1,800-word burst (and the chapter 4 finish) as evidence the morning should be the main writing block. / Cites the 2,200-word slot specifically as his own proven session ('That's your 2,200-word slot')."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly notes the evening attempts are 'the thing that's failed twice' \u2014 his 150-word post-dinner session and the deleted session \u2014 and warns against a second evening push. / Says the evening push 'is the thing that's failed twice' and advises not depending on it \u2014 gestures at the history but never names the specifics (150 words after dinner, or deleting the writing)."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    0.83
+   ],
+   "cost": 0.00161
+  }
+ },
+ {
+  "probe": "habit",
+  "day": 16,
+  "config": "explore",
+  "answer": "A full free Saturday with a book that's been living in quiet hours \u2014 the mistake would be treating it as one big open block. It's a day of many hours nobody will interrupt, which is the condition that actually produced the words: 1,800 before breakfast, 2,200 in the caf\u00e9, 3,000 and 2,500 at midnight. So build the day around a few protected stretches, not one.\n\nMy lean: two sittings, not three. A real one early \u2014 caf\u00e9-before-8 quiet, or your desk, with the chapter you're mid-way through and a rough word target you'll actually hit (1,500\u20132,000 is your range, not a fantasy). Then stop properly. Lunch, the day, errands, whatever you want. Second sitting late and unclaimed: either a quiet block in the afternoon with nothing scheduled after it, or push it to the evening and let it run late \u2014 both of your best long sessions were after everyone else had stopped asking anything. Don't put a third sitting in the middle of the afternoon just because the hours exist; that's the 150-word-after-dinner situation in a different costume.\n\nThe one thing it turns on: is Saturday's work writing new chapter text, or fixing what's already there? If it's new text, both sittings on the same chapter, so the second one starts with momentum. If something needs untangling, give the first quiet stretch to that and keep the second for fresh pages. Either way, leave the last hour of the day free \u2014 a free Saturday doesn't mean a Saturday spoken for.\n\nTry to keep that first hour:",
+  "seconds": 8.3,
+  "judge": {
+   "score": 0.92,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "It tells him to make the first sitting a real early one \u2014 \"caf\u00e9-before-8 quiet, or your desk\" \u2014 and justifies it with his own record (1,800 before breakfast, 2,200 in the caf\u00e9), not generic advice. The point is met, though the answer undercuts itself by also endorsing a late/evening long session. / Recommends the main sitting early (\"A real one early \u2014 caf\u00e9-before-8 quiet, or your desk\") and explicitly grounds it in his own pattern (\"the condition that actually produced the words: 1,800 before breakfast, 2,200 in the caf\u00e9\"), not generic advice."
+    },
+    {
+     "verdict": "met",
+     "why": "Uses the specific numbers and detail from his own sessions: \"1,800 before breakfast, 2,200 in the caf\u00e9\" and the caf\u00e9 being quiet before 8. / Cites 1,800 before breakfast and 2,200 in the caf\u00e9 by name, and the general pattern of finishing chapters in morning sessions."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly cites the failure case: warns against adding a third sitting by calling it \"the 150-word-after-dinner situation in a different costume.\" / References the 150-word evening session (\"that's the 150-word-after-dinner situation in a different costume\"), but frames it only as a warning against a mid-afternoon sitting while still offering the evening as a good option (\"push it to the evening and let it run late\"), so it never actually treats his evenings as having gone badly."
+    }
+   ],
+   "invented": true,
+   "invented_what": "Claims word counts and sessions that never appear in the conversations \u2014 \\\"3,000 and 2,500 at midnight\\\" \u2014 and asserts \\\"both of your best long sessions were after everyone else had stopped asking anything,\\\" when the sessions he actually reported were early-morning ones (1,800 before breakfast, 2,200 in the caf\u00e9 before 8). This also contradicts the established pattern that evening writing went badly for him. / Claims word counts of \\\"3,000 and 2,500 at midnight\\\" and that \\\"both of your best long sessions were after everyone else had stopped asking anything\\\" \u2014 no conversation mentions any midnight sessions or those counts; every strong session in the record was a morning one. It also asserts the book has a chapter he's \\\"mid-way through\\\" beyond what was said.",
+   "passes": [
+    1.0,
+    0.83
+   ],
+   "cost": 0.00248
+  }
+ },
+ {
+  "probe": "synthesis",
+  "day": 21,
+  "config": "none",
+  "answer": "The wrong diagnosis is usually \"people were lazy.\" If nobody stuck to the hierarchy, the taxonomy probably asked for decisions people couldn't make confidently or quickly, so they dumped files wherever was fastest. Before redesigning, look at where things actually landed last term: the junk pile is the map of what the structure didn't cover.\n\nConcretely, what I'd change:\n\nKeep the hierarchy shallow, two or three levels at most. Deep nesting means each file needs four correct choices to get placed, and people take the shortcut.\n\nOrganize by project, not by type. A folder per project with its own loose contents beats a drive-wide Documents/Data/Analysis tree, because a file's project is usually obvious and its type often isn't. If you keep any type folders, restrict them to shared evergreen things.\n\nName folders after language people already use in conversation, not formal categories. The test is whether someone can guess where a file goes without asking.\n\nFor stale junk: don't rely on a cleanup day. Either set retention rules (archives folder, anything untouched in X months moves, with a calendar rule or a script) or make deletion somebody's actual job with a recurring slot. Junk that \"nobody\" owns never gets cleared. A monthly 20-minute sweep with one named owner beats a policy nobody enforces.\n\nThen the part that decides whether any of this survives: name it in one place, and model it. Put the one-page map where people see it, put new files there yourself for a few weeks, and fix misplacements quietly rather than announcing a new system. Enforcement through habit change sticks; enforcement through a memo doesn't.\n\nThe design also has to fit your group's actual size. How many people, and what kind of files dominate, datasets, code, or papers and drafts?",
+  "seconds": 3.4,
+  "judge": {
+   "score": 0.75,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Advises reading the existing dump as data \u2014 \"look at where things actually landed last term: the junk pile is the map of what the structure didn't cover\" \u2014 and building the taxonomy around observed behavior rather than the designed ideal. The underlying idea (structure follows where things actually go) is made, even without naming the campus paths. / It grounds the design in observed behaviour \u2014 'look at where things actually landed last term' \u2014 and asks the structure to match how people already name and look for things ('name folders after language people already use'; 'someone can guess where a file goes without asking'). It never uses the desire-line analogy, but the substance of building from emergent usage is there."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly proposes automatic, time-based fading: \"set retention rules (archives folder, anything untouched in X months moves, with a calendar rule or a script)\" \u2014 untouched files drift out on their own instead of relying on a cleanup push. / Explicit and concrete: retention rules with an archives folder for anything untouched in X months, driven by a calendar rule or script, plus a named owner for a recurring sweep \u2014 'junk that nobody owns never gets cleared.'"
+    },
+    {
+     "verdict": "partly",
+     "why": "Never names ants, pheromone evaporation, or desire lines, so the connection isn't explicit. The \"junk pile is the map of what the structure didn't cover\" line echoes the desire-line idea but leaves the reader to make the link. / No reference anywhere to the ant colonies, pheromone evaporation, or the campus desire lines; the advice stands entirely on its own without the callback."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.83,
+    0.67
+   ],
+   "cost": 0.00208
+  }
+ },
+ {
+  "probe": "synthesis",
+  "day": 21,
+  "config": "words",
+  "answer": "The hard part isn't the hierarchy; it's that last term's structure had no cost for ignoring it. People drift when the correct place is ambiguous or when filing is just extra work with no payoff. So before redesigning anything, ask what actually broke: did people not know where things went, or did they know and not bother? Those need opposite fixes.\n\nIf it was ambiguity: fewer top-level folders, named by what people are looking for rather than by org chart, and a one-line rule for what goes in each. If it was effort, structure won't fix it \u2014 a five-minute habit at the end of each meeting or work session does more than any folder tree.\n\nOn stale junk, don't rely on discipline. Pick a concrete rule with a date: anything untouched for a term goes into an Archive folder automatically (a script or a scheduled reminder if nobody wants to be the enforcer), and name files with a date or version so old versions are obviously old. The one thing I'd insist on is that someone owns deletion. Shared drives rot because nobody is allowed to throw things away.\n\nOne lean: keep this term's structure close to last term's, not a fresh redesign. A big new scheme is another thing to learn, and it gives everyone an excuse to start misfiling again. What actually went wrong last term \u2014 people not knowing, or not caring?",
+  "seconds": 3.1,
+  "judge": {
+   "score": 0.34,
+   "marks": [
+    {
+     "verdict": "partly",
+     "why": "It gestures in this direction by suggesting folders be \"named by what people are looking for rather than by org chart,\" and by asking what actually broke rather than imposing a scheme. But it never suggests observing how people actually save files and formalizing those emergent patterns \u2014 the advice is still top-down: fewer folders, a one-line rule, keep last term's structure. No notion of letting the structure follow observed behavior. / The answer talks about naming folders by what people look for and about ambiguity vs. effort, but never suggests observing/formalizing actual saving behavior (bottom-up patterns, like paving where people walked). It gives top-down design advice instead."
+    },
+    {
+     "verdict": "met",
+     "why": "It explicitly proposes a concrete automatic aging rule: anything untouched for a term goes into an Archive folder, by script or scheduled reminder, and files named with date/version so old ones are obviously old. That's the auto-fade/archive idea, even though the mechanism is archive-then-delete rather than decay. / It recommends an Archive rule for anything untouched for a term, with a script/reminder \u2014 that is automatic archiving of unused files, but it never frames it as fading/decay or connects it to the evaporation idea; it's presented as an enforcement rule. The core mechanic is present, the 'fade away automatically over time' framing only partly."
+    },
+    {
+     "verdict": "missed",
+     "why": "Nothing in the answer references the ant colonies, the campus desire lines, or any earlier conversation. It closes by repeating \"what actually went wrong last term,\" with no callback at all. / No explicit connection to anything Shreyas discussed \u2014 no mention of ant colonies, pheromone trails, or desire lines on campus."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.5,
+    0.17
+   ],
+   "cost": 0.00135
+  }
+ },
+ {
+  "probe": "synthesis",
+  "day": 21,
+  "config": "meaning",
+  "answer": "You already have the answer in your own work, twice over. The hierarchy nobody stuck to is the planned layout losing to where feet actually go, and any structure you pour this time will lose the same way unless it's built from where the files actually are.\n\nSo run the reverse order: before designing anything, spend an hour reading the drive as it sits. Find where things actually got put. The folders people used, the ones nobody opened, the weird \"temp\" folder with 400 files in it. That tells you where the real routes are \u2014 and probably that the hierarchy lost because it was two levels deeper than anyone needed or split along lines nobody thinks in.\n\nThen two things for the stale junk. First, don't inherit the junk \u2014 start the term with a one-time sort where you message whoever owns each orphan and give them a week, then archive rather than delete. Archiving is the permission structure: nobody fights over a move to \"old stuff,\" everybody fights over a delete.\n\nSecond, the thing that actually keeps a drive clean is that something depends on it. The reason junk piles up is that putting a file somewhere is free. If anything downstream reads the drive \u2014 a weekly summary, a report you assemble, a bot that flags files untouched for 90 days \u2014 then the drive gets looked at on a schedule, and cleanup stops being an annual event. That's the same move as the sensor: small readings, refreshed often, and the drift gets caught before it's drift.\n\nMy lean: skip the hierarchy entirely this round. Build the flat list of where files actually live, sort it against what people did, and let the two or three real groupings emerge \u2014 then name those, and nothing else. Ask me how the current drive actually looks and I'll be more specific.",
+  "seconds": 3.7,
+  "judge": {
+   "score": 0.83,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Opens by framing the failed hierarchy as the planned layout losing to where feet actually go, and tells him to read the drive as it sits and let the real groupings emerge and name those \u2014 structure derived from actual behavior, with the campus-paths image right there. / Tells him to read the drive as it sits, find where files actually got put, and let the two or three real groupings emerge and then name only those \u2014 structure from actual behaviour, formalized. It even frames it as 'the planned layout losing to where feet actually go.'"
+    },
+    {
+     "verdict": "partly",
+     "why": "There is archiving advice (one-time sort, owner outreach, archive rather than delete) and a suggestion for a bot flagging files untouched for 90 days, so automated recurring scrutiny is gestured at. But it's framed as scheduled review/cleanup, not as junk fading on its own, and the evaporation analogy is not used \u2014 the only analogy drawn is the soil sensor's repeated readings. / Addresses stale junk via a one-time sort and archiving rather than deleting, plus a bot flagging files untouched for 90 days \u2014 a monitoring/scheduled-cleanup mechanism. But it's a manual sweep plus flagging, not files that nobody touches fading or being archived automatically over time, and the evaporation idea isn't used."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly ties the advice to the desire-lines conversation: 'the hierarchy nobody stuck to is the planned layout losing to where feet actually go,' and returns to it again later in the answer. / Explicit callbacks appear: 'the planned layout losing to where feet actually go' (his desire-lines line) and 'that's the same move as the sensor' referencing his ESP32/soil-sensor project. Prior conversation topics are named and reused, even if 'desire lines' and 'ants' aren't spelled out."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.83,
+    0.83
+   ],
+   "cost": 0.00339
+  }
+ },
+ {
+  "probe": "synthesis",
+  "day": 21,
+  "config": "both",
+  "answer": "The hierarchy failed for the same reason the planned footpath did: nobody walks a layout they weren't consulted on. Last term you designed it and they didn't stick to it \u2014 so the fix isn't a better hierarchy, it's one that comes out of where their files already are.\n\nStart by looking at what actually happened last term: which folders got traffic, which ones everything got dumped beside, what the real working groups turned out to be. That's your desire lines. Then build the top level from those, not from the org chart or your idea of tidy. You'll probably find people organize by project or by person and the thing you designed organized by type or by date.\n\nTwo other parts worth splitting out:\n\nThe routing problem. If there's a rule like \"everything goes in shared/\", people route around it \u2014 they drop files in their own scratch folder or email them, and the junk just relocates. So make the easy path the right path: a place to dump that isn't the shared drive's main organ, and let it exist on purpose rather than pretending it won't.\n\nThe stale junk is a separate mechanism from the layout, and a hierarchy won't fix it. Junk accumulates because nothing ever expires. Decide a retention rule up front \u2014 archive folder with a date, owner-per-folder with a quarterly sweep, anything that has a person and a moment attached rather than \"we should clean this up.\" That's the sitting-unattended problem again: it'll only get reorganized in response to a specific event, never spontaneously.\n\nIf you want, tell me what the group actually is and roughly how many people, and I'll sketch the top level with you.",
+  "seconds": 3.7,
+  "judge": {
+   "score": 0.83,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Opens by saying the hierarchy failed \"for the same reason the planned footpath did\" and tells him to look at which folders got traffic and where things got dumped last term \u2014 \"That's your desire lines. Then build the top level from those\" \u2014 i.e. formalize the observed patterns rather than impose a design. / The answer reframes the problem as deriving structure from observed behavior (\"the fix isn't a better hierarchy, it's one that comes out of where their files already are... Start by looking at what actually happened last term: which folders got traffic... That's your desire lines. Then build the top level from those\"), which is the observed-patterns-become-the-structure idea."
+    },
+    {
+     "verdict": "partly",
+     "why": "It does split out stale junk as its own problem and prescribes a retention rule (archive folder with a date, owner-per-folder quarterly sweep). But it's a scheduled human sweep for old files, not files that nobody touches expiring/decaying on their own, and it never draws the evaporation analogy \u2014 it instead invokes an unsupported \"sitting-unattended problem\" callback. / It does separate out stale junk and propose expiry (\"Junk accumulates because nothing ever expires. Decide a retention rule up front \u2014 archive folder with a date, owner-per-folder with a quarterly sweep\"), which is the archiving-over-time mechanism. But it leans on periodic manual sweeps with a named owner rather than files nobody touches fading automatically, and never frames it as usage-based decay."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly ties the advice to the earlier campus-path conversation: the hierarchy failed like \"the planned footpath,\" and the real folder usage is named as \"your desire lines.\" / It explicitly invokes the earlier conversation twice: \"The hierarchy failed for the same reason the planned footpath did: nobody walks a layout they weren't consulted on\" and \"That's your desire lines.\""
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.83,
+    0.83
+   ],
+   "cost": 0.00337
+  }
+ },
+ {
+  "probe": "synthesis",
+  "day": 21,
+  "config": "explore",
+  "answer": "Last term's drive failed on both counts you care about: nobody had a turn at it, and nothing ever expired. Your own answers already point the way.\n\nStructure: don't design the tree up front. Give people one obvious place to drop new things, watch where they actually file for a few weeks, then make those folders the real ones. A hierarchy nobody walks is just the sidewalk nobody took.\n\nOwnership: a rotating drive captain, one week each, whose job is to move loose files into place and delete what's stale. Same as the dishes \u2014 it only worked once someone was named.\n\nStaleness: nothing gets deleted by a person guessing. Every file carries a last-touched date; anything untouched for a term gets flagged into an archive folder with a two-week warning. People rescue what matters, the rest expires. The scent fades and the colony forgets the dead ends without anyone having to decide.\n\nThe one question that settles it: do you have authority to make the captain a real expectation, or does it run on goodwill? A rotation everyone ignores is worse than no rule.",
+  "seconds": 9.6,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Explicitly says not to design the tree up front: give people one obvious drop-off place, watch where they actually file, then formalize those folders \u2014 and ties it to the sidewalk nobody took. / Says not to design the tree up front, instead watch where people actually file for a few weeks and make those folders the real ones, and ties it to the campus path analogy (\"a hierarchy nobody walks is just the sidewalk nobody took\")."
+    },
+    {
+     "verdict": "met",
+     "why": "Proposes last-touched dates, flagging untouched files into an archive with a two-week warning so people rescue what matters and the rest expires, likened to the scent fading and the colony forgetting dead ends. / Proposes last-touched dates with untouched files flagged into an archive folder after a warning period, framed as automatic decay, and explicitly likens it to the evaporating scent and the colony forgetting dead ends."
+    },
+    {
+     "verdict": "met",
+     "why": "Makes two explicit callbacks: the desire lines / 'sidewalk nobody took' and the ant colony's evaporating scent doing the forgetting. / Makes both connections explicitly: the paved sidewalk nobody took (desire lines/campus paths) and the scent fading so the colony forgets dead ends (ant colonies), plus a nod to the dish-captain precedent."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00183
+  }
+ },
+ {
+  "probe": "habit-changed",
+  "day": 22,
+  "config": "none",
+  "answer": "Saturday morning, before anything else gets on the calendar. Sunday morning works too if Saturday's already spoken for, but put it on the calendar now rather than deciding Friday night, because \"I'll find time\" is how the weekend goes by.\n\nOne thing worth checking: whether you're driving Maya to the airport or helping with anything before the Toronto move. If Saturday's the day, write Sunday morning instead and don't let the book be the thing that gives.",
+  "seconds": 1.5,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer never mentions the recent late-night sessions (3,000 words from midnight to 2am, then 2,500 the next night) or that they went unusually well. / The answer never mentions the recent after-midnight sessions (3,000 and 2,500 words) or their success."
+    },
+    {
+     "verdict": "missed",
+     "why": "It prescribes Saturday morning only, with no acknowledgment that his best sessions recently were after midnight and no suggestion of late-night blocks or trying both. / It prescribes mornings only \u2014 Saturday morning, Sunday morning as fallback \u2014 with no acknowledgment that late-night sessions have been his best recently."
+    },
+    {
+     "verdict": "missed",
+     "why": "It gives generic advice about blocking time early in the day but never refers to his own history of strong early-morning sessions (the 1,800-word and 2,200-word mornings) as context. / No reference to his established early-morning pattern (1,800 / 2,200 words before breakfast) as context."
+    }
+   ],
+   "invented": true,
+   "invented_what": "It invents a \"Toronto move\" for Maya and an airport drive/helping-out obligation before it \u2014 nothing in the conversations mentions Toronto or Maya moving; Maya is at a design studio in Pune and Shreyas booked flights to visit her in late December. / References a \\\"Toronto move\\\" and driving Maya to the airport / helping her before it \u2014 nothing in the conversations says Maya is moving to Toronto (she just started at a design studio in Pune, and he booked flights to visit her in late December).",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00125
+  }
+ },
+ {
+  "probe": "habit-changed",
+  "day": 22,
+  "config": "words",
+  "answer": "Saturday or Sunday morning, same slot you use on weekdays \u2014 before breakfast, while the flat is quiet. Pick one and protect it; doing both is the way you end up with two half-sessions. If you're deciding between them, Saturday, so a good session has room to repeat on Sunday.",
+  "seconds": 1.5,
+  "judge": {
+   "score": 0.17,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer never mentions the midnight-to-2am sessions (3,000 words) or the 2,500-word follow-up, which are the most recent and strongest data points. / The answer never mentions the midnight-to-2am sessions or the 3,000 and 2,500 word counts; it gives no sign of knowing the recent strongest sessions were late-night."
+    },
+    {
+     "verdict": "missed",
+     "why": "It prescribes mornings only \u2014 'same slot you use on weekdays \u2014 before breakfast' \u2014 with no acknowledgement that late-night writing has been working, and no suggestion to try either. / It prescribes morning only (\"Saturday or Sunday morning... before breakfast\"), with no acknowledgment that his best sessions lately were after midnight and no suggestion of a late-night slot or testing both."
+    },
+    {
+     "verdict": "partly",
+     "why": "It references 'the same slot you use on weekdays \u2014 before breakfast, while the flat is quiet,' which alludes to his earlier morning routine, but it isn't framed as context about his strong early sessions and their results; it's used purely as the basis of the recommendation. / \"Same slot you use on weekdays \u2014 before breakfast, while the flat is quiet\" points at his established early-morning writing habit as the reason for the pick, but only vaguely and without naming the actual sessions (1,800 before breakfast, 2,200 in the pre-8am caf\u00e9) as context."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.17,
+    0.17
+   ],
+   "cost": 0.00136
+  }
+ },
+ {
+  "probe": "habit-changed",
+  "day": 22,
+  "config": "meaning",
+  "answer": "Weekend's the 26th and 27th. Same rule as always: the quiet hours, which lately means either before breakfast or late at night. Given you've got two midnight sessions running, I'd block Saturday morning before anything opens and leave the evening free \u2014 evenings are still the one case you haven't tested with the day out of the way.",
+  "seconds": 1.8,
+  "judge": {
+   "score": 0.67,
+   "marks": [
+    {
+     "verdict": "partly",
+     "why": "It refers to \"two midnight sessions running,\" so it registers that the late-night sessions happened and formed a pattern, but it never says how well they went (the 3,000- and 2,500-word counts) or treats them as a signal worth building on. / It refers to \"two midnight sessions running,\" so it registers that they exist, but it never notes that those sessions went well (3,000 words, 2,500 words, \"best session in weeks\") \u2014 the fact is acknowledged without the verdict that made it notable."
+    },
+    {
+     "verdict": "met",
+     "why": "It explicitly widens the window \u2014 \"the quiet hours, which lately means either before breakfast or late at night\" \u2014 rather than prescribing mornings only, and it flags the all-day Saturday evening as an untested case. / It explicitly offers both windows \u2014 \"either before breakfast or late at night\" \u2014 and leaves the evening open as untested, so it doesn't fall back to a mornings-only prescription."
+    },
+    {
+     "verdict": "partly",
+     "why": "\"Same rule as always\" and \"the one case you haven't tested\" gesture back at the established morning pattern, but the earlier strong before-breakfast sessions (1,800 / 2,200 words, caf\u00e9 before 8) are never actually cited as context. / \"Same rule as always: the quiet hours\" gestures at the established habit, but it never names the earlier strong early-morning sessions (1,800 words, 2,200 words before breakfast) as the context for the rule."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.67,
+    0.67
+   ],
+   "cost": 0.00302
+  }
+ },
+ {
+  "probe": "habit-changed",
+  "day": 22,
+  "config": "both",
+  "answer": "Saturday morning, early \u2014 the same quiet slot that produced 2,200 and 2,500 words. Sunday's out if the caf\u00e9 crowd sets in; if you want a second block, take it late Saturday night rather than anything after dinner.",
+  "seconds": 1.4,
+  "judge": {
+   "score": 0.5,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer never mentions the two late-night sessions (3,000 words midnight\u20132am, 2,500 words the next night) \u2014 the most recent and best results. Worse, it folds the 2,500 words into \"the same quiet slot\" as the morning session, erasing the midnight pattern entirely. / The answer never mentions the midnight sessions at all \u2014 it doesn't note the 3,000-word 2am session or the 2,500-word late-night repeat. Worse, it folds the 2,500 into \"Saturday morning, early \u2014 the same quiet slot that produced 2,200 and 2,500 words,\" treating the post-midnight session as a morning one."
+    },
+    {
+     "verdict": "partly",
+     "why": "It does offer a second block late Saturday night, which gestures at the night-writer shift, but it never acknowledges the change: it frames the recommendation as \"the same quiet slot\" as before and explicitly rules out \"anything after dinner,\" i.e. treats mornings as the answer and night as a fallback rather than a real option. / It does offer a late-Saturday-night second block, so it isn't purely mornings-only, but it never acknowledges that anything has changed \u2014 morning is still prescribed as the primary slot and the night-writing shift is invisible."
+    },
+    {
+     "verdict": "met",
+     "why": "It cites the 2,200-word early-morning/caf\u00e9 session as the concrete precedent for the Saturday morning slot, using his own history as context rather than generic advice. / It invokes the earlier strong early-morning session (2,200 words) as context for why that slot works, which is the right use of history \u2014 even though it wrongly drags the 2,500-word night session into that bucket."
+    }
+   ],
+   "invented": true,
+   "invented_what": "Presents the 2,500-word session as having come from the same early-morning \\\"quiet slot\\\" as the 2,200-word one, when in the conversations it happened between midnight and 2am; and asserts that the caf\u00e9 crowd sets in on Sunday, which was never said (the only caf\u00e9 detail is that it doesn't open until 8). / Claims the 2,500-word session happened in the same early-morning \\\"quiet slot\\\" as the 2,200-word one; in the conversation the 2,500 words were written after midnight at home, not in the morning or at the caf\u00e9. It also implies a Sunday caf\u00e9 crowd is a known thing, which nothing in the conversations supports.",
+   "passes": [
+    0.5,
+    0.5
+   ],
+   "cost": 0.00261
+  }
+ },
+ {
+  "probe": "habit-changed",
+  "day": 22,
+  "config": "explore",
+  "answer": "The quiet-hours pattern says mornings, so: both Saturday and Sunday before breakfast, or in the caf\u00e9 before 8 if you want the version that produced 2,200 words last time.\n\nThe one thing that could change my lean: what's already on the calendar for the weekend? If something's eating a morning, tell me and I'll pick the next best window instead.",
+  "seconds": 6.6,
+  "judge": {
+   "score": 0.33,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer never mentions the two after-midnight sessions (3,000 and 2,500 words), which are the most recent and best writing he's had. / The answer never mentions the midnight-to-2am sessions or the 3,000/2,500-word nights at all."
+    },
+    {
+     "verdict": "missed",
+     "why": "It prescribes mornings only \u2014 'both Saturday and Sunday before breakfast' \u2014 with no acknowledgment of the shift to late-night writing and no option to try late night or mix both. / It prescribes mornings only (both days before breakfast, or the caf\u00e9 before 8) and gives no nod to the late-night runs or trying both windows."
+    },
+    {
+     "verdict": "met",
+     "why": "It anchors the recommendation in his own history: 'the version that produced 2,200 words last time' (the caf\u00e9 before 8 session), rather than giving generic morning-writing advice. / It grounds the recommendation in his own history \u2014 'the quiet-hours pattern' and 'the version that produced 2,200 words last time' \u2014 rather than generic advice, even if it reads that history one-sidedly."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.33,
+    0.33
+   ],
+   "cost": 0.00164
+  }
+ },
+ {
+  "probe": "multi-hop",
+  "day": 24,
+  "config": "none",
+  "answer": "Two weeks from Oct 3 puts you back around the 17th, so the one that matters is Maya: she leaves for Toronto next month. If you want to see her in Pune before she goes, that's a goodbye that has to happen in the next nine days, not before you fly. Everything else can ride.\n\nThe plant setup is the other candidate, depending on where it stands. If the sensor is reading soil moisture reliably, I'd leave it; if it's still intermittent, either fix it before you go or drain the reservoir, because nobody's watering a half-working rig for two weeks. Where is it?",
+  "seconds": 2.2,
+  "judge": {
+   "score": 0.12,
+   "marks": [
+    {
+     "verdict": "partly",
+     "why": "It raises \"the plant setup\" as a candidate to deal with before he flies and ties it to being gone two weeks (\"nobody's watering a half-working rig for two weeks\"), but it hedges to \"I'd leave it\" if the sensor is reliable and never states the actual reason \u2014 that the basil keeps dying while he's away (third time this year). / It raises the plant setup as a candidate to deal with before the trip and mentions nobody's watering for two weeks, but it's framed conditionally and soft ('I'd leave it'), and it never says the plants die while he's away \u2014 the actual reason it needs finishing."
+    },
+    {
+     "verdict": "missed",
+     "why": "No mention of the 18650 dying in ~4 days or of needing deep sleep between readings \u2014 the battery problem isn't raised at all. / The 4-day battery / need to deep sleep between readings is never mentioned, so it isn't flagged as an open item."
+    },
+    {
+     "verdict": "missed",
+     "why": "The siphon-after-shutoff problem with the pump/water-bottle tank isn't mentioned anywhere. / The post-shutoff siphon from the tube is never mentioned at all."
+    },
+    {
+     "verdict": "missed",
+     "why": "It treats the sensor as possibly still broken \u2014 \"depending on where it stands,\" \"if it's still intermittent\" \u2014 and asks where it is, when the drift was already fixed on Sep 20 with 10-second averaging plus water-cup calibration. / It treats the sensor as possibly 'still intermittent', i.e. reopens the drift that was explicitly fixed on Sep 20 with averaging plus cup-of-water calibration."
+    }
+   ],
+   "invented": true,
+   "invented_what": "That Maya \"leaves for Toronto next month\" and that seeing her in Pune before he goes is \"a goodbye that has to happen in the next nine days.\" Nothing in the conversations says Maya is leaving Pune or going to Toronto; the only facts are that she started at a design studio in Pune and that he booked flights to visit her in the last week of December (which implies she's still there then). / That Maya is leaving for Toronto next month and needs a goodbye in Pune before he flies \u2014 nothing in the conversations says she is moving to Toronto; she just started at a design studio in Pune, and he already booked December flights to visit her there.",
+   "passes": [
+    0.12,
+    0.12
+   ],
+   "cost": 0.00295
+  }
+ },
+ {
+  "probe": "multi-hop",
+  "day": 24,
+  "config": "words",
+  "answer": "Two things I can see: the ESP32 parts, if you want them waiting when you're back, need ordering this week or early next; and the flatmates' dish situation is going to sit for two weeks while you're gone, so if there's a fix worth making, better before it festers.\n\nWhat's the trip for? That changes what's actually urgent.",
+  "seconds": 1.6,
+  "judge": {
+   "score": 0.25,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "No mention of the plants or a self-watering setup at all; the answer only talks about ordering ESP32 parts. / The answer never mentions the windowsill plants or the self-watering build; it only talks about ordering ESP32 parts, and never ties anything to the plants dying while he's away."
+    },
+    {
+     "verdict": "missed",
+     "why": "The 4-day battery life / deep-sleep-between-readings issue is never raised. / No mention of the 4-day battery life or the need to deep-sleep between readings, which was raised on Sep 14 and never confirmed done."
+    },
+    {
+     "verdict": "missed",
+     "why": "The siphon-after-shutoff problem with the pump is not mentioned anywhere. / The siphon-after-shutoff problem from Sep 17 isn't mentioned at all."
+    },
+    {
+     "verdict": "met",
+     "why": "Sensor drift is not raised as an open issue, so it is correctly treated as solved. / The answer doesn't bring up sensor drift or list it as outstanding, so it doesn't treat a fixed problem as open."
+    }
+   ],
+   "invented": true,
+   "invented_what": "States as fact that the flatmates' dish situation is unresolved and will \\\"fester\\\" for two weeks \u2014 Shreyas had reported the captain system working and everyone calmer. Also implies ESP32 parts still need ordering this week, though he ordered them on Sep 1 and they arrived. / Claims the flatmates' dish situation is unresolved and will \"sit for two weeks\" and \"fester\" \u2014 but the captain system was reported working two days earlier, with Shreyas saying \"everyone's way calmer now.\" Also implies ESP32 parts still need ordering, though the board and sensor were ordered on Sep 1 and already wired up and calibrated.",
+   "passes": [
+    0.25,
+    0.25
+   ],
+   "cost": 0.00203
+  }
+ },
+ {
+  "probe": "multi-hop",
+  "day": 24,
+  "config": "meaning",
+  "answer": "The build is the thing with a deadline attached. The soil's own dry and wet endpoints still aren't measured, and without them there's no threshold, so the waterer can't be trusted before December. Two weeks in Bangalore means the board sits idle until mid-October, so the useful question is whether you can measure the endpoints before the 3rd \u2014 dry soil and a glass of water, maybe an hour at the board. If not, it can wait, but it's then the first thing on the bench when you're back.\n\nThe other one, less urgent but not nothing: Maya's on her way to Toronto, and the December flights were booked for a Pune visit. Worth asking her, once she's landed and started, whether the last week of December is leave she can take from the new job. The booking doesn't lock against you yet, but the answer only exists after she's there.\n\nWhat's the Bangalore trip for?",
+  "seconds": 2.5,
+  "judge": {
+   "score": 0.38,
+   "marks": [
+    {
+     "verdict": "partly",
+     "why": "It does flag the build as the deadline item to wrap up before the Bangalore trip and pushes him to measure the dry/wet endpoints before the 3rd, but it never connects the waterer to the windowsill basil dying whenever he's away \u2014 the 'why it matters now' half of the point is missing. / It does put the watering build at the top of the pre-trip list (endpoints to measure before the 3rd, waterer not trustworthy, first thing on the bench when back), but it never gives the actual motivation \u2014 that the basil dies whenever he's away for a weekend \u2014 so the reason the trip makes it urgent is missing."
+    },
+    {
+     "verdict": "missed",
+     "why": "No mention of the 4-day 18650 battery life or the deep-sleep-between-readings fix; the answer lists only endpoints and Maya as outstanding. / The ~4-day 18650 battery life and the deep-sleep-between-readings fix are never mentioned; the only power-adjacent line is a vague 'can't be trusted', which is about thresholds, not runtime."
+    },
+    {
+     "verdict": "missed",
+     "why": "The post-shutoff siphon through the tube (and the check valve / raising the outlet fix) isn't raised at all. / The post-shutoff siphoning through the tube (and the lift-the-outlet/check-valve fix) isn't mentioned anywhere in the answer."
+    },
+    {
+     "verdict": "met",
+     "why": "It never treats the ADC drift as unresolved \u2014 the open item it names is the dry/wet endpoint calibration, not the noisy readings. / It doesn't raise drift as a live problem \u2014 it's careful to frame the open item as unmeasured dry/wet endpoints (calibration values), not the noisy readings that averaging plus the cup-of-water calibration already settled on Sep 20."
+    }
+   ],
+   "invented": true,
+   "invented_what": "That Maya is in or on her way to Toronto. Nothing in the conversations places her anywhere but the Pune design studio she just joined; the answer invents a move to Toronto and a 'new job' there to build a scheduling worry on. / It asserts as fact that Maya is 'on her way to Toronto' and has 'started' a new job there, which is why the December flights may no longer work \u2014 nothing in the conversations says Maya left Pune or is moving to Toronto; the only facts are that she started at a design studio in Pune and that he booked flights to visit her for the last week of December. It then builds a whole to-do ('ask her once she's landed') on that unsupported premise.",
+   "passes": [
+    0.38,
+    0.38
+   ],
+   "cost": 0.00326
+  }
+ },
+ {
+  "probe": "multi-hop",
+  "day": 24,
+  "config": "both",
+  "answer": "Two weeks in Bangalore starting Oct 3 \u2014 that changes the December picture. Are those flights to visit Maya still going to be from the same place, or is this trip the one where the itinerary needs a look? She's moving to Toronto in October, and the December booking was made when she was still in Pune.\n\nOn the build: you've got a week and change. The sensor endpoints have to come off the actual soil \u2014 dry reading and wet reading, physically at the board with a glass of water \u2014 and the watering threshold set from those. That's bench work, and two weeks away is two weeks the basil isn't getting read. If you can't get both measurements done before the 3rd, at least log what the sensor reads now so you have a baseline to come back to.\n\nWhat's actually on your plate that I don't know about?",
+  "seconds": 2.5,
+  "judge": {
+   "score": 0.38,
+   "marks": [
+    {
+     "verdict": "partly",
+     "why": "It does raise the plant sensor build as bench work to finish before the Oct 3 trip and notes the basil gets no attention while he's away, but it frames this as 'get the calibration done / log a baseline' rather than as finishing the self-watering setup so the windowsill plants survive his absence \u2014 the reason the plants die doesn't get connected to the fix. / It frames the sensor work as needing to be done before the Oct 3 trip and says 'two weeks away is two weeks the basil isn't getting read,' which gestures at the away/plants-death link, but it never presents the self-watering setup itself as a thing to finish before leaving \u2014 it's framed as calibration/bench work, and the 'basil dies when I'm away' history isn't invoked."
+    },
+    {
+     "verdict": "missed",
+     "why": "The 18650 dying in about four days because WiFi stays on, and the need to deep-sleep between readings, is never mentioned. It also oddly says the trip is 'a week and change' with no reference to power lasting through it, despite Avy having raised the four-day battery on Sep 14. / The ~4-day battery life and the need to deep-sleep between readings are not mentioned at all."
+    },
+    {
+     "verdict": "missed",
+     "why": "The siphon problem after pump shutoff (Sep 17) is not mentioned at all \u2014 no check valve, no lifting the outlet above the water line, no acknowledgment that it's still open. / The siphon-after-pump-stop problem is not mentioned; the pump isn't discussed."
+    },
+    {
+     "verdict": "met",
+     "why": "It treats the sensor as needing endpoint measurements from real soil (dry and wet), which is calibration, not the old drift complaint \u2014 the 'fixed the drift' update is respected and the drift is not listed as an open issue. / It only asks for the dry/wet calibration endpoints and threshold, never reopens the ADC drift as an outstanding bug."
+    }
+   ],
+   "invented": true,
+   "invented_what": "That Maya is moving to Toronto in October. Nothing in the conversations says this \u2014 she started at a design studio in Pune in September, and the December trip was booked to visit her. The answer states the Toronto move as fact rather than as something Shreyas told it. / Claims Maya is moving to Toronto in October (and that the December booking was made while she was still in Pune) \u2014 nothing in the conversations supports this; the only facts established are that Maya started at a design studio in Pune and that he booked flights to visit her in the last week of December.",
+   "passes": [
+    0.38,
+    0.38
+   ],
+   "cost": 0.00269
+  }
+ },
+ {
+  "probe": "multi-hop",
+  "day": 24,
+  "config": "explore",
+  "answer": "Two weeks off from Oct 3, so you're back around Oct 17. What actually has a deadline in that window:\n\nThe basil rig is the big one. The siphon fix from the Sep 17 pump test still hasn't been solved, and the soil endpoints still need measuring at the bench \u2014 both things you can't do from Bangalore. If nothing else gets done, stop the siphon before you leave; a timer-triggered pump that keeps flowing after shutoff will flood the pot the first time it fires while you're gone.\n\nThe half marathon is Nov 15. Two weeks of travel eats into what's already a short training block, so if you want any chance of not suffering on race day, get a couple of runs in before you go and plan one route you can do in Bangalore.\n\nMaya's Toronto move \u2014 she accepted around Sep 26. If she's moving in October, the December flights you booked to Pune will need changing. Worth a conversation with her before you're abroad and handling it from a different time zone.\n\nThe flat \u2014 dish captain is working, so just tell them you're away Oct 3\u201317 so your night gets covered.\n\nHaven't mentioned this to him, but you can also handle the ESP32 order and the enclosure lid if you want the rig further along before you go.",
+  "seconds": 9.6,
+  "judge": {
+   "score": 0.75,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Opens with \"The basil rig is the big one\" as the pre-trip item and explains the stakes as the pump flooding the pot \"while you're gone\" \u2014 the away-from-home plant-watering rig is clearly flagged as the thing to finish. / Calls the basil rig \"the big one\" to sort out before he leaves, and warns that the pump flooding the pot while he's away is the risk \u2014 that's the self-watering setup for the windowsill basil framed as a pre-trip job."
+    },
+    {
+     "verdict": "missed",
+     "why": "The battery is never mentioned. The 4-day 18650 drain / deep-sleep-between-readings problem doesn't appear anywhere in the answer. / Never mentions the 18650 dying in ~4 days or that deep sleep between readings is still the open fix. The only ESP32 item raised is the order and enclosure lid, which is unrelated."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly names \"The siphon fix from the Sep 17 pump test still hasn't been solved\" and restates the failure mode (timer-triggered pump keeps flowing after shutoff). / Explicitly names the siphon-after-shutoff problem from the Sep 17 pump test as unsolved and tells him to stop the siphon before leaving."
+    },
+    {
+     "verdict": "met",
+     "why": "Drift is never listed as an open issue; the only sensor item is bench measuring of endpoints (calibration), not the noisy-reading problem he fixed by averaging plus the cup-of-water calibration. / Doesn't list the ADC drift as unresolved; the only sensor follow-up is measuring endpoints at the bench, which is calibration, not the drift bug."
+    }
+   ],
+   "invented": true,
+   "invented_what": "\"Maya's Toronto move \u2014 she accepted around Sep 26\" (and the resulting claim that his December Pune flights will need changing). No conversation mentions Toronto, a move, or a job acceptance; Maya is only known to have started at a Pune design studio, and the December flights were booked to visit her. / The claim that Maya is moving to Toronto and \\\"accepted around Sep 26,\\\" plus that a December Pune trip would need rebooking because of it \u2014 nothing in the conversations says Maya is relocating or that any such move was accepted.",
+   "passes": [
+    0.75,
+    0.75
+   ],
+   "cost": 0.00362
+  }
+ },
+ {
+  "probe": "tension",
+  "day": 25,
+  "config": "none",
+  "answer": "Depends what goes into it. I can sketch something solid, but two things change it a lot: is the move to Toronto happening during these two months (and are you going to help), and roughly how much of each day is already spoken for by work?\n\nIf I assume mornings stay yours for the book, workouts stay 3x, and the ESP32 gets a real block one evening a week, I'd sketch something like: book 4 mornings a week (leaving one for errands/sleep), two runs or whatever you do for knees, one hardware evening, one lighter evening held free, and a weekend block that flexes around travel or Maya's move. That's a starting frame, not a plan. Tell me those two things and I'll turn it into an actual week with the blocks and times in it.",
+  "seconds": 2.1,
+  "judge": {
+   "score": 0.38,
+   "marks": [
+    {
+     "verdict": "partly",
+     "why": "It puts \"two runs\" into the week, which is running, but it never mentions the November 15 half marathon or frames the runs as training toward it \u2014 the race is the concrete goal he committed to and it goes unmentioned. / No mention of the November 15 half marathon or any training plan for it; \"two runs\" is a running gesture but the answer never ties it to the race he signed up for."
+    },
+    {
+     "verdict": "partly",
+     "why": "\"Whatever you do for knees\" is a passing nod to the knee trouble, but it never raises that he said he hates running, and it offers no actual way of handling it (shorter cadence, walk-run, destination-based runs, etc.) \u2014 just a throwaway clause. / It nods to his knees (\"two runs or whatever you do for knees\") but never raises that he said he hates running, and offers no concrete way to handle the knee ache (e.g. cadence, shorter strides, walk/run intervals)."
+    }
+   ],
+   "invented": true,
+   "invented_what": "It presupposes a planned move to Toronto (\\\"is the move to Toronto happening during these two months (and are you going to help)\\\") and refers to \\\"Maya's move\\\" \u2014 no move to Toronto, and no move by Maya, was ever mentioned in the conversations. It also asserts \\\"workouts stay 3x\\\" as though that were an established fact rather than a proposed default. / It presupposes a move to Toronto (\\\"is the move to Toronto happening during these two months (and are you going to help)\\\") and refers to \\\"Maya's move\\\" \u2014 no move to Toronto, and no move by Maya, is ever mentioned in the conversations; Maya only started at a design studio in Pune.",
+   "passes": [
+    0.5,
+    0.25
+   ],
+   "cost": 0.00196
+  }
+ },
+ {
+  "probe": "tension",
+  "day": 25,
+  "config": "words",
+  "answer": "What's the routine for \u2014 the build, the book, both, and what's already fixed in your week?",
+  "seconds": 1.1,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer never mentions the half marathon on November 15 or any training block for it. / The answer only asks a clarifying question about whether the routine is for the build, the book, or both \u2014 no routine is sketched and the half marathon on November 15 isn't mentioned at all."
+    },
+    {
+     "verdict": "missed",
+     "why": "It doesn't acknowledge that he said he hates running or that his knees ache, and offers no suggestions for handling either. / Nothing about his dislike of running or his aching knees appears; the answer doesn't touch training at all."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00081
+  }
+ },
+ {
+  "probe": "tension",
+  "day": 25,
+  "config": "meaning",
+  "answer": "Two things are already fixed in it: mornings are for the book, and the half marathon on Nov 15 sets the training shape. Here's what I'd sketch.\n\nBook. Chapters 5 onward, five mornings a week, Mon\u2013Fri, first thing \u2014 the caf\u00e9 before 8 or your desk before breakfast, whichever is quieter that day. Say 6:30\u20138, an hour and a half. Weekends stay free; if a Saturday morning turns up quiet and you want it, it's a bonus session, not an obligation. That's a chapter every two to three weeks at your recent counts, which puts you well past chapter 8 by December.\n\nRunning. Three runs a week, not more. One easy long run on Saturday, one faster session midweek (Wednesdays, say), and one easy 30\u201340 minutes the other end of the week. From now until mid-October build the long run by about a mile a week; mid-October to early November hold it around 10\u201311 miles; the last week tapers down. The knees are the thing to watch \u2014 if they ache through an easy run, cut the run, don't push through it.\n\nSensor. This wants two or three evenings total, not a weekly slot. One bench session to measure dry and wet endpoints in actual soil with a glass of water, then one to set the threshold off those numbers and leave it running a few days. Do that in October, well before December, so you're not calibrating in a panic the week you leave.\n\nFlat. Dish captain rotates on Sundays, whiteboard reset with it, sink empty by 10pm. Keeps that off your evening headspace.\n\nThe point of the sketch is that the evenings stay yours and mostly empty \u2014 evenings are the one time that hasn't worked for writing, and I'd rather you not spend them trying.\n\nIf you want, I can put the morning block and the three run days on your calendar so they actually show up.",
+  "seconds": 3.7,
+  "judge": {
+   "score": 0.75,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Explicitly names the half marathon on Nov 15 as a fixed anchor and builds a three-run-a-week plan around it (long run build, hold at 10\u201311 miles, taper). / The sketch explicitly builds around the Nov 15 half marathon: three runs a week, an easy Saturday long run, a midweek faster session, a week-by-week build from now to mid-October, a hold at 10\u201311 miles, and a taper in the last week."
+    },
+    {
+     "verdict": "partly",
+     "why": "It handles the knees ('if they ache through an easy run, cut the run, don't push through it'), but never raises that he said he genuinely hates running and finds it boring \u2014 the boredom, which was the part he actually called the real problem, gets no acknowledgement or plan (e.g. destination runs, pace targets, music). / It handles the knees \u2014 'the knees are the thing to watch \u2014 if they ache through an easy run, cut the run' \u2014 but never raises that he said he hates running or is bored by it, and offers nothing for that side of it (no walking/score/destination framing, no acknowledgement of the dislike)."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.75,
+    0.75
+   ],
+   "cost": 0.00172
+  }
+ },
+ {
+  "probe": "tension",
+  "day": 25,
+  "config": "both",
+  "answer": "Before I sketch it, one thing decides how much of it you'll actually keep: is chapter 5 the only writing on your plate through November, or is there other work (day job, the ESP32, trip prep) that has fixed hours I should build around?",
+  "seconds": 1.4,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer asks a clarifying question about fixed hours but never mentions the half marathon on November 15 or any training block. / Avy's answer is only a clarifying question about what else is on Shreyas's plate (chapter 5, ESP32, trip prep); it never sketches any routine and never mentions the half marathon on November 15, let alone training blocks for it."
+    },
+    {
+     "verdict": "missed",
+     "why": "It doesn't bring up his stated hatred of running or his aching knees, and offers no suggestion for handling that. / Nothing in the answer acknowledges that Shreyas said he hates running or that his knees ache after a mile, and no mitigation (cadence, shorter strides, walk/run) or way of handling it is offered."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00107
+  }
+ },
+ {
+  "probe": "tension",
+  "day": 25,
+  "config": "explore",
+  "answer": "Short version: three anchors a week on the race, four writing slots that are quiet by construction, one fixed hour at the bench, and everything else whoever's captain that week.\n\nWeekdays, Tue and Thu are the same shape: writing 6:30\u20137:45 in the caf\u00e9 downstairs, run right after (easy, 30\u201340 min). Mon and Wed are the third run (also short) plus one hour at the bench on Wed only \u2014 dry soil endpoints first, then the wet reading, then set the threshold. Fri is the flat: dishes and whatever's yours before the weekend, no writing slot, no run.\n\nWeekend: Sat morning run, longer \u2014 by late October that's the one that grows to 8\u201310 miles. Sunday is the big writing morning, caf\u00e9 before 8, the 2,000-word slot; nothing else on the calendar until noon.\n\nThe race builds itself off one long run a week. About seven weeks out (end of September into early October) long run 5 miles, then 6, 7, 8, 10, with a drop-back every other week, and the last long run around Nov 1 so the two weeks before the race are taper. Keep the other runs deliberately easy \u2014 that's what keeps the knees quiet, cadence short, walk the last five minutes if you need to.\n\nTwo things to protect. The Wednesday bench hour is the only one the sensor build gets, so don't let a run eat it \u2014 if a run slips, it slips to Fri. And the December trip turns on Maya's leave now that the Toronto job is real, so that conversation wants to happen in October, not December, and it doesn't belong in a Sunday morning.\n\nWant this as a file you can keep, or is it enough to have it here?",
+  "seconds": 11.8,
+  "judge": {
+   "score": 0.75,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "The plan is built around the race \u2014 three runs a week, a long run that grows 5\u21926\u21927\u21928\u219210 with drop-backs, taper in the last two weeks before Nov 1-ish. The date isn't restated but the half marathon training is clearly the spine of it. / The answer builds the whole week around three runs plus a growing weekend long run, with a 5\u21926\u21927\u21928\u219210 mile progression, drop-back weeks, taper and a final long run around Nov 1 \u2014 explicitly framed as \"the race builds itself off one long run a week.\" That is half-marathon training integrated into the routine."
+    },
+    {
+     "verdict": "partly",
+     "why": "It tackles the knees (\"keep the other runs deliberately easy \u2014 that's what keeps the knees quiet, cadence short, walk the last five minutes\"), which is a real handling suggestion. But it never acknowledges that he said he hates running or that boredom was the problem, so the dislike itself is unaddressed. / It addresses the knees (\"keep the other runs deliberately easy \u2014 that's what keeps the knees quiet, cadence short, walk the last five minutes\"), which is a concrete handling of the complaint. But it never notes that he said he hates running / finds it boring, so the motivational half of the point is missing, and the boredom problem (he wanted something with a destination or a score) goes unaddressed."
+    }
+   ],
+   "invented": true,
+   "invented_what": "\"now that the Toronto job is real\" \u2014 nothing in the conversations says Maya has a Toronto job; she just started at a design studio in Pune. The answer asserts a relocation/job as established fact. / \"The December trip turns on Maya's leave now that the Toronto job is real\" \u2014 nothing in the conversation mentions Maya having a Toronto job or needing to arrange leave. He only said Maya started at a design studio in Pune and that he booked flights to visit her in the last week of December. The Toronto job is presented as established fact.",
+   "passes": [
+    0.75,
+    0.75
+   ],
+   "cost": 0.00178
+  }
+ },
+ {
+  "probe": "ideas",
+  "day": 28,
+  "config": "none",
+  "answer": "Two I have: the app-blocker thing you sketched where your proofreading time became the currency you spend on Twitter, and the one where the writing folder auto-opens with the draft you left off in so \"start writing\" costs no decision. Both change what's cheap or what pays out rather than banning anything.\n\nThat's from memory's edge, though \u2014 memory recall was off for this message, so if there were schemes beyond those two I don't have them in front of me. Say the rest and I'll sort them.",
+  "seconds": 1.7,
+  "judge": {
+   "score": 0.2,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer never mentions the grayscale-after-10pm phone idea. / The grayscale-after-10pm phone idea is never mentioned."
+    },
+    {
+     "verdict": "missed",
+     "why": "No mention of demand-based street parking pricing. / Real-time demand pricing for street parking is not mentioned."
+    },
+    {
+     "verdict": "missed",
+     "why": "No mention of gyms refunding money for attendance. / The gym-refund-for-attendance scheme is not mentioned."
+    },
+    {
+     "verdict": "missed",
+     "why": "No mention of calories printed on menus by default. / Menu calories-by-default-unless-asked is not mentioned."
+    },
+    {
+     "verdict": "met",
+     "why": "The tool library is not presented as an incentive/default scheme at all \u2014 it simply isn't mentioned, so it isn't mischaracterized. / The tool library isn't brought up at all, so it isn't misfiled as an incentive/default idea."
+    }
+   ],
+   "invented": true,
+   "invented_what": "Claims Shreyas sketched an app-blocker scheme where proofreading time is spent as currency for Twitter, and a scheme where the writing folder auto-opens to the last draft. Neither idea \u2014 nor any proofreading work \u2014 appears anywhere in the conversations. / Claims Shreyas had sketched two schemes that appear nowhere in the conversations: an app-blocker where his \"proofreading time became the currency you spend on Twitter,\" and a writing folder that auto-opens with the unfinished draft. Both are asserted as things he mentioned (only hedged at the end with \"memory recall was off\"), while the ideas he actually raised are ignored.",
+   "passes": [
+    0.2,
+    0.2
+   ],
+   "cost": 0.00166
+  }
+ },
+ {
+  "probe": "ideas",
+  "day": 28,
+  "config": "words",
+  "answer": "The ones I can actually find in memory don't fit that shape. The only schemes I've got on record are concrete fixes: the ESP32 soil sensor for plant watering, and the dishwashing standoff with your flatmates. Neither is an incentive or default change, they're just things to build or sort out.\n\nSo either you've raised the others in a message that isn't surfacing for me right now, or they never made it into anything I kept. Give me the short list and I'll tell you which ones are incentive-shaped rather than ban-shaped.",
+  "seconds": 1.5,
+  "judge": {
+   "score": 0.2,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "Grayscale-after-10pm phones is never mentioned; the answer claims no such schemes are on record at all. / Never mentions the grayscale-after-10pm phone idea."
+    },
+    {
+     "verdict": "missed",
+     "why": "Demand-based street parking pricing is absent, and the answer wrongly says only two schemes exist in memory. / Never mentions demand-based street parking pricing."
+    },
+    {
+     "verdict": "missed",
+     "why": "The gym attendance refund idea is not mentioned or classified anywhere in the answer. / Never mentions gym refunds for attendance."
+    },
+    {
+     "verdict": "missed",
+     "why": "Calorie labeling on menus (opt-out style) is not mentioned, despite being a clean example of a default change. / Never mentions printing calories on menus by default."
+    },
+    {
+     "verdict": "met",
+     "why": "The tool library isn't raised at all, so it isn't miscategorized as an incentive/default idea \u2014 though the answer's broader failure to recall the actual schemes makes this a hollow pass. / The tool library is never raised at all, so it is certainly not presented as an incentive/default idea \u2014 though the answer also wrongly claims the only schemes on record are the ESP32 build and the dishes standoff, which is why nothing else was found."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.2,
+    0.2
+   ],
+   "cost": 0.00278
+  }
+ },
+ {
+  "probe": "ideas",
+  "day": 28,
+  "config": "meaning",
+  "answer": "Three that fit cleanly:\n\nThe gym refund \u2014 incentive. Pay-back for weeks you show up changes what attending costs you. (Caveat we already landed on: it only moves people who already go, since it's funded by the ones who don't.)\n\nDemand-priced street parking \u2014 incentive. The price rises where and when people actually want the space, so it reaches the driver deciding whether to circle or drive on.\n\nThe opt-in menu calorie labels \u2014 default-adjacent, weakly. Information placed where the choice gets made rather than a rule against ordering anything.\n\nThe soda ban was the pure prohibition, and it failed the way bans do \u2014 the purchase just moved to the walk home.\n\nWant me to keep a running list of the schemes as they come up, so forgetting them stops being the problem?",
+  "seconds": 2.3,
+  "judge": {
+   "score": 0.8,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The grayscale-after-10pm scheme isn't mentioned anywhere in the answer \u2014 no reference to phone defaults or the automatic grayscale switch, even though it's a clean default-changing example. / The grayscale-after-10pm phone scheme is never mentioned, even though it's a clean default-changing idea and arguably the strongest example in the list."
+    },
+    {
+     "verdict": "met",
+     "why": "Lists \"Demand-priced street parking\" and explains it as an incentive: the price rises where and when people want the space, reaching the driver deciding whether to circle or drive on. / Demand-priced street parking is included and correctly framed as an incentive \u2014 the price rises where and when people actually want the space."
+    },
+    {
+     "verdict": "met",
+     "why": "Lists \"The gym refund\" as an incentive and explains the pay-back changes what attending costs, with the caveat that it only moves people who already go. / The gym refund is listed first as an incentive, with the same caveat reached earlier in the conversation (it only moves people who already go)."
+    },
+    {
+     "verdict": "met",
+     "why": "Lists the \"opt-in menu calorie labels\" \u2014 calories shown by default unless you ask for the version without \u2014 and correctly frames it as default-adjacent rather than a prohibition. / The menu calorie scheme is included and placed in the incentives/defaults bucket, though the labeling is muddled \u2014 it calls it \"opt-in\" when Shreyas proposed calories shown by default unless you ask otherwise."
+    },
+    {
+     "verdict": "met",
+     "why": "The tool library isn't mentioned at all, so it is nowhere presented as an incentive or default idea. (Minor unrelated slip: the junk-food-in-schools point is relabeled \"the soda ban,\" which slightly distorts what Shreyas actually said, but it doesn't affect this point.) / The tool library isn't mentioned at all, so it is certainly not presented as an incentive or default idea."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.8,
+    0.8
+   ],
+   "cost": 0.00318
+  }
+ },
+ {
+  "probe": "ideas",
+  "day": 28,
+  "config": "both",
+  "answer": "The ones that change a price or a default, not a ban:\n\nThe gym refund \u2014 money back for every week you show up, which is a default leaning toward attending.\nDemand-priced street parking \u2014 the meter price rising when a block is busy, so the cost moves with demand instead of a flat fee.\nThe menu calorie thing, in its opt-in form \u2014 the default is not showing, and you opt in.\nThe dish captain \u2014 nobody forbade leaving dishes out; the rotating role made the work somebody's by default, and it's the one on your list that actually took.\n\nThe no-soda-in-schools angle you brought up is the forbidding kind, and that's the one where kids just buy it on the walk home.\n\nThe common thread across the four that work that way: the price or the default has to land on the person whose behavior you want to move. The refund only moves people already attending, and the parking rise hits the driver already circling.",
+  "seconds": 2.5,
+  "judge": {
+   "score": 0.75,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The grayscale-after-10pm idea isn't mentioned at all \u2014 a clear omission, and it's one of the strongest default-change examples from the conversation. / The grayscale-after-10pm phone idea is never mentioned; the answer's list is gym refund, demand parking, calorie menus, and the dish captain only."
+    },
+    {
+     "verdict": "met",
+     "why": "Demand-priced street parking is listed with an accurate description: the price rises when a block is busy rather than being a flat fee. / Lists 'demand-priced street parking \u2014 the meter price rising when a block is busy' and frames it as a price signal rather than a ban."
+    },
+    {
+     "verdict": "met",
+     "why": "The gym refund for showing up is included. The characterization as \"a default leaning toward attending\" is a bit loose (it's an incentive), but the idea is clearly there. / 'The gym refund \u2014 money back for every week you show up' is included and correctly characterized as an incentive."
+    },
+    {
+     "verdict": "met",
+     "why": "Menu calories is included in its opt-in form, framed as a default that doesn't show unless you opt in \u2014 matching Shreyas's suggestion. / It does include the calorie-on-menus scheme, but recasts it as 'the default is not showing, and you opt in' \u2014 the opposite default from Shreyas's 'printed unless you ask for the version without them.'"
+    },
+    {
+     "verdict": "met",
+     "why": "The tool library is not mentioned at all, so it's certainly not presented as an incentive or default idea. / The tool library is never raised at all, so it is certainly not presented as an incentive or default idea."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.8,
+    0.7
+   ],
+   "cost": 0.00222
+  }
+ },
+ {
+  "probe": "ideas",
+  "day": 28,
+  "config": "explore",
+  "answer": "Here's every scheme you've floated, all of them in the \"no ban\" family:\n\nIncentives (money or price):\n- Gyms refund a little money per week you actually show up.\n- Street parking priced by real-time demand, so there's always one free spot on every block.\n- Libraries lending tools, not just books \u2014 the incentive is that you don't buy a drill for one hole.\n\nDefaults (change what you get unless you opt out):\n- Restaurants print calories by default, opt-in for the version without them.\n- Phones go grayscale automatically after 10pm.\n- Healthier default meals, no vending contracts, water instead of soda \u2014 that was mine, riffing off yours, but it fits the list.\n\nThe one that's a ban, and the reason it came up: school junk-food bans, which you've already argued don't work.\n\nWorth noticing: none of these forbids anything, and they still divide cleanly. The defaults just change what happens if you do nothing, which costs nobody anything. The incentive ones all have to answer who pays \u2014 the gym refund comes out of people who don't go, the parking increase lands on the driver already circling. That's the split, if you ever want to sort them again from memory.",
+  "seconds": 9.2,
+  "judge": {
+   "score": 0.8,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Lists 'Phones go grayscale automatically after 10pm' under defaults. / Lists \"Phones go grayscale automatically after 10pm\" under Defaults."
+    },
+    {
+     "verdict": "met",
+     "why": "Lists 'Street parking priced by real-time demand, so there's always one free spot on every block' under incentives. / Lists \"Street parking priced by real-time demand, so there's always one free spot on every block\" under incentives/price."
+    },
+    {
+     "verdict": "met",
+     "why": "Lists 'Gyms refund a little money per week you actually show up' under incentives. / Lists \"Gyms refund a little money per week you actually show up.\""
+    },
+    {
+     "verdict": "met",
+     "why": "Lists 'Restaurants print calories by default, opt-in for the version without them' under defaults \u2014 matches the unless-you-ask-otherwise framing. / Lists \"Restaurants print calories by default, opt-in for the version without them.\""
+    },
+    {
+     "verdict": "missed",
+     "why": "The tool library is listed under 'Incentives (money or price)' with the rationale 'the incentive is that you don't buy a drill for one hole' \u2014 presented as an incentive rather than flagged as a different kind of idea. / Actively files the tool library under \"Incentives (money or price)\" \u2014 \"the incentive is that you don't buy a drill for one hole\" \u2014 i.e. it presents it as an incentive idea rather than noting it's a different kind of scheme."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.8,
+    0.8
+   ],
+   "cost": 0.00203
+  }
+ },
+ {
+  "probe": "cascade",
+  "day": 30,
+  "config": "none",
+  "answer": "I don't have anything in my memory about a trip at the end of the year \u2014 no destination, no dates. Where are you headed and when?",
+  "seconds": 1.2,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer claims no memory of any end-of-year trip and asks where he's headed, rather than naming Maya or the last week of December. / Avy explicitly says she has nothing in memory about a trip and asks where he's headed, despite Shreyas saying on Sep 03 that he booked flights to visit Maya for the last week of December."
+    },
+    {
+     "verdict": "missed",
+     "why": "Nothing about Maya, Pune, or her move to Toronto appears in the answer. / Never mentions Maya or Toronto; the answer claims no destination is known at all."
+    },
+    {
+     "verdict": "missed",
+     "why": "No packing suggestions at all, cold-weather or otherwise. / No packing suggestions whatsoever, cold-weather or otherwise."
+    },
+    {
+     "verdict": "missed",
+     "why": "The answer doesn't mention the booked flights or that Maya has since moved to Toronto, so it never flags that the itinerary may need changing. / Does not raise the Pune-to-Toronto move or that the booked flights may need changing."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00104
+  }
+ },
+ {
+  "probe": "cascade",
+  "day": 30,
+  "config": "words",
+  "answer": "I don't have the details of that trip \u2014 where you're going and when in December, who with, how long \u2014 so anything I'd pack for you would be a guess. Where is it?",
+  "seconds": 1.3,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer explicitly says it doesn't know where he's going or when in December, rather than recalling the trip to see Maya in the last week of December. / The answer explicitly disclaims knowing the trip's details, rather than stating it's the trip to see Maya in the last week of December \u2014 which Shreyas said when he booked the flights on Sep 3."
+    },
+    {
+     "verdict": "missed",
+     "why": "It never mentions Maya or that she has moved to Toronto. / No mention of Toronto or of Maya having moved there next month; the answer treats the destination as unknown."
+    },
+    {
+     "verdict": "missed",
+     "why": "No cold-weather or Toronto-specific packing suggestions are given. / No packing suggestions at all, let alone winter clothing for a Toronto December."
+    },
+    {
+     "verdict": "missed",
+     "why": "It does not flag that the flights were booked while Maya was in Pune and may need changing. / Does not note that the flights were booked before Maya's move, nor that they may need changing."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00125
+  }
+ },
+ {
+  "probe": "cascade",
+  "day": 30,
+  "config": "meaning",
+  "answer": "Pack for Toronto, not Pune \u2014 that's the first thing. The flights were booked Sep 3 to see Maya in Pune, then Toronto happened, so unless the itinerary has changed he's landing in the wrong city.\n\nAssuming it gets sorted and the trip holds for the last week of December: it's Toronto in late December. Coat that actually handles wind and wet snow, not just cold; waterproof boots with grip; layers, hat, gloves, scarf. December there is grey and dark by 4:30, so nothing about the packing needs to be summery.\n\nThe one thing worth doing before packing is confirming her leave, now that she's at the new employer. No point optimizing a suitcase for a week that isn't happening.",
+  "seconds": 2.1,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "States the trip is to see Maya and pins it to the last week of December. / It explicitly refers to the Sep 3 flights booked to see Maya and assumes the trip holds for the last week of December."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly says to pack for Toronto, not Pune, because Toronto happened after the Pune booking. / It opens with \"Pack for Toronto, not Pune\" and explains that Toronto happened after the booking."
+    },
+    {
+     "verdict": "met",
+     "why": "Lists wind/wet-snow coat, waterproof boots with grip, layers, hat, gloves, scarf, and notes it's dark and grey \u2014 appropriate for Toronto in December. / It recommends a wind/wet-snow coat, waterproof boots, layers, hat, gloves and scarf for Toronto in late December."
+    },
+    {
+     "verdict": "met",
+     "why": "Says the Sep 3 flights were booked to see Maya in Pune and that, unless the itinerary changed, he'd be landing in the wrong city \u2014 i.e., the booking predates her move. / It flags that the flights were booked Sep 3 when Maya was in Pune, and says that unless the itinerary changed he'd land in the wrong city."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00319
+  }
+ },
+ {
+  "probe": "cascade",
+  "day": 30,
+  "config": "both",
+  "answer": "The trip at the end of the year is the one with a wrinkle: the flights were booked Sep 3 to see Maya in Pune, and she moves to Toronto in October. So before packing, the question is whether that itinerary gets changed to Toronto or stays a Pune trip. Which is it \u2014 have you rebooked?\n\nIf it's Toronto in late December: real winter. Coat, gloves, hat, boots with grip, layers. If it's Pune: warm, and December there is mild and dry.",
+  "seconds": 1.8,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Identifies the end-of-year trip as the one to see his sister Maya, and refers to it as \"late December,\" which matches the last-week-of-December booking. / Opens by identifying the trip as the one to see Maya at the end of the year, and later specifies late December."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicitly states Maya moves to Toronto in October, so the December trip is no longer a Pune visit. / States plainly that Maya moves to Toronto in October and that the Pune leg is now in question."
+    },
+    {
+     "verdict": "met",
+     "why": "Gives concrete cold-weather kit \u2014 coat, gloves, hat, boots with grip, layers \u2014 for Toronto in December. / Lists coat, gloves, hat, boots with grip and layers for a Toronto December."
+    },
+    {
+     "verdict": "met",
+     "why": "Flags that the flights were booked back on Sep 3 while Maya was in Pune and asks whether the itinerary has been rebooked. / Explicitly notes the flights were booked Sep 3 to see Maya in Pune, that she now lives in Toronto, and asks whether he has rebooked."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00161
+  }
+ },
+ {
+  "probe": "cascade",
+  "day": 30,
+  "config": "explore",
+  "answer": "Toronto in the last week of December: expect highs near freezing and lows well below, with wind off the lake making it feel colder. Layers beat one heavy coat \u2014 thermal base layer, a mid wool or fleece, a proper windproof outer shell, gloves, a hat that covers the ears, and boots with grip for ice. That's the core of it.\n\nTwo things specific to you. First, your December booking is still pointed at Pune \u2014 she's in Toronto now, so check whether that itinerary has been sorted before you pack around it. Second, the basil rig stays home and unsupervised for the week; pack for the trip, but the sensor's dry/wet calibration and the threshold need to be done and trusted at the board well before you go, not squeezed in the night before.",
+  "seconds": 8.0,
+  "judge": {
+   "score": 0.94,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "It anchors the answer to \"Toronto in the last week of December\" and treats the December booking as the trip to her (\"she's in Toronto now... check whether that itinerary has been sorted\"), so the trip's purpose and timing come through, even if \"sister\" / \"Maya\" is only referred to as \"she\". / It anchors the trip in the last week of December and refers to a \"she\" in Toronto, but never names Maya or says she's his sister, and never explicitly states the trip is to visit her \u2014 a reader couldn't tell who \"she\" is from this answer alone."
+    },
+    {
+     "verdict": "met",
+     "why": "Explicit: \"your December booking is still pointed at Pune \u2014 she's in Toronto now.\" It knows she has moved and won't be in Pune. / It explicitly says her December booking is \"still pointed at Pune \u2014 she's in Toronto now,\" which is the essential correction."
+    },
+    {
+     "verdict": "met",
+     "why": "Concrete cold-weather list: thermal base layer, wool/fleece mid, windproof shell, gloves, ear-covering hat, grippy boots, plus the note about wind chill off the lake. / Detailed Toronto December advice: thermal base layer, mid wool/fleece, windproof shell, gloves, hat, grippy boots for ice, with wind chill noted."
+    },
+    {
+     "verdict": "met",
+     "why": "Directly flags that the booking was made for Pune, may need re-checking/re-booking, and says to sort the itinerary before packing around it. / Flags that the booking still points at Pune and tells him to check whether the itinerary has been sorted before packing around it \u2014 the substance of the point, even if it doesn't say the booking predates her move."
+    }
+   ],
+   "invented": true,
+   "invented_what": "It calls the ESP32/sensor project \\\"the basil rig\\\" and refers to \\\"the threshold\\\" as if the build were known to be a basil-watering system with a set moisture threshold. Nothing in the conversations says what the sensor is for \u2014 he was asked and never answered \u2014 and in fact he said he was done buying basil after the third plant died. Minor, but presented as fact. / Treats the ESP32 soil sensor as a basil-watering rig (\\\"the basil rig stays home... the sensor's dry/wet calibration and the threshold\\\"). Nothing in the conversations says the sensor is for the basil plants \u2014 Avy asked which plant it was for and Shreyas never answered, so this is presented as fact without support.",
+   "passes": [
+    1.0,
+    0.88
+   ],
+   "cost": 0.00355
+  }
+ },
+ {
+  "probe": "unknown",
+  "day": 30,
+  "config": "none",
+  "answer": "I don't have it. Nothing in my memory has your landlord's name \u2014 I've got your book, the ESP32 watering project, your sister Maya's move to Toronto, and your feelings about running, but no landlord.\n\nIf it's in a lease, a text thread, or a bank statement, paste or attach it and I'll note it for next time.",
+  "seconds": 1.4,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Directly states it doesn't have the landlord's name and that it never came up, offering no invented name \u2014 instead points to where it might be found. / Explicitly says \"I don't have it\" and that nothing in memory has the landlord's name, with no fabricated name offered."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00062
+  }
+ },
+ {
+  "probe": "unknown",
+  "day": 30,
+  "config": "words",
+  "answer": "I don't have it. Nothing in my memory has your landlord's name \u2014 I have your flat, the caf\u00e9 downstairs, but not who owns the place. Do you know where you'd have written it down?",
+  "seconds": 1.1,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Explicitly says \"I don't have it\" and that nothing in memory contains the landlord's name, and doesn't offer any name or guess. / Directly says it doesn't have the landlord's name and that nothing in memory mentions it, without inventing a name."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00075
+  }
+ },
+ {
+  "probe": "unknown",
+  "day": 30,
+  "config": "meaning",
+  "answer": "I don't have it. Nothing in my memory has your landlord's name \u2014 you may have mentioned it somewhere I can't search back to, but I can't find it and won't guess.",
+  "seconds": 1.3,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Plainly says it doesn't have the landlord's name and won't guess, and offers no invented name. / Avy plainly says she doesn't have it and that it isn't in her memory, explicitly refuses to guess, and invents no name."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00059
+  }
+ },
+ {
+  "probe": "unknown",
+  "day": 30,
+  "config": "both",
+  "answer": "I don't have it. There's nothing in my memory about your landlord's name \u2014 no mention of him at all that I can find. Where would you have it? A lease, a rent receipt, maybe a text thread.",
+  "seconds": 1.6,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Directly says \"I don't have it\" and that there's nothing in memory about the landlord's name \u2014 no name invented, and it offers plausible places to look instead. / Plainly says it doesn't have the landlord's name and that he was never mentioned, and offers no invented name."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00077
+  }
+ },
+ {
+  "probe": "unknown",
+  "day": 30,
+  "config": "explore",
+  "answer": "I don't have it. There's nothing in my memory about your landlord, so I can't give you a name without making one up.",
+  "seconds": 5.7,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Explicitly says it doesn't have the name, that there's nothing in memory about the landlord, and refuses to invent one. / Explicitly says it doesn't have the name, that nothing in memory covers the landlord, and declines to invent one."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00059
+  }
+ },
+ {
+  "probe": "verbatim",
+  "day": 30,
+  "config": "none",
+  "answer": "I don't have that. Nothing from that conversation came back with this message, so I can't quote your exact words, and I won't reconstruct them and pass the guess off as a quote. If you tell me roughly when it was or what you said around it, I can go looking.",
+  "seconds": 1.6,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer doesn't quote him at all \u2014 it declines, claiming the conversation isn't available. But the exchange is right there: \"went down a rabbit hole tonight about how ant colonies find food\" (and then \"no single ant knows the route...\"). Any of those lines would have satisfied the point; none are given. / The answer refuses to quote and claims it has no record of the ant-colony conversation, when Shreyas's lines are right there in the history (e.g. \"went down a rabbit hole tonight about how ant colonies find food\", \"no single ant knows the route. each one lays down a scent as it moves, and the rest pick up the strongest one\", \"the clever bit is that the scent evaporates...\", \"and shorter routes win on their own...\"). None of these, or anything close, is given."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.00104
+  }
+ },
+ {
+  "probe": "verbatim",
+  "day": 30,
+  "config": "words",
+  "answer": "Let me check.\n\nI don't have it. What I have from that evening is my own reply about stigmergy and the foraging trails, but not your message that prompted it \u2014 so I can't give you your exact words, and I won't reconstruct them and pass them off as a quote.",
+  "seconds": 1.5,
+  "judge": {
+   "score": 0.0,
+   "marks": [
+    {
+     "verdict": "missed",
+     "why": "The answer explicitly declines to give his words, claiming she doesn't have the message \u2014 even though his opening line (\"went down a rabbit hole tonight about how ant colonies find food\") is right there in the conversation. No quote or paraphrase of any of his lines from that conversation is offered. / Avy gives no quote at all \u2014 she explicitly says she doesn't have his message and won't reconstruct it. None of his actual lines (\"went down a rabbit hole tonight about how ant colonies find food\", \"no single ant knows the route...\", the evaporation line, etc.) appear, not even approximately."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    0.0,
+    0.0
+   ],
+   "cost": 0.001
+  }
+ },
+ {
+  "probe": "verbatim",
+  "day": 30,
+  "config": "meaning",
+  "answer": "\"went down a rabbit hole tonight about how ant colonies find food\" \u2014 that was Sep 2.",
+  "seconds": 1.5,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Quotes his opening line verbatim \u2014 \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 which is exactly what he said first on the topic, and attributes it to the right evening (Sep 2). / Quotes his opening line verbatim \u2014 \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 and correctly dates it to Sep 2, which matches the first ant-colony message in the transcript."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.0006
+  }
+ },
+ {
+  "probe": "verbatim",
+  "day": 30,
+  "config": "both",
+  "answer": "\"You went down a rabbit hole tonight about how ant colonies find food\" \u2014 your words, Sep 2: \"went down a rabbit hole tonight about how ant colonies find food.\"",
+  "seconds": 1.5,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "It reproduces his opening line exactly \u2014 \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 which is verbatim his first mention of ant colonies (Sep 2, 9:00 PM), and it correctly attributes it to Sep 2. The second-person paraphrase preceding it is clearly flagged as a paraphrase rather than presented as the quote. / He reproduces Shreyas's opening line verbatim \u2014 \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 and correctly attributes it to Sep 2 as his first mention of the topic."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00075
+  }
+ },
+ {
+  "probe": "verbatim",
+  "day": 30,
+  "config": "explore",
+  "answer": "\"went down a rabbit hole tonight about how ant colonies find food\" \u2014 that was Wed Sep 2, 9:00 PM.",
+  "seconds": 5.5,
+  "judge": {
+   "score": 1.0,
+   "marks": [
+    {
+     "verdict": "met",
+     "why": "Quotes Shreyas's opening line from the first ant-colony conversation verbatim \u2014 \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 which matches the Sep 02, 09:00 PM message exactly, and correctly tags it as the first mention (Wed Sep 2, 9:00 PM). / Quotes the opening line of the ant-colony conversation verbatim \u2014 \"went down a rabbit hole tonight about how ant colonies find food\" \u2014 and correctly places it on Sep 2 at 9:00 PM, matching the transcript."
+    }
+   ],
+   "invented": false,
+   "invented_what": "",
+   "passes": [
+    1.0,
+    1.0
+   ],
+   "cost": 0.00082
+  }
+ }
+]

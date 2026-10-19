@@ -1,0 +1,20 @@
+{
+ "instance": "sympy__sympy-23950",
+ "repo": "sympy/sympy",
+ "difficulty": "15 min - 1 hour",
+ "started": "1792436797.9833827",
+ "reply": "(scored an existing patch)",
+ "steps": [],
+ "diff_lines": 39,
+ "graded": {
+  "applied": true,
+  "passed": true,
+  "returncode": 0,
+  "f2p": [
+   "test_as_set"
+  ],
+  "p2p_checked": 7,
+  "tail": "deprecated\n    warnings.warn(f\"{name} is deprecated\", DeprecationWarning)\n\n../../../../../avy-venv/lib/python3.12/site-packages/mpmath/rational.py:4\n../../../../../avy-venv/lib/python3.12/site-packages/mpmath/rational.py:4\n../../../../../avy-venv/lib/python3.12/site-packages/mpmath/rational.py:4\n  /home/ubuntu/avy-venv/lib/python3.12/site-packages/mpmath/rational.py:4: DeprecationWarning: the rational private module is deprecated\n    warnings.warn(\"the rational private module is deprecated\",\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n8 passed, 4 warnings in 3.90s\n"
+ },
+ "minutes": 1.9
+}

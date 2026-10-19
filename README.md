@@ -1,5 +1,9 @@
 # Avy
 
+> **Taking over improvement work? Read [docs/HANDOVER.md](docs/HANDOVER.md) first**, then
+> [docs/REQUESTS.md](docs/REQUESTS.md) for what was asked and what state it is in, and
+> [docs/KICKOFF.md](docs/KICKOFF.md) for the prompt a fresh agent should start from.
+
 A personal agent built from scratch, one small piece at a time, so every line is understood. Her heart is
 a memory that never forgets and never summarizes anything away: one endless conversation, turned into a
 living network of knowledge that she thinks about when it's quiet.
