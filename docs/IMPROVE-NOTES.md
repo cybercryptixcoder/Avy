@@ -722,8 +722,12 @@ scored by someone else's rules.
 
 ### Next, in the order that costs least for what it proves
 
-1. **Temporal, properly.** 60% is a real hole and it's the same shape as the §14 date miss. Fix the "quote it, don't
-   recompute it" rule and re-ask the same temporal questions — a controlled before/after on one category.
+1. **Temporal, properly — measured, and it did not help.** I added the "quote it, don't recompute it" rule and re-asked
+   the identical 40 questions against the identical memory: **75.0% vs 77.5%, no gain** (2 swapped items either way,
+   which is noise at n=40). And the §14 date miss does not reproduce at full import — given all 19 sessions she answers
+   "Sunday, May 7, 2023" both before and after the rule. So that miss was **thin memory (2 sessions ingested), not a
+   recomputation habit**, and I was about to give a wrong cause for a real result. The rule stays because it's cheap and
+   correct, but it fixed nothing and I won't claim it did.
 2. **More questions, same conversation**, to shrink that ±13. Cheap; the memory already exists and `--reuse` skips the
    import.
 3. **A second conversation**, to see whether 77.5% is conv-26 or her.
