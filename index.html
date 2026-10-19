@@ -136,7 +136,7 @@ button { cursor: pointer; background: none; border: 0; }
 .mode button.on { background: var(--ink); color: var(--card); }
 .mode button[data-mode="avy"] { font-family: var(--serif); font-style: italic; font-weight: 400; text-transform: none; font-size: 19px; letter-spacing: 0; }
 body.plain #openDesk, body.plain #openGlass, body.plain #openMemory, body.plain #mini, body.plain .tiles,
-body.plain .nextup, body.plain #endIncognito, body.plain .sys, body.plain .badge { display: none !important; }
+body.plain .nextup, body.plain #endIncognito, body.plain #attach, body.plain .sys, body.plain .badge { display: none !important; }
 @media (max-width: 1560px) {   /* room for the mode toggle: the desk, glass and memory buttons become just their icons */
   #openDesk, #openGlass, #openMemory { font-size: 0; gap: 0; padding: 0 13px; }
   .nav-items { gap: 10px; font-size: 12px; }
@@ -664,32 +664,90 @@ dialog .lede { margin: 14px 0 20px; font-size: 15px; max-width: 38ch; }
    6. Phones: one column, the page scrolls
    =================================================================== */
 @media (max-width: 900px) {
+  /* the first screen is the app: the bar, the wordmark and the conversation fill the phone exactly;
+     the system card and the counters follow below for whoever scrolls */
   html, body, .frame, .shell { height: auto; }
-  .frame { padding: 10px; }
-  .shell { padding: 12px; gap: 12px; border-radius: 24px; }
-  .nav-items, .nav-globe { display: none; }
-  .nav-pill { justify-content: space-between; height: 54px; gap: 6px; padding-left: 6px; }
-  .nav .pill-btn { padding: 0 11px; gap: 6px; }
-  .mode button { padding: 0 9px; }
-  .convos { order: 2; max-height: 34svh; }
-  body.plain .chat { order: 3; }
-  #openGlass, #openDesk { font-size: 0; gap: 0; }                 /* the glass: just its icon on a phone */
-  .round-btn { width: 54px; height: 54px; }
-  .main { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+  .frame { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+  .shell { padding: 10px; gap: 10px; border-radius: 22px; }
+  .main { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .side { display: contents; }
-  .hero  { order: 1; }
-  .chat  { order: 2; height: 74svh; font-size: 14px; }
+
+  /* the bar: the mode toggle and round icon buttons in the pill, the key beside it */
+  .nav { gap: 8px; }
+  .nav-items, .nav-globe { display: none; }
+  .nav-pill { min-width: 0; height: 50px; gap: 4px; padding: 0 5px; justify-content: space-between; }
+  .nav .pill-btn, .icon-btn { width: 38px; height: 38px; padding: 0; justify-content: center; gap: 0; font-size: 0; }
+  .nav .pill-btn .icon, .icon-btn .icon { width: 18px; height: 18px; }
+  .mode { height: 38px; padding: 2px; }
+  .mode button { padding: 0 11px; font-size: 12px; }
+  .mode button[data-mode="avy"] { font-size: 17px; }
+  .round-btn { width: 46px; height: 46px; border-width: 2.5px; }
+  .round-btn .icon { width: 21px; height: 21px; }
+
+  /* the wordmark, smaller, with the badge beside it */
+  .hero  { order: 1; padding: 2px 4px 12px; }
+  .wordmark { font-size: 19cqi; }
+  .badge { width: 17cqi; }
+
+  /* the conversation: exactly the rest of the screen */
+  .chat  { order: 2; height: calc(100svh - 204px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 380px; font-size: 14px; }
+  .log { padding: 14px 8px 20px; }
+  .log table { display: block; overflow-x: auto; }
+  .typed { font-size: 16px; }                              /* 16px or more: iOS doesn't zoom in when you type */
+  .status { flex-wrap: wrap; justify-content: flex-end; gap: 4px 16px; padding-top: 4px; }
+  .status .nextup { flex: 1 1 100%; max-width: none; order: -1; }
+  .status .how { display: none; }
+  .status #attach { margin-right: auto; }
+  .status button { padding: 9px 0; font-size: 13px; }       /* finger-sized */
   .sys   { order: 3; }
   .tiles { order: 4; }
-  .log { padding: 16px 10px 24px; }
+  .tile b { font-size: 40px; }
+
+  /* the command panel and the inspector open under the conversation */
   .chat-body { flex-direction: column; }
   .cmds, .insp { width: auto; height: 0; }          /* stacked under the conversation: closed means no height */
-  .cmds.open { width: auto; height: 40%; border-left: 0; border-top: 1.5px solid var(--ink); }
+  .cmds.open { width: auto; height: 46%; border-left: 0; border-top: 1.5px solid var(--ink); }
   .cmds-inner { width: auto; padding-top: 10px; }
-  .insp.open { width: auto; height: 58%; border-left: 0; border-top: 1.5px solid var(--ink); }
+  .cmds-foot { display: none; }
+  .insp.open { width: auto; height: 62%; border-left: 0; border-top: 1.5px solid var(--ink); }
   .insp-inner { min-width: 0; }
   .insp-head { padding-top: 10px; }
-  .tile b { font-size: 40px; }
+
+  /* full-page sheets (desk, glass, graph) and the keys panel fit inside the safe area */
+  .glass, .graph { inset: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom)); border-radius: 20px; }
+  .glass-head { flex-wrap: wrap; row-gap: 4px; }
+  .glass-head button { white-space: nowrap; }
+  .desk-mast { font-size: 24px; }
+  .graph-head { top: 12px; left: 14px; right: 14px; flex-wrap: wrap; row-gap: 0; }
+  .graph-head .t { margin-right: auto; }
+  .graph-head .n { order: 3; flex-basis: 100%; font-size: 12px; }
+  .graph-bar { top: 64px; left: 14px; right: 14px; font-size: 12px; line-height: 1.9; }
+  .graph-bar input[type="range"] { width: 52vw; }
+  .graph-foot { display: none; }
+  .graph-card { left: 10px; bottom: 10px; width: calc(100% - 20px); }
+  dialog { width: calc(100vw - 20px); padding: 20px 18px 18px; border-radius: 22px; }
+  dialog h2 { font-size: 36px; }
+
+  /* plain chat: the conversations become a row of chips above the chat */
+  body.plain .convos { order: 2; flex-direction: row; align-items: center; flex: none; border-radius: 999px; height: 46px; }
+  body.plain .chat { order: 3; height: calc(100svh - 252px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .convos-head { border-bottom: 0; padding: 0 0 0 5px; flex: none; }
+  .convos-head span { display: none; }
+  .convos-head button { height: 34px; padding: 0 12px; white-space: nowrap; }
+  .convos ul { display: flex; gap: 4px; padding: 0 5px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .convos ul::-webkit-scrollbar { display: none; }
+  .convos li { flex: none; max-width: 62vw; height: 34px; padding: 0 6px 0 12px; border-radius: 999px; border: 1.5px solid transparent; }
+  .convos li .n { display: none; }
+  .convos .empty { padding: 0 10px; white-space: nowrap; }
+}
+@media (max-width: 900px) and (hover: none) {
+  .convos li .x { opacity: .55; padding: 4px 6px; }       /* no hover on a phone: delete stays visible */
+}
+@media (max-width: 370px) {                                  /* the smallest phones: the theme button goes to / commands */
+  #themeBtn { display: none; }
+  .mode button { padding: 0 8px; }
 }
 
 /* Short laptop screens: a smaller wordmark so everything fits */
