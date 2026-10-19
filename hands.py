@@ -373,13 +373,20 @@ def find_files(pattern="*", contains=None, path=None, limit=200):
 # Python
 # ---------------------------------------------------------------------------------------------------------------
 
-def serve_workspace():
-    """Start (once) a read-only web server on 127.0.0.1 for her workspace. Returns the base address, or a reason."""
-    proc = SERVED.get("proc")
-    if proc is not None and proc.poll() is None:
+def serve_workspace(root=None):
+    """Start (once) a read-only web server on 127.0.0.1 for a folder. Returns the base address, or a reason.
+
+    Rooted at `root` (default: her workspace). A page outside the workspace gets its own folder served, so the
+    address always points at the page she named."""
+    root = Path(root or WORKSPACE)
+    proc, rooted = SERVED.get("proc"), SERVED.get("root")
+    if proc is not None and proc.poll() is None and rooted == root:
         return f"http://127.0.0.1:{SERVED['port']}"
+    if proc is not None and proc.poll() is None:      # serving a different folder now: stop the old one
+        proc.terminate()
+        SERVED.update(proc=None, port=0)
     try:
-        WORKSPACE.mkdir(parents=True, exist_ok=True)
+        root.mkdir(parents=True, exist_ok=True)
         sock = socket.socket()
         sock.bind(("127.0.0.1", 0))                     # let the OS pick a free port
         port = sock.getsockname()[1]
@@ -387,13 +394,13 @@ def serve_workspace():
         code = ("import functools, http.server, socketserver\n"
                 "class H(http.server.SimpleHTTPRequestHandler):\n"
                 "    def log_message(self, *a): pass\n"           # silent: this is not a log she should read
-                f"h = functools.partial(H, directory={str(WORKSPACE)!r})\n"
+                f"h = functools.partial(H, directory={str(root)!r})\n"
                 f"socketserver.TCPServer.allow_reuse_address = True\n"
                 f"with socketserver.TCPServer(('127.0.0.1', {port}), h) as s:\n"
                 "    s.serve_forever()\n")
         SERVED["proc"] = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.DEVNULL,
                                           stderr=subprocess.DEVNULL, start_new_session=True)
-        SERVED["port"] = port
+        SERVED["port"], SERVED["root"] = port, root
         for _ in range(40):                              # wait until it actually answers (startup is ~50 ms)
             try:
                 with socket.create_connection(("127.0.0.1", port), timeout=0.25):
@@ -415,6 +422,26 @@ def look(target, width=None, full=False):
     target = str(target or "").strip()
     if not target:
         return "Give me an address (http://… or a path to a .html file)."
+    # A toolbox launch can fail after start() (a stale channel, a missing binary). Ensure the browser is up here too:
+    # the harness (and a fresh subprocess) call look() without ever running app.py's startup, and the failure mode is
+    # a *measurements caption* with an error underneath — which reads as "I looked" to her and costs a whole answer.
+    try:
+        import connectors
+        hub = connectors.HUB
+        problem = "the browser toolbox isn't set up here"
+        if hub is not None:
+            for name in hub.boxes:
+                if "browser" in name:
+                    tools, problem = hub.open(name)
+                    if tools:
+                        problem = None
+                    break
+        if problem:
+            return (f"I can't open a browser here, so I have no measurements for this page ({problem}). "
+                    "Tell him you couldn't look, rather than describing what the source says it will look like.")
+    except Exception as e:
+        return (f"I can't open a browser here, so I have no measurements for this page "
+                f"({type(e).__name__}: {str(e)[:160]}). Tell him you couldn't look.")
     if target.startswith(("http://", "https://")):
         url = target
     else:
@@ -422,12 +449,16 @@ def look(target, width=None, full=False):
         if not p.is_file():
             near = sorted(x.name for x in p.parent.glob("*.htm*"))[:10] if p.parent.exists() else []
             return f"There's no page at {p}." + (f" In {p.parent}: {', '.join(near)}" if near else "")
-        # Browsers (and your toolbox) refuse file:// addresses, so her pages are served from a loopback port instead.
+        # Browsers (and your toolbox) refuse file:// addresses, so pages are served from a loopback port instead.
         # That is also truer to life: scripts, fetch and storage all behave the way they will for him.
-        served = serve_workspace()
+        # Serve the file's own folder when it lives outside the workspace: a file she just wrote somewhere else is a
+        # legitimate page, and refusing it (the old code raised a bare pathlib ValueError here) taught her to invent a
+        # cause for the failure. Any page she can name, she can look at.
+        root = WORKSPACE if inside_workspace(p) else p.parent
+        served = serve_workspace(root)
         if not served.startswith("http://"):
             return served
-        url = served + urllib.parse.quote("/" + str(p.relative_to(WORKSPACE)))
+        url = served + urllib.parse.quote("/" + str(p.relative_to(root)))
     width = max(200, min(int(width or 1280), 2560))
     js = LOOK_JS.replace("%%WIDTH%%", str(width))
     try:

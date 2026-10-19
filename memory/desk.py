@@ -43,7 +43,12 @@ MAX_STEPS = 24           # a thread's plan tree
 # message, picked by a quick first step (the "opcode": which kind of conversation this is). A conversation gives her
 # voice the room; a task gives the thread it's about its whole frontier and the threads list; ideas sit between.
 FORMATS = {
-    "conversation": {"situations": ("casual", "life", None), "voice": 2, "thread_lines": 0},
+    # Why "conversation" is 2 and not 0 (changed 2026-10-19): while casually talking, she was told nothing was in
+    # flight. Then "how's the site coming along?" arrived and she had to open a thread to find out — which reads to him
+    # as having lost the plot. Two lines is the cheapest fix that keeps the old spirit: work in flight is always at
+    # at least visible, and only becomes detailed when the message is about it. Cost: up to ~40 tokens on a casual
+    # turn. To be measured on the probe set before this is called an improvement.
+    "conversation": {"situations": ("casual", "life", None), "voice": 2, "thread_lines": 2},
     "task":         {"situations": ("technical work", "planning"), "voice": 1, "thread_lines": THREAD_LINES},
     "ideas":        {"situations": ("ideas",), "voice": 1, "thread_lines": THREAD_LINES},
 }

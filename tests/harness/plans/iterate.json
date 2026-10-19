@@ -1,0 +1,12 @@
+{
+  "persona": "Shreyas, 31, running his own tiny company from home. Terse, warm, allergic to fluff. He opens what she makes and says what he sees.",
+  "avoid": "Never invent his job title, colleagues or family.",
+  "nights": 0,
+  "days": [
+    {"day": 1, "date": "2026-10-05", "sittings": [
+      {"at": "09:10", "thread": "plan", "turns": 1, "kind": "task",
+       "about": "She already made a weekly training plan page with a bar chart, and you opened it. Sunday's column is empty, so a zero bar reads as a missing bar rather than a rest day. The chart labels are faint, and the table says 'min' while the chart shows bare numbers. Ask her to fix all three and to check the page herself this time."},
+      {"at": "09:30", "probe": {"id": "followthrough", "ask": "what did you change, and does it look right now?", "checks": ["sunday is visibly a rest day rather than an empty column", "says she looked at the page", "numbers or units consistent"]}}
+    ]}
+  ]
+}

@@ -170,7 +170,7 @@ def answer(probe, name, cfg):
         trace = explore.explore(explore.Library([mem]), mem, probe["ask"], "", None, cfg["depth"], cfg["words"], cfg["meaning"], learn=False)
     else:
         trace = mem.recall(probe["ask"], "", None, cfg["depth"], cfg["words"], cfg["meaning"])
-    messages = app.briefing([], trace["briefing"], probe["ask"], core=searching)
+    messages = app.briefing([], trace["briefing"], probe["ask"], core=searching, tools=False)
     reply = app.luminal.complete({"messages": messages, "max_tokens": app.REPLY_TOKENS}, effort=args.thinking)
     text = reply["choices"][0]["message"]["content"]
     explored = trace.get("explore") or {}

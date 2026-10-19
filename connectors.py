@@ -39,10 +39,38 @@ OUTPUT_CHARS = 14_000
 
 BROWSER_ASK = ["browser_fill_form", "browser_type", "browser_file_upload", "browser_handle_dialog", "browser_evaluate",
                "browser_run_code_unsafe", "browser_install"]
+
+
+def browser_flags():
+    """Playwright's way to launch *the Chromium actually on this machine*, as argv flags.
+
+    Order: AVY_BROWSER (a binary path) or AVY_BROWSER_CHANNEL (a Playwright channel name) if set; otherwise the newest
+    chrome in ~/.cache/ms-playwright; otherwise nothing, and Playwright uses its default. This is deliberately
+    self-discovering: the browser is the one toolbox that depends on the host, and a hard-coded path in .env breaks
+    silently on a rebuilt VM in the worst way — the toolbox still "starts", then every open fails with
+    "Chromium distribution 'chrome' is not found", which she reads as a browser that's missing and stops trying."""
+    if os.environ.get("AVY_BROWSER_CHANNEL"):
+        return ["--browser", os.environ["AVY_BROWSER_CHANNEL"]]
+    path = os.environ.get("AVY_BROWSER")
+    if not path:
+        found = []
+        for cache in (Path.home() / ".cache" / "ms-playwright",):
+            for d in cache.glob("chromium-*"):
+                for sub in ("chrome-linux-arm64/chrome", "chrome-linux/chrome", "chrome-mac/Chromium.app/Contents/MacOS/Chromium"):
+                    if (d / sub).is_file():
+                        found.append((d.stat().st_mtime, str(d / sub)))
+        if found:
+            path = max(found)[1]                 # newest install wins, so a `playwright install` upgrade is picked up
+    return ["--executable-path", path] if path else []
+
+
 DEFAULTS = {
+    # The browser is the one toolbox with a host dependency, so it is self-discovering rather than configured: an
+    # explicit AVY_BROWSER/AVY_BROWSER_CHANNEL wins, else the newest Chromium in the Playwright cache is used, else
+    # Playwright's own default. Without this, a rebuilt VM silently hands her a toolbox that opens to
+    # "Chromium distribution 'chrome' is not found" — a failure she then has to interpret, badly (IMPROVE-NOTES §11).
     "browser": {"command": "npx", "args": ["-y", "@playwright/mcp@latest", "--headless", "--isolated", "--no-sandbox",
-                                           *(["--executable-path", os.environ["AVY_BROWSER"]] if os.environ.get("AVY_BROWSER") else []),
-                                           *(["--browser", os.environ["AVY_BROWSER_CHANNEL"]] if os.environ.get("AVY_BROWSER_CHANNEL") else [])],
+                                           *browser_flags()],
                 "about": "a real web browser: open pages, read them as an accessibility snapshot, click, type, fill forms, "
                          "take screenshots (for pages web_fetch can't read: logins, apps, anything that needs clicking)",
                 "ask": BROWSER_ASK},

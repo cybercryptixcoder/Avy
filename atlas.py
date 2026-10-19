@@ -191,5 +191,12 @@ TOOL = {"type": "function", "function": {
     "description": ("Everything you know is one graph: start at the root (no handle) and follow handles. Hubs: self (your own "
                     "code and architecture), persona, him, her, us, knowledge, calendar, threads, log, library. Nodes: k12 "
                     "(memory), pa7 (persona), t3 (calendar), th4 (thread and its plan tree), m120 (a message), "
-                    "c:app.py:Turn (your code). Each look shows the node and its edges (→ out, ← in) to follow next."),
-    "parameters": {"type": "object", "properties": {"handle": {"type": "string"}}, "required": []}}}
+                    "c:app.py:Turn (your code). Each look shows the node and its edges (→ out, ← in) to follow next. "
+                    "Pass the exact handle string; there is no search by words here — for that, use the memory search "
+                    "the briefing already did for you, or follow edges from the root."),
+    "parameters": {"type": "object", "properties": {
+        "handle": {"type": "string", "description": "the handle to open, e.g. 'calendar', 'threads', 'k12', 'th4'. "
+                                                      "Leave out to start at the root."},
+        "node": {"type": "string", "description": "same as handle (accepted so an obvious guess still works)"},
+        "query": {"type": "string", "description": "same as handle"}},
+        "required": []}}}

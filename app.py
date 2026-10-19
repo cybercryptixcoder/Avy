@@ -116,7 +116,16 @@ anything safe.
   web_fetch the source), what a file or folder holds (read_file, find_files), the state of this computer (terminal).
 - Keep going until it's actually done and checked. If a result looks wrong, thin or empty, try another way before you
   conclude. Make independent calls together, in one go.
+- What you made, you check before you call it done. A file you wrote: read it back, and for anything a person will look
+  at (a page, an interface, a report), open it with `look` and see what it actually renders. A command you ran: read the
+  output, not just the exit code. Anything you said "done" about without looking is a claim you haven't earned, and the
+  page will show the steps beside the claim, so an unverified "done" is plain to see.
 - Never invent output. If something fails or is blocked, say what happened and what you'd try next.
+- When a date or a number matters, use the one your memory states, and quote it. Don't recount the days yourself: two
+  memories agreeing beats one arithmetic in your head. If memory gives no date, work it out once and show the working.
+- Read an error before you explain it. "It failed and here's what it said" is honest; "it failed because the browser is
+  missing" is a story unless the error said so. Pass on the actual words, say what you'll try instead, and try that
+  before telling him it can't be done.
 - Before work of a kind a playbook covers, read that playbook. Your playbooks:
 {playbooks}{toolboxes}
 - Work that spans more than this reply, and anything you start in the background, gets a thread.
@@ -180,11 +189,13 @@ INCOGNITO_NOTE = f"""This is an incognito conversation, separate from your main 
 your memory of the main conversation, but nothing said here will be remembered once it ends."""
 
 
-def system_prompt(incognito=False, core=True):
+def system_prompt(incognito=False, core=True, tools=True):
     """Avy's instructions: her constitution, how the machine works, the persona's always-in-view part (her core, him,
     his standing preferences) and the core of her memory (its biggest hubs). It changes only when those do, so the
     model's prompt cache can reuse it (the time, the calendar and the rest of the desk go in the note instead).
-    core=False when memory search is off: then she gets no memory at all. /persona: off gives the old prompt, for comparing."""
+    core=False when memory search is off: then she gets no memory at all. /persona: off gives the old prompt, for comparing.
+    tools=False when this request carries no tool schemas: the hands section promises tools she cannot call, and she
+    answers by writing the call out as text (measured: whole answers lost that way), so it is left out entirely."""
     choice = current_settings()
     hubs = MEMORIES["main"].core() if core else ""
     rule = FOOTNOTES if choice["footnotes"] == "on" else NO_FOOTNOTES
@@ -192,7 +203,7 @@ def system_prompt(incognito=False, core=True):
     if choice["persona"] == "off":
         return LEGACY_PROMPT + "\n\n" + rule + tail
     always = MEMORIES["main"].persona_always()
-    hands_on = choice["hands"] != "off" and not incognito
+    hands_on = choice["hands"] != "off" and not incognito and tools
     return (CONSTITUTION + "\n\n" + MACHINE + "\n\n" + rule
             + ("\n\n" + HANDS.replace("{playbooks}", hands.playbook_index()).replace("{toolboxes}", toolbox_lines())
                + "\n\n" + SELF.replace("{root}", str(HERE.resolve())) if hands_on else "") + tail
@@ -624,11 +635,30 @@ class Turn:
                 desk_note += "\n\n" + running
             self.recall["desk"] = {**shown_desk, "note": desk_note}
             note = desk_note + "\n\n" + note
-        self.messages = briefing(shown, note, text, self.incognito, core=self.searching, attached=self.attached)
+        self.messages = briefing(shown, note, text, self.incognito, core=self.searching, attached=self.attached,
+                                 tools=bool(self.tools))
         self.user_id = self.recall_id = self.reply_id = None
         self.effort = choice["thinking"]
         self.thought, self.think_started, self.think_seconds = [], None, None   # what she thinks before answering
         self.did, self.usages = [], []          # what her tools changed this turn; usage of each round
+        self.touched, self.checked, self.nudges = [], [], 0   # stop gate: what she wrote, what she looked at
+
+    def unchecked_work(self):
+        """A phrase naming what she made this reply but never looked at ("wrote workspace/dashboard.html"), or "".
+
+        The stop gate uses it. Only her own file-writing counts: a read, a search or a command whose output was
+        already in front of her is not "unverified work", and marking it so would nudge her for nothing."""
+        seen, open_ = set(), []
+        checked_names = {str(c).replace("\\", "/").rsplit("/", 1)[-1] for c in self.checked}
+        for p in self.touched:
+            key = str(p).replace("\\", "/").rsplit("/", 1)[-1]     # compare by file name: she checks a URL, writes a path
+            if key and key not in seen and key not in checked_names:
+                seen.add(key)
+                open_.append(str(p))
+        if not open_:
+            return ""
+        shown = ", ".join(open_[:3]) + (f" and {len(open_) - 3} more" if len(open_) > 3 else "")
+        return f"wrote or changed {shown}"
 
     def stream(self, line):
         """Read one line of the model's stream: keeps her thinking (and how long it took), returns
@@ -859,6 +889,17 @@ class Rounds:
             messages += [{"role": "assistant", "content": "".join(content), "reasoning_content": "".join(reasoning),
                           "tool_calls": [calls[i] for i in sorted(calls)]}] + told
             rounds = HANDS_ROUNDS if turn.hands != "off" else instruments.MAX_ROUNDS
+            # The stop gate. A turn that made or changed something and then reached for its summary without ever looking
+            # at the result is the failure mode that reads as "done" and isn't (IMPROVE-NOTES §6b). Hermes nudges once
+            # rather than accepting that stop; so does this. It is a nudge, not a refusal: she can say why not and stop.
+            if round_no + 1 > rounds and turn.unchecked_work() and turn.nudges < 1:
+                turn.nudges += 1
+                messages.append({"role": "user", "content":
+                    "Before you wrap this up: you " + turn.unchecked_work() + " in this reply and haven't looked at the "
+                    "result. Read it back, or open it with `look` if it's something he'll see, then say what you found. "
+                    "If you genuinely can't check it, say that plainly instead."})
+                self.upstream = ask_model(messages, turn.tools, "auto")
+                continue
             if round_no + 1 > rounds:
                 break
             self.upstream = ask_model(messages, turn.tools, "none" if round_no + 1 >= rounds else "auto")
@@ -876,7 +917,15 @@ TURNS = {}                 # the turn that's answering now, by its approval ids,
 
 def act(turn, name, args):
     """Carry out one tool call for a turn: her instruments (calendar, threads), her hands (hands.py), or a toolbox
-    (connectors.py: open_toolbox, then toolbox__tool)."""
+    (connectors.py: open_toolbox, then toolbox__tool). Records what she wrote and what she looked at, for the
+    stop gate (Turn.unchecked_work)."""
+    a = args if isinstance(args, dict) else {}
+    if name in ("write_file", "edit_file", "append_file") and a.get("path"):
+        turn.touched.append(str(a["path"]))                       # what she made: must be looked at before "done"
+    if name == "look" and a.get("target"):
+        turn.checked.append(str(a["target"]))
+    if name == "read_file" and a.get("path"):
+        turn.checked.append(str(a["path"]))
     if name in instruments.NAMES:
         return instruments.use(turn.mem, name, args, source=turn.user_id)
     if name in hands.NAMES and turn.hands != "off":
@@ -886,8 +935,16 @@ def act(turn, name, args):
         selfcode.HOOKS["approve"] = turn.approve
         return selfcode.use(name, args, turn.hands)
     if name == "graph_look":
-        handle = (args or {}).get("handle") or "avy"
-        return atlas.look(MEMORIES["main"], handle), f"looked at {handle} in her graph"
+        # He'll reach for query/node/handle/kind interchangeably. Refusing the call costs the whole answer (measured:
+        # tension and multi-hop scored 0% and 12% under her own loop purely because the argument was named `query`),
+        # so any of them starts at the root and the value is passed on as a hint instead of being dropped.
+        args = args or {}
+        handle = args.get("handle") or args.get("node") or args.get("query") or args.get("name") or "avy"
+        shown = atlas.look(MEMORIES["main"], handle)
+        hint = args.get("query")
+        if hint and handle != hint:
+            shown = f"(Nothing in the graph is named {hint!r}, so this is the root. Follow the handles below.)\n" + shown
+        return shown, f"looked at {handle} in her graph"
     hub = connectors.HUB
     if hub and turn.hands != "off" and name == "open_toolbox":
         box = (args or {}).get("name")
@@ -1054,12 +1111,13 @@ FILE_CHARS = 240_000     # all the files in one briefing together, at most (abou
 MAX_PICTURES = 16        # pictures and video frames in one briefing, at most
 
 
-def briefing(shown, memory_note, text, incognito=False, core=True, attached=()):
+def briefing(shown, memory_note, text, incognito=False, core=True, attached=(), tools=True):
     """What the model sees, in this order: instructions and core (same every time, so it's cached),
     the newest messages word for word, the memory note for this message, then your message.
     Files go with the message they came with: the newest message's first, then earlier ones in the
-    window, newest first, while there's room (FILE_CHARS, MAX_PICTURES)."""
-    messages = [{"role": "system", "content": system_prompt(incognito, core)}]
+    window, newest first, while there's room (FILE_CHARS, MAX_PICTURES).
+    tools says whether this request actually carries tool schemas: the instructions must not promise tools it doesn't."""
+    messages = [{"role": "system", "content": system_prompt(incognito, core, tools)}]
     previous_at = None
     for m in shown:
         content = m["text"]

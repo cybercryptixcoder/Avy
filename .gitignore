@@ -22,3 +22,8 @@ tests/persona/results/*.memory/*
 !tests/persona/results/*.memory/transcript.jsonl
 tests/hands/results/*.work/
 .playwright-mcp/
+# Local benchmarking: the datasets are big, the outputs are bigger, and none of it belongs in a clone.
+tests/locomo/data/
+tests/locomo/out/
+tests/bench/out/
+tests/harness/out/
