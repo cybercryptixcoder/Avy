@@ -32,3 +32,4 @@ tests/swe/work/
 tests/swe/out/
 tests/build/out/
 tests/perf/out/
+tests/bench/results/
