@@ -33,3 +33,6 @@ tests/swe/out/
 tests/build/out/
 tests/perf/out/
 tests/bench/results/
+tests/harness/out/
+tests/locomo/data/
+tests/swe/data/
