@@ -186,8 +186,17 @@ def score(record, her_patch):
 
     run = subprocess.run([sys.executable, "-m", "pytest", "-q", "--no-header", *node_ids],
                          cwd=clean, capture_output=True, text=True, timeout=1800)
-    tail = (run.stdout or "")[-600:]
-    return {"applied": True, "passed": run.returncode == 0, "returncode": run.returncode,
+    used = f"{sys.version_info.major}.{sys.version_info.minor}"
+    # Exit code 4 means pytest could not even collect: that is an interpreter mismatch (a 2017 checkout importing
+    # `collections.Mapping`), not her fix failing. Grade it on an interpreter of its era before calling it a miss.
+    if run.returncode == 4:
+        old = subprocess.run(["uv", "run", "--python", "3.9", "--with", "pytest", "--with", "mpmath",
+                              "pytest", "-q", "--no-header", *node_ids],
+                             cwd=clean, capture_output=True, text=True, timeout=1800)
+        if old.returncode != 4:
+            run, used = old, "3.9"
+    tail = ((run.stdout or "") + (("\n[stderr]\n" + run.stderr) if run.stderr else ""))[-900:]
+    return {"applied": True, "passed": run.returncode == 0, "returncode": run.returncode, "python": used,
             "f2p": f2p, "p2p_checked": len(node_ids) - len(f2p), "tail": tail}
 
 

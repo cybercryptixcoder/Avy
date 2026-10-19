@@ -24,23 +24,32 @@ substance it is 12/12. A keyword check is a crude instrument and is labelled as 
 SWE-bench Verified. 500 instances downloaded; grader validated against the official **gold patch** before any
 score was believed.
 
-## 3. Software-engineering measurement — DONE, and it is 1 of 3
+## 3. Software-engineering measurement — DONE, and it is 3 of 3
 
 | instance | diff | time | result |
 |---|---|---|---|
-| sympy__sympy-23950 | 39 lines | 8.3 min | **resolved** (8 passed) |
-| sympy__sympy-13757 | 27 lines | 5.1 min | failed |
-| sympy__sympy-12096 | 19 lines | 3.6 min | failed |
+| sympy__sympy-23950 | 39 lines | 8.3 min | **resolved** — 8 passed |
+| sympy__sympy-13757 | 27 lines | 5.1 min | **resolved** — 39 passed, 2 skipped |
+| sympy__sympy-12096 | 19 lines | 3.6 min | **resolved** — 37 passed, 4 skipped |
 
-**1/3 = 33%**, against a published top of 79.2% and a reference baseline of 65%. n=3 is a smoke test, not a
-comparable estimate, and is reported as such.
+**3/3**, every patch applying cleanly to its base commit and passing both the official FAIL_TO_PASS and a slice of
+PASS_TO_PASS.
 
-Three harness bugs had to be fixed before that number meant anything:
+**This sample is not comparable to the published 79.2%.** Those three are the *smallest patches in sympy*, picked on
+purpose so the harness could be debugged cheaply. Selecting easy instances and reporting the result as a benchmark
+score would be exactly the dishonesty this file exists to prevent. It says she can close a small, well-specified bug
+in a large unfamiliar codebase in under ten minutes — not that she solves a third of SWE-bench Verified.
+
+Three harness bugs had to be fixed before that number meant anything, and the third one inverted the result:
 1. `pytest` was not installed in the venv, so every instance would have scored a false zero.
 2. `FAIL_TO_PASS` ships bare names (`test_as_set`), not node ids — pytest collected nothing. The gold patch
    failed, which is how this was caught.
 3. She edited the test file, so the official test patch would not apply. The official harness resets test files
    to base before applying its own; mine now does too.
+4. **Scored on Python 3.12 against 2017 checkouts, pytest exited 4 (could not collect) because those trees do
+   `from collections import Mapping`. That was recorded as "failed" and reported as 1/3.** The harness now treats
+   exit 4 as an interpreter mismatch and re-runs on Python 3.9 with mpmath. Corrected: 3/3. The failure was mine,
+   not hers, and the first number I gave the user was wrong.
 
 ## 4. Builds, long builds, multi-step builds — DONE for multi-step
 
@@ -70,7 +79,8 @@ or worse.
 ## 6. Comparable to a really good model — PARTLY
 
 - LoCoMo: 71.7% and 77.5% on two conversations, against a full-context band of 72.9–87.5%. Bottom of the band.
-- SWE-bench Verified: 33% on n=3 against 79.2% top. Not comparable.
+- SWE-bench Verified: 3 of 3 on the three smallest sympy patches. Resolved, but the sample is deliberately easy and
+  is **not** a benchmark score; it does not support a claim of parity.
 - No third benchmark, no sample large enough to claim parity.
 
 ## 7. Keep going until significant improvement in all benchmarks — PARTLY
