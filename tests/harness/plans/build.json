@@ -1,0 +1,17 @@
+{
+  "persona": "You are building a small personal dashboard as a single web page. You have strong taste: cream backgrounds, ink-black text, no gradients, no purple, no generic SaaS look. You are impatient when something is slow or half-done.",
+  "avoid": "Never invent people other than a friend called Rohan. Never invent dates beyond today (2026-10-05).",
+  "nights": 0,
+  "days": [
+    {"day": 1, "date": "2026-10-05", "sittings": [
+      {"at": "09:10", "thread": "build", "turns": 4, "kind": "task",
+       "about": "you want a single-file HTML dashboard: a big clock, a list of today's three tasks with checkboxes that persist in localStorage, and a small 'streak' number that counts consecutive days you opened it. Cream background, ink text, one accent color max, no purple, no gradients. It must work offline and be one file you can open by double-clicking."},
+      {"at": "09:45", "thread": "chat", "turns": 2,
+       "about": "a friend Rohan is getting married in November and you need a gift idea; you think he'd like something for his keyboard"},
+      {"at": "10:05", "thread": "build", "turns": 2, "kind": "task",
+       "about": "you are coming back to the dashboard now, after the Rohan conversation; you want to know where it stands and what's left"},
+      {"at": "10:30", "probe": {"id": "resume-1", "ask": "where did we leave the dashboard?", "checks": ["one file", "clock", "three tasks with localStorage", "streak", "cream/ink, no purple"]}},
+      {"at": "10:35", "probe": {"id": "lobotomy-1", "ask": "what was I thinking of getting Rohan?", "checks": ["keyboard-related gift idea"]}}
+    ]}
+  ]
+}

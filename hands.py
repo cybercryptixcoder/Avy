@@ -27,6 +27,7 @@ import os
 import re
 import shlex
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -39,6 +40,7 @@ from pathlib import Path
 HERE = Path(__file__).parent
 PLAYBOOKS = HERE / "playbooks"
 WORKSPACE = HERE / "data" / "workspace"       # app.py sets it (data/workspace); her own folder to work in
+SERVED = {"proc": None, "port": 0}            # the little web server look() uses for her local pages
 OUTPUT_CHARS = 12_000                         # tool output sent back to her, at most (the head and tail of anything longer)
 FETCH_CHARS = 15_000                          # a fetched page sent back, at most
 DEFAULT_TIMEOUT, MAX_TIMEOUT = 120, 600       # seconds for a foreground command
@@ -77,6 +79,7 @@ ASK = [
     (r"\bssh\s+\S+@?\S+", "connects to another machine"),
 ]
 SECRET_PATHS = re.compile(r"(^|/)(\.env(\.\w+)?|\.ssh(/|$)|\.aws(/|$)|\.gnupg(/|$)|id_(rsa|ed25519|ecdsa)\b|\.netrc|\.pgpass|credentials(\.json)?)", re.I)
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".avif", ".heic"}
 
 
 def judge(command):
@@ -276,6 +279,12 @@ def read_file(path, offset=1, limit=400):
         except Exception as e:
             return f"Couldn't read the PDF ({e})."
         lines = text.splitlines()
+    elif p.suffix.lower() in IMAGE_SUFFIXES:
+        # She has no eyes. Saying so, with something useful instead of mojibake, is what keeps her from narrating
+        # "I saw" over what she actually measured. Use look() for a page in a browser.
+        return (f"{p} is an image ({p.stat().st_size:,} bytes). You can't see pixels: there's no image input on your model. "
+                f"Don't describe it as if you looked. For a web page use look(), which gives you the DOM, computed "
+                f"styles and layout numbers as text; for colours and spacing that is more accurate than eyes anyway.")
     else:
         try:
             lines = p.read_text(errors="replace").splitlines()
@@ -363,6 +372,139 @@ def find_files(pattern="*", contains=None, path=None, limit=200):
 # ---------------------------------------------------------------------------------------------------------------
 # Python
 # ---------------------------------------------------------------------------------------------------------------
+
+def serve_workspace():
+    """Start (once) a read-only web server on 127.0.0.1 for her workspace. Returns the base address, or a reason."""
+    proc = SERVED.get("proc")
+    if proc is not None and proc.poll() is None:
+        return f"http://127.0.0.1:{SERVED['port']}"
+    try:
+        WORKSPACE.mkdir(parents=True, exist_ok=True)
+        sock = socket.socket()
+        sock.bind(("127.0.0.1", 0))                     # let the OS pick a free port
+        port = sock.getsockname()[1]
+        sock.close()
+        code = ("import functools, http.server, socketserver\n"
+                "class H(http.server.SimpleHTTPRequestHandler):\n"
+                "    def log_message(self, *a): pass\n"           # silent: this is not a log she should read
+                f"h = functools.partial(H, directory={str(WORKSPACE)!r})\n"
+                f"socketserver.TCPServer.allow_reuse_address = True\n"
+                f"with socketserver.TCPServer(('127.0.0.1', {port}), h) as s:\n"
+                "    s.serve_forever()\n")
+        SERVED["proc"] = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.DEVNULL,
+                                          stderr=subprocess.DEVNULL, start_new_session=True)
+        SERVED["port"] = port
+        for _ in range(40):                              # wait until it actually answers (startup is ~50 ms)
+            try:
+                with socket.create_connection(("127.0.0.1", port), timeout=0.25):
+                    return f"http://127.0.0.1:{port}"
+            except OSError:
+                time.sleep(0.05)
+        return "I couldn't start the little server that puts your page on a local address."
+    except Exception as e:
+        return f"I couldn't serve your page ({type(e).__name__}: {str(e)[:120]})."
+
+
+def look(target, width=None, full=False):
+    """What a page is, as measurements: geometry, computed styles, overflow, console errors. Not pixels.
+
+    Runs through her own browser toolbox (connectors) so there is one browser, not two. The JS is written to be
+    dull on purpose: every read is guarded, because one missing element must not fail the whole look.
+    """
+    import urllib.parse
+    target = str(target or "").strip()
+    if not target:
+        return "Give me an address (http://… or a path to a .html file)."
+    if target.startswith(("http://", "https://")):
+        url = target
+    else:
+        p = resolve(target)
+        if not p.is_file():
+            near = sorted(x.name for x in p.parent.glob("*.htm*"))[:10] if p.parent.exists() else []
+            return f"There's no page at {p}." + (f" In {p.parent}: {', '.join(near)}" if near else "")
+        # Browsers (and your toolbox) refuse file:// addresses, so her pages are served from a loopback port instead.
+        # That is also truer to life: scripts, fetch and storage all behave the way they will for him.
+        served = serve_workspace()
+        if not served.startswith("http://"):
+            return served
+        url = served + urllib.parse.quote("/" + str(p.relative_to(WORKSPACE)))
+    width = max(200, min(int(width or 1280), 2560))
+    js = LOOK_JS.replace("%%WIDTH%%", str(width))
+    try:
+        import connectors
+        hub = connectors.HUB
+        if not hub:
+            return "Your browser toolbox isn't started, so I can't open the page. Say so rather than guessing at the page."
+        tools, problem = hub.open("browser")
+        if problem:
+            return f"The browser wouldn't open ({problem}); I can't see the page. Say so rather than guessing."
+        hub.call("browser", "browser_resize", {"width": width, "height": 900})
+        hub.call("browser", "browser_navigate", {"url": url})
+        # navigate resolves before the page has painted; measure only once it has said it is done loading.
+        try:
+            hub.call("browser", "browser_wait_for", {"text": ""})
+        except Exception:
+            pass
+        out = hub.call("browser", "browser_evaluate", {"function": js})
+    except Exception as e:
+        return f"Looking failed ({type(e).__name__}: {str(e)[:200]})."
+    return keep_output(f"Measurements for {url} at {width}px wide (you have no pixels: these are numbers, not sight):\n{_result_only(out)}",
+                       label="look")
+
+
+def _result_only(text):
+    """The value the page's script returned, without the toolbox's echo of the script it ran."""
+    text = str(text or "")
+    start = text.find('### Result')
+    if start < 0:
+        return text.strip()
+    value = text[start + len('### Result'):]
+    end = value.find('\n### ')
+    value = (value[:end] if end >= 0 else value).strip()
+    if len(value) >= 2 and value[0] == value[-1] == '"':
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value[1:-1].encode().decode("unicode_escape", errors="replace")
+    return value
+
+
+LOOK_JS = r"""() => {
+  const W = %%WIDTH%%, out = [];
+  const cs = el => { try { return getComputedStyle(el); } catch (e) { return null; } };
+  const seen = new Set();
+  const show = el => {
+    const s = cs(el); if (!s) return false;
+    if (s.display === 'none' || s.visibility === 'hidden' || parseFloat(s.opacity) === 0) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const box = r => `x=${Math.round(r.x)} y=${Math.round(r.y + scrollY)} ${Math.round(r.width)}x${Math.round(r.height)}`;
+  out.push(`title: ${document.title || '(none)'}`);
+  out.push(`viewport: ${innerWidth}x${innerHeight}, page height ${document.documentElement.scrollHeight}`);
+  const overflow = document.documentElement.scrollWidth - innerWidth;
+  out.push(overflow > 1 ? `HORIZONTAL OVERFLOW: the page is ${overflow}px wider than the screen` : 'no horizontal overflow');
+  const bg = cs(document.body);
+  if (bg) out.push(`body: colour ${bg.color}, background ${bg.backgroundColor}, font ${bg.fontFamily.split(',')[0]} ${bg.fontSize}`);
+  out.push('\ntext blocks (as laid out):');
+  for (const el of document.querySelectorAll('body *')) {
+    if (!show(el)) continue;
+    const own = Array.from(el.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(' ').trim();
+    if (!own) continue;
+    const s = cs(el), r = el.getBoundingClientRect();
+    const key = own + '|' + Math.round(r.x) + '|' + Math.round(r.y);
+    if (seen.has(key)) continue; seen.add(key);
+    const weight = s.fontWeight === '400' || s.fontWeight === 'normal' ? '' : ' ' + s.fontWeight;
+    out.push(`  <${el.tagName.toLowerCase()}> ${JSON.stringify(own.slice(0, 160))} — ${box(r)}, ${s.fontSize}${weight}, ${s.color}`);
+  }
+  out.push('\ncontrols:');
+  for (const el of document.querySelectorAll('input,button,a,select,textarea,[role=button]')) {
+    if (!show(el)) continue;
+    out.push(`  <${el.tagName.toLowerCase()}> ${JSON.stringify((el.textContent || el.value || el.placeholder || el.getAttribute('aria-label') || '').trim().slice(0, 80))} — ${box(el.getBoundingClientRect())}`);
+  }
+  return out.join('\n');
+}"""
+
 
 def python(code, timeout=None):
     WORKSPACE.mkdir(parents=True, exist_ok=True)
@@ -535,6 +677,14 @@ TOOLS = [
          ["path", "old", "new"]),
     tool("find_files", "Find files by name (a glob like '*.py') under a folder, or, with contains, the lines that match a regex.",
          {"pattern": {"type": "string"}, "contains": {"type": "string"}, "path": {"type": "string"}}, []),
+    tool("look", "Look at a web page the way you actually can: open it in your browser, then get back its title, "
+                 "every visible text block with its geometry, the computed colours and font sizes of what stands out, "
+                 "the horizontal overflow if any, and any console errors or failed requests. target is an http(s) "
+                 "address or a path to a local .html file. Use this instead of reading a page's source when the "
+                 "question is what it looks like or whether it works. You have no pixels: report these as measurements, "
+                 "never say you saw it.",
+         {"target": {"type": "string"}, "width": {"type": "integer", "description": "viewport width in px (default 1280; try 390 for a phone)"},
+          "full": {"type": "boolean", "description": "also list every element's box, not just the main text"}}, ["target"]),
     tool("python", "Run a short Python program and get what it prints. Use it for any arithmetic, dates, data or a quick "
                    "check, instead of working it out in your head.",
          {"code": {"type": "string"}, "timeout": {"type": "integer"}}, ["code"]),
@@ -574,6 +724,9 @@ def use(name, args, mode="ask"):
             return out, clip_line(out.splitlines()[0], 90)
         if name == "find_files":
             return find_files(a.get("pattern") or "*", a.get("contains"), a.get("path")), f"looked for {a.get('pattern') or a.get('contains') or 'files'}"
+        if name == "look":
+            out = look(a.get("target"), a.get("width"), bool(a.get("full")))
+            return out, f"looked at {clip_line(a.get('target'), 60)}"
         if name == "python":
             out = python(a.get("code"), a.get("timeout"))
             return out, f"ran python · {out.splitlines()[0][:50] if out else ''}"

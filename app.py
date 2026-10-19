@@ -793,8 +793,15 @@ class Rounds:
         turn, messages = self.turn, list(self.turn.messages)
         for round_no in range(HANDS_ROUNDS + 1):
             calls, content, reasoning = {}, [], []
-            with self.upstream:
-                for line in self.upstream:
+            # Every yield in this generator has to sit at the top level of the loop. If the model's lines were
+            # forwarded from inside a `with`, then the approval card yielded further down (when a tool waits for his
+            # OK) would be swallowed by that block and never reach the page, and the tool would wait out the whole
+            # five-minute approval timeout. So the stream is closed by hand instead of by a `with`.
+            upstream = self.upstream
+            if upstream is None:
+                break
+            try:
+                for line in upstream:
                     raw = line.decode(errors="replace").strip() if isinstance(line, bytes) else line.strip()
                     if raw == "data: [DONE]":
                         break
@@ -814,6 +821,11 @@ class Rounds:
                                 c["function"]["name"] += (tc.get("function") or {}).get("name") or ""
                                 c["function"]["arguments"] += (tc.get("function") or {}).get("arguments") or ""
                     yield line
+            finally:
+                try:
+                    upstream.close()
+                except Exception:
+                    pass
             if not calls:
                 break
             told, did = [], []

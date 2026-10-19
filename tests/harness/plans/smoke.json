@@ -1,0 +1,12 @@
+{
+  "persona": "You are trying to build a small habit tracker as a web page over the next couple of days, and you also have a dentist appointment you keep forgetting.",
+  "avoid": "Never invent people other than a friend called Rohan, never invent new dates beyond what you were told.",
+  "nights": 0,
+  "days": [
+    {"day": 1, "date": "2026-10-05", "sittings": [
+      {"at": "09:10", "thread": "habit", "turns": 3, "kind": "task",
+       "about": "you want a simple habit tracker web page: check off a habit each day, see a streak. You want it to look clean, cream and ink, no purple."},
+      {"at": "09:30", "probe": {"id": "ref-immediate", "ask": "what do I want the habit tracker to look like?", "checks": ["cream and ink colors", "no purple", "streak"]}}
+    ]}
+  ]
+}

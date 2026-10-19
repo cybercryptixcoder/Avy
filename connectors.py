@@ -40,7 +40,9 @@ OUTPUT_CHARS = 14_000
 BROWSER_ASK = ["browser_fill_form", "browser_type", "browser_file_upload", "browser_handle_dialog", "browser_evaluate",
                "browser_run_code_unsafe", "browser_install"]
 DEFAULTS = {
-    "browser": {"command": "npx", "args": ["-y", "@playwright/mcp@latest", "--headless", "--isolated"],
+    "browser": {"command": "npx", "args": ["-y", "@playwright/mcp@latest", "--headless", "--isolated", "--no-sandbox",
+                                           *(["--executable-path", os.environ["AVY_BROWSER"]] if os.environ.get("AVY_BROWSER") else []),
+                                           *(["--browser", os.environ["AVY_BROWSER_CHANNEL"]] if os.environ.get("AVY_BROWSER_CHANNEL") else [])],
                 "about": "a real web browser: open pages, read them as an accessibility snapshot, click, type, fill forms, "
                          "take screenshots (for pages web_fetch can't read: logins, apps, anything that needs clicking)",
                 "ask": BROWSER_ASK},
@@ -103,13 +105,28 @@ class Connectors:
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     listed = await session.list_tools()
-                    box.tools = [{"name": t.name, "description": t.description or "", "schema": t.inputSchema or {"type": "object", "properties": {}}}
+                    # The MCP SDK renamed Tool.inputSchema to input_schema (and outputSchema/annotations alike). Read
+                    # whichever this SDK has, so a version bump can't quietly empty the browser toolbox again.
+                    def _schema(t):
+                        for attr in ("inputSchema", "input_schema"):
+                            if getattr(t, attr, None):
+                                return getattr(t, attr)
+                        return {"type": "object", "properties": {}}
+                    box.tools = [{"name": t.name, "description": t.description or "", "schema": _schema(t)}
                                  for t in listed.tools]
                     box.session, box.problem = session, None
                     box.ready.set()
                     await box.stop.wait()
-        except Exception as e:
-            box.problem = f"{type(e).__name__}: {str(e)[:300]}"
+        except BaseException as e:
+            # An anyio TaskGroup wraps real failures in ExceptionGroup, whose str() hides the cause ("1 sub-exception").
+            # Walk down to the actual error so a broken toolbox says *why* instead of looking merely mysterious.
+            def _why(x):
+                for sub in getattr(x, "exceptions", None) or []:
+                    found = _why(sub)
+                    if found:
+                        return found
+                return f"{type(x).__name__}: {str(x)[:300]}" if str(x) else ""
+            box.problem = "it failed: " + (_why(e) or type(e).__name__)
         finally:
             box.session = None
             box.ready.set()

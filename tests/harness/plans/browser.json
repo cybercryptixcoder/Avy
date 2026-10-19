@@ -1,0 +1,12 @@
+{
+  "persona": "Earlier today you asked Avy to build you a small dashboard page, and she saved it at ~workspace/dashboard.html inside her own workspace. Now you want her to actually look at it in a browser and tell you what it looks like.",
+  "avoid": "Never mention a path outside her workspace; it is ~workspace (her workspace folder), always.",
+  "nights": 0,
+  "days": [
+    {"day": 1, "date": "2026-10-19", "sittings": [
+      {"at": "09:10", "thread": "browse", "turns": 1, "kind": "task",
+       "about": "the dashboard you asked her for earlier today is at ~workspace/dashboard.html. Ask her to open it in the browser and tell you exactly what it looks like and whether anything is broken or ugly. Say you want her honest read of the page itself, not the source."},
+      {"at": "09:40", "probe": {"id": "browser-used", "ask": "did you actually look at the page in a browser? what did you see?", "checks": ["opened in a browser", "what it looks like", "any problem"]}}
+    ]}
+  ]
+}
